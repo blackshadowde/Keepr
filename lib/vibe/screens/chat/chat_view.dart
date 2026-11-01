@@ -136,7 +136,7 @@ class ChatView extends StatelessWidget {
                       )
                     : VibeThemes.isColumnMode(context)
                     ? null
-                    : const Center(child: BackButton()),
+                    : Center(child: _BackUnread(controller.room)),
                 titleSpacing: VibeThemes.isColumnMode(context) ? 24 : 0,
                 title: ChatAppBarTitle(controller),
                 actions: [
@@ -566,4 +566,32 @@ class ChatView extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The back button shows how many other chats have unread messages.
+class _BackUnread extends StatelessWidget {
+  final Room room;
+  const _BackUnread(this.room);
+
+  @override
+  Widget build(BuildContext context) => StreamBuilder<Object?>(
+    stream: room.client.onSync.stream,
+    builder: (context, _) {
+      final n = room.client.rooms
+          .where(
+            (r) =>
+                r.id != room.id &&
+                (r.notificationCount > 0 || r.membership == Membership.invite),
+          )
+          .length;
+      return Badge(
+        isLabelVisible: n > 0,
+        label: Text(n > 99 ? '99+' : '$n'),
+        backgroundColor: const Color(0xFFF23F43),
+        textColor: Colors.white,
+        offset: const Offset(-6, 6),
+        child: const BackButton(),
+      );
+    },
+  );
 }
