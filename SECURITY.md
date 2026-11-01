@@ -2,7 +2,7 @@
 
 Found a security problem in Keepr? Please don't open a public issue.
 Report it privately through GitHub:
-https://github.com/blackshadowde/Vibe-flutter/security/advisories/new
+https://github.com/blackshadowde/Keepr/security/advisories/new
 
 Keepr's encryption comes from the Matrix Dart SDK and vodozemac. Problems in
 those belong to their projects (famedly/matrix-dart-sdk, matrix-org/vodozemac).

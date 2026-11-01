@@ -13,7 +13,7 @@ import 'package:matrix/matrix.dart';
 /// ("Vibey", "Love", or an imported pack's name), so the sticker tray can
 /// show the packs as tabs and each pack can be hidden.
 abstract class VibeStickers {
-  static const _field = 'chat.vibe.pack';
+  static const _field = 'chat.keepr.pack';
   static const _type = 'im.ponies.user_emotes';
 
   static Map<String, Object?> _raw(Client c) =>

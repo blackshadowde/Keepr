@@ -9,7 +9,7 @@ extension VibeStickerX on Event {
   bool get isVibeSticker {
     if (messageType == MessageTypes.Sticker) return true;
     if (messageType != MessageTypes.Image) return false;
-    if (content['chat.vibe.sticker'] == true) return true;
+    if (content['chat.keepr.sticker'] == true) return true;
     final mime = content.tryGetMap<String, Object?>('info')?.tryGet<String>('mimetype');
     return mime == 'image/webp';
   }

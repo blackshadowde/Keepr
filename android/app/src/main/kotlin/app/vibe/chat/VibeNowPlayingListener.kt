@@ -1,4 +1,4 @@
-package app.vibe.chat
+package app.keepr.chat
 
 import android.content.ComponentName
 import android.content.Context

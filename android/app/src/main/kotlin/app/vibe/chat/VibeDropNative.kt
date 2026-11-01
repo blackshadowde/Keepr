@@ -1,4 +1,4 @@
-package app.vibe.chat
+package app.keepr.chat
 
 import android.app.Activity
 import android.content.ClipDescription

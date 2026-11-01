@@ -283,7 +283,7 @@ class _VibeUpdatesPageState extends State<VibeUpdatesPage> {
                 onPressed: () => launchUrlString(
                   r?.pageUrl.isNotEmpty == true
                       ? r!.pageUrl
-                      : 'https://github.com/blackshadowde/Vibe-flutter/releases',
+                      : 'https://github.com/blackshadowde/Keepr/releases',
                   mode: LaunchMode.externalApplication,
                 ),
                 icon: const Icon(Icons.open_in_new, size: 18),

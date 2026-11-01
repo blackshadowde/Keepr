@@ -53,8 +53,8 @@ links that point to a call server.
 - **GitHub:** the Android version from GitHub checks for updates every few
   hours (`api.github.com`). The Google Play version doesn't; Google Play
   updates it. iPhone update lists (SideStore / AltStore) and the
-  website (get-vibe.github.io) are on GitHub too.
-- **get-vibe.github.io:** the list of suggested servers when you sign in,
+  website (get-keepr.github.io) are on GitHub too.
+- **get-keepr.github.io:** the list of suggested servers when you sign in,
   and the help page.
 - **Google Fonts (`fonts.gstatic.com`):** the animated emoji in reaction
   and effect menus are downloaded from there when shown. Low data mode
@@ -99,7 +99,7 @@ needed to provide the service you asked for (Art. 6(1)(b)).
 
 You can see, export or delete your data on your Matrix server (sign in to
 your server's account page), and delete your account at any time: see
-https://get-vibe.github.io/delete-account.html. As the developer holds no
+https://get-keepr.github.io/delete-account.html. As the developer holds no
 data about you, there is nothing to request from Keepr itself.
 
 ## Data outside your country
@@ -116,11 +116,11 @@ the minimum age in your country, if higher).
 ## Changes
 
 If this policy changes, the new version is published here, at
-https://github.com/blackshadowde/Vibe-flutter/blob/Vibe/PRIVACY.md, and the
+https://github.com/blackshadowde/Keepr/blob/Vibe/PRIVACY.md, and the
 change is listed in the changelog.
 
 ## Contact
 
-Questions: open an issue at https://github.com/blackshadowde/Vibe-flutter/issues,
+Questions: open an issue at https://github.com/blackshadowde/Keepr/issues,
 or write to the email address on Keepr's Google Play page. Security problems:
-report privately at https://github.com/blackshadowde/Vibe-flutter/security/advisories/new
+report privately at https://github.com/blackshadowde/Keepr/security/advisories/new

@@ -33,8 +33,8 @@ How Vibe itself encrypts:
 
 Vibe used to declare that it can open `https://matrix.to` links. Only
 matrix.org could verify that, and Android 12+ opens unverified links in the
-browser anyway. **Removed** ([660a668](https://github.com/blackshadowde/Vibe-flutter/commit/660a66834)).
-`matrix:` and `vibe://` links still open Vibe. (Vibe never used
+browser anyway. **Removed** ([660a668](https://github.com/blackshadowde/Keepr/commit/660a66834)).
+`matrix:` and `keepr://` links still open Vibe. (Vibe never used
 `autoVerify` on matrix.to.)
 
 ## Warnings
@@ -63,4 +63,4 @@ browser anyway. **Removed** ([660a668](https://github.com/blackshadowde/Vibe-flu
 - **Permissions also used by malware:** camera, microphone, contacts, location, run at start-up. Each belongs to a feature (calls, voice messages, sharing a contact or location, staying connected for notifications) and is asked for when used. The Google Play build has no "install apps" permission.
 
 Found something this page gets wrong? Please report it privately:
-https://github.com/blackshadowde/Vibe-flutter/security/advisories/new
+https://github.com/blackshadowde/Keepr/security/advisories/new

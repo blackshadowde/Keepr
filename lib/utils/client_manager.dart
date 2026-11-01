@@ -125,8 +125,8 @@ abstract class ClientManager {
         // To make room emotes work
         'im.ponies.room_emotes',
         // Vibe custom status + time zone
-        'chat.vibe.status',
-        'chat.vibe.disappearing',
+        'chat.keepr.status',
+        'chat.keepr.disappearing',
         // Who is in a call (MatrixRTC), for the call buttons and badges
         'org.matrix.msc3401.call.member',
       },

@@ -18,7 +18,7 @@ import 'package:matrix/matrix.dart';
 /// Like Telegram, an archived chat comes back while it has new messages
 /// (unless it's muted) and returns to the archive once read.
 abstract class VibeArchive {
-  static const tag = 'chat.vibe.archived';
+  static const tag = 'chat.keepr.archived';
 
   static bool isArchived(Room room) => room.tags.containsKey(tag);
 

@@ -41,7 +41,7 @@ const vibeReleaseNotes = <({String version, List<String> items})>[
 ];
 
 abstract class VibeWhatsNew {
-  static const _seenKey = 'chat.vibe.whats_new_seen';
+  static const _seenKey = 'chat.keepr.whats_new_seen';
 
   /// Show the card once after every update. Call when the home screen
   /// is up.

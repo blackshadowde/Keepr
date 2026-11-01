@@ -9,13 +9,13 @@ import 'package:matrix/matrix.dart';
 
 /// Disappearing messages, per chat.
 ///
-/// The timer is a `chat.vibe.disappearing` room state event, so both people
+/// The timer is a `chat.keepr.disappearing` room state event, so both people
 /// see the same setting. Only messages sent after it was turned on disappear.
 /// - Every Vibe hides expired messages on screen right away.
 /// - Each person's Vibe deletes (redacts) their OWN expired messages from
 ///   the server every few minutes while the app is running.
 abstract class VibeDisappearing {
-  static const type = 'chat.vibe.disappearing';
+  static const type = 'chat.keepr.disappearing';
 
   static const options = <(Duration?, String)>[
     (null, 'Off'),

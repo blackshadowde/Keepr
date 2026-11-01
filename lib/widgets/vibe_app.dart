@@ -51,7 +51,7 @@ class VibeApp extends StatelessWidget {
       // Workaround for content sharings passed to go router:
       if ({
         'content',
-        'sharemedia-app.vibe.chat',
+        'sharemedia-app.keepr.chat',
       }.contains(state.uri.scheme)) {
         Logs().d('Ignore content sharing handling in go router', state.uri);
         return '/';

@@ -1,4 +1,4 @@
-package app.vibe.chat
+package app.keepr.chat
 
 import android.content.ContentValues
 import android.content.Context
@@ -24,14 +24,14 @@ import javax.crypto.spec.SecretKeySpec
  *   PBKDF2-HMAC-SHA256 (310,000 rounds, random salt). Without the password
  *   the file can't be read; a changed file is refused.
  *   File layout: "VIBEBK1" | salt (16) | iv (12) | encrypted data.
- * - Saving: Downloads/Vibe backups, so backups survive uninstalling Vibe.
+ * - Saving: Downloads/Keepr backups, so backups survive uninstalling Vibe.
  *   Automatic backups keep only the newest few.
  */
 object VibeBackupNative {
     private const val CHANNEL = "vibe/backup"
     private val MAGIC = "VIBEBK1".toByteArray(Charsets.US_ASCII)
     private const val ROUNDS = 310_000
-    private const val FOLDER = "Vibe backups"
+    private const val FOLDER = "Keepr backups"
     private const val MIME = "application/octet-stream"
     private val random = SecureRandom()
 
@@ -169,7 +169,7 @@ object VibeBackupNative {
         }
     }
 
-    /** Saves to Downloads/Vibe backups and returns where it went. */
+    /** Saves to Downloads/Keepr backups and returns where it went. */
     private fun save(
         context: Context,
         name: String,

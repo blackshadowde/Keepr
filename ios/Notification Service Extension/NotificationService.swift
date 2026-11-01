@@ -92,7 +92,7 @@ class NotificationService: UNNotificationServiceExtension {
             return
         }
         guard let containerPath = FileManager.default.containerURL(
-                forSecurityApplicationGroupIdentifier: "group.app.vibe.chat"
+                forSecurityApplicationGroupIdentifier: "group.app.keepr.chat"
             ) else {
                 bestAttemptContent.title = "Unable to get container path"
                 os_log("[VibePush] Unable to get container path!")
@@ -172,7 +172,7 @@ class NotificationService: UNNotificationServiceExtension {
             kSecAttrService as String: "flutter_secure_storage_service",
             kSecAttrAccount as String: "database_password",
             kSecReturnData as String: true,
-            kSecAttrAccessGroup as String: "group.app.vibe.chat",
+            kSecAttrAccessGroup as String: "group.app.keepr.chat",
         ]
 
         var item: CFTypeRef?

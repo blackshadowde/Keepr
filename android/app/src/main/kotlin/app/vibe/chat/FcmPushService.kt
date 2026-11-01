@@ -1,4 +1,4 @@
-/*package app.vibe.chat
+/*package app.keepr.chat
 
 import com.famedly.fcm_shared_isolate.FcmSharedIsolateService
 

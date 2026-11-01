@@ -18,9 +18,9 @@ abstract class VibeSupport {
   static const _payeeName = 'Keepr';
   static Color get blurple => VibePalette.accent;
 
-  static const _firstSeenKey = 'chat.vibe.support_first_seen';
-  static const _lastAskKey = 'chat.vibe.support_last_ask';
-  static const _neverKey = 'chat.vibe.support_never';
+  static const _firstSeenKey = 'chat.keepr.support_first_seen';
+  static const _lastAskKey = 'chat.keepr.support_last_ask';
+  static const _neverKey = 'chat.keepr.support_never';
 
   /// Standard UPI link: any UPI app (GPay, PhonePe, Paytm, BHIM…) opens it.
   static String get upiLink =>

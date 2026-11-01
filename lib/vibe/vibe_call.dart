@@ -30,7 +30,7 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 /// network; Opus voice with echo cancelling. Vibe shows your own preview
 /// unmirrored, and voice calls switch the camera off before joining.
 abstract class VibeCall {
-  static const _key = 'chat.vibe.call';
+  static const _key = 'chat.keepr.call';
   static const _channel = MethodChannel('vibe/system');
 
   static String get server {

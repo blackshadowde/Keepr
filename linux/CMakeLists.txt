@@ -9,7 +9,7 @@ set(OPENSSL_USE_STATIC_LIBS OFF)
 set(BINARY_NAME "vibe")
 # The unique GTK application identifier for this application. See:
 # https://wiki.gnome.org/HowDoI/ChooseApplicationID
-set(APPLICATION_ID "app.vibe.chat")
+set(APPLICATION_ID "app.keepr.chat")
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.

@@ -26,16 +26,16 @@ enum AppSettings<T> {
   textMessageMaxLength<int>('textMessageMaxLength', 16384),
 
   /// Max lines for unselected HTML/text bubbles; 0 = unlimited (no fade).
-  messagePreviewMaxLines<int>('chat.vibe.message_preview_max_lines', 25),
+  messagePreviewMaxLines<int>('chat.keepr.message_preview_max_lines', 25),
   audioRecordingNumChannels<int>('audioRecordingNumChannels', 1),
   audioRecordingAutoGain<bool>('audioRecordingAutoGain', true),
   audioRecordingEchoCancel<bool>('audioRecordingEchoCancel', false),
   audioRecordingNoiseSuppress<bool>('audioRecordingNoiseSuppress', true),
   audioRecordingBitRate<int>('audioRecordingBitRate', 64000),
   audioRecordingSamplingRate<int>('audioRecordingSamplingRate', 44100),
-  showNoGoogle<bool>('chat.vibe.show_no_google', false),
-  unifiedPushRegistered<bool>('chat.vibe.unifiedpush.registered', false),
-  unifiedPushEndpoint<String>('chat.vibe.unifiedpush.endpoint', ''),
+  showNoGoogle<bool>('chat.keepr.show_no_google', false),
+  unifiedPushRegistered<bool>('chat.keepr.unifiedpush.registered', false),
+  unifiedPushEndpoint<String>('chat.keepr.unifiedpush.endpoint', ''),
   pushNotificationsGatewayUrl<String>(
     'pushNotificationsGatewayUrl',
     _vibeGateway,
@@ -44,115 +44,115 @@ enum AppSettings<T> {
     'pushNotificationsPusherFormat',
     'event_id_only',
   ),
-  renderHtml<bool>('chat.vibe.renderHtml', true),
-  fontSizeFactor<double>('chat.vibe.font_size_factor', 1.0),
+  renderHtml<bool>('chat.keepr.renderHtml', true),
+  fontSizeFactor<double>('chat.keepr.font_size_factor', 1.0),
   // Telegram-style chat text size 12–30 (0 = not set yet: use the factor).
-  vibeTextSize<int>('chat.vibe.text_size', 0),
-  hideRedactedEvents<bool>('chat.vibe.hideRedactedEvents', false),
-  hideUnknownEvents<bool>('chat.vibe.hideUnknownEvents', true),
-  autoplayImages<bool>('chat.vibe.autoplay_images', true),
-  sendTypingNotifications<bool>('chat.vibe.send_typing_notifications', true),
-  sendPublicReadReceipts<bool>('chat.vibe.send_public_read_receipts', true),
-  swipeRightToLeftToReply<bool>('chat.vibe.swipeRightToLeftToReply', true),
-  sendOnEnter<bool>('chat.vibe.send_on_enter', false),
-  displayNavigationRail<bool>('chat.vibe.display_navigation_rail', false),
-  experimentalVoip<bool>('chat.vibe.experimental_voip', false),
+  vibeTextSize<int>('chat.keepr.text_size', 0),
+  hideRedactedEvents<bool>('chat.keepr.hideRedactedEvents', false),
+  hideUnknownEvents<bool>('chat.keepr.hideUnknownEvents', true),
+  autoplayImages<bool>('chat.keepr.autoplay_images', true),
+  sendTypingNotifications<bool>('chat.keepr.send_typing_notifications', true),
+  sendPublicReadReceipts<bool>('chat.keepr.send_public_read_receipts', true),
+  swipeRightToLeftToReply<bool>('chat.keepr.swipeRightToLeftToReply', true),
+  sendOnEnter<bool>('chat.keepr.send_on_enter', false),
+  displayNavigationRail<bool>('chat.keepr.display_navigation_rail', false),
+  experimentalVoip<bool>('chat.keepr.experimental_voip', false),
   // Keys go only to your cross-signed (verified) devices, like Element
-  shareKeysWith<String>('chat.vibe.share_keys_with_3', 'crossVerified'),
+  shareKeysWith<String>('chat.keepr.share_keys_with_3', 'crossVerified'),
   noEncryptionWarningShown<bool>(
-    'chat.vibe.no_encryption_warning_shown',
+    'chat.keepr.no_encryption_warning_shown',
     false,
   ),
-  displayChatDetailsColumn('chat.vibe.display_chat_details_column', false),
+  displayChatDetailsColumn('chat.keepr.display_chat_details_column', false),
   // AppConfig-mirrored settings
-  applicationName<String>('chat.vibe.application_name', 'Keepr'),
+  applicationName<String>('chat.keepr.application_name', 'Keepr'),
   defaultHomeserver<String>(
-    'chat.vibe.default_homeserver',
+    'chat.keepr.default_homeserver',
     'matrix.unredacted.org',
   ),
   // colorSchemeSeed stored as ARGB int
-  colorSchemeSeedInt<int>('chat.vibe.color_scheme_seed', 0xFF5865F2),
+  colorSchemeSeedInt<int>('chat.keepr.color_scheme_seed', 0xFF5865F2),
   emojiSuggestionLocale<String>('emoji_suggestion_locale', ''),
-  enableSoftLogout<bool>('chat.vibe.enable_soft_logout', false),
-  enableMatrixNativeOIDC<bool>('chat.vibe.enable_matrix_native_oidc', false),
-  presetHomeserver<String>('chat.vibe.preset_homeserver', ''),
-  welcomeText<String>('chat.vibe.welcome_text', ''),
-  website<String>('chat.vibe.website_url', 'https://get-vibe.github.io'),
+  enableSoftLogout<bool>('chat.keepr.enable_soft_logout', false),
+  enableMatrixNativeOIDC<bool>('chat.keepr.enable_matrix_native_oidc', false),
+  presetHomeserver<String>('chat.keepr.preset_homeserver', ''),
+  welcomeText<String>('chat.keepr.welcome_text', ''),
+  website<String>('chat.keepr.website_url', 'https://get-keepr.github.io'),
   logoUrl<String>(
-    'chat.vibe.logo_url',
-    'https://get-vibe.github.io/assets/icon.png',
+    'chat.keepr.logo_url',
+    'https://get-keepr.github.io/assets/icon.png',
   ),
   privacyPolicy<String>(
-    'chat.vibe.privacy_policy_url',
+    'chat.keepr.privacy_policy_url',
     'https://matrix.org/legal/privacy-notice/',
   ),
-  tos<String>('chat.vibe.tos_url', 'https://matrix.org/legal/terms-and-conditions/'),
-  sendTimelineEventTimeout<int>('chat.vibe.send_timeline_event_timeout', 15),
-  webNotificationSound<bool>('chat.vibe.web_notification_sound', true),
-  chatFilter<String>('chat.vibe.chat_filter', 'allChats'),
-  hideRoomsInSpaces<bool>('chat.vibe.hideRoomsInSpaces', false),
-  showThumbnailsInTimeline<bool>('chat.vibe.showThumbnailsInTimeline', true),
-  vibeHaptics<bool>('chat.vibe.haptics', true),
+  tos<String>('chat.keepr.tos_url', 'https://matrix.org/legal/terms-and-conditions/'),
+  sendTimelineEventTimeout<int>('chat.keepr.send_timeline_event_timeout', 15),
+  webNotificationSound<bool>('chat.keepr.web_notification_sound', true),
+  chatFilter<String>('chat.keepr.chat_filter', 'allChats'),
+  hideRoomsInSpaces<bool>('chat.keepr.hideRoomsInSpaces', false),
+  showThumbnailsInTimeline<bool>('chat.keepr.showThumbnailsInTimeline', true),
+  vibeHaptics<bool>('chat.keepr.haptics', true),
   // Notifications show only the app name and "New message" (no names, text or pictures)
-  vibeHideNotificationContent<bool>('chat.vibe.notification_privacy', false),
+  vibeHideNotificationContent<bool>('chat.keepr.notification_privacy', false),
   // Glass look: palette ('wallbash' = from the wallpaper), the processed
   // (blurred) wallpaper file and the colour picked from it
-  vibeGlassPalette<String>('chat.vibe.glass_palette', 'wallbash'),
-  vibeGlassWallpaper<String>('chat.vibe.glass_wallpaper', ''),
-  vibeGlassSeed<int>('chat.vibe.glass_seed', 0xFF7AA2F7),
+  vibeGlassPalette<String>('chat.keepr.glass_palette', 'wallbash'),
+  vibeGlassWallpaper<String>('chat.keepr.glass_wallpaper', ''),
+  vibeGlassSeed<int>('chat.keepr.glass_seed', 0xFF7AA2F7),
   // Glass look: take the palette from Hypr Launcher when it's installed
-  vibeGlassFollowLauncher<bool>('chat.vibe.glass_follow_launcher', true),
-  vibeSaveMedia<bool>('chat.vibe.save_media', false),
-  vibeStatusBubble<bool>('chat.vibe.status_bubble', true),
-  vibeLowData<bool>('chat.vibe.low_data', false),
+  vibeGlassFollowLauncher<bool>('chat.keepr.glass_follow_launcher', true),
+  vibeSaveMedia<bool>('chat.keepr.save_media', false),
+  vibeStatusBubble<bool>('chat.keepr.status_bubble', true),
+  vibeLowData<bool>('chat.keepr.low_data', false),
   // Hike-style text stickers above the text box while typing
-  vibeTextStickers<bool>('chat.vibe.text_stickers', true),
-  vibeLinkPreviews<bool>('chat.vibe.link_previews', true),
+  vibeTextStickers<bool>('chat.keepr.text_stickers', true),
+  vibeLinkPreviews<bool>('chat.keepr.link_previews', true),
   // in encrypted chats the server would see the link: off unless chosen
-  vibeLinkPreviewsEncrypted<bool>('chat.vibe.link_previews_encrypted', false),
+  vibeLinkPreviewsEncrypted<bool>('chat.keepr.link_previews_encrypted', false),
   // status shows the song playing in any music app (Android)
-  vibeNowPlaying<bool>('chat.vibe.now_playing', false),
-  vibeNowPlayingPrev<String>('chat.vibe.now_playing_prev', ''),
+  vibeNowPlaying<bool>('chat.keepr.now_playing', false),
+  vibeNowPlayingPrev<String>('chat.keepr.now_playing_prev', ''),
   // strict encryption: new chats start with it, intro shown once
-  vibeStrictNew<bool>('chat.vibe.strict_new', true),
-  vibeStrictIntro<bool>('chat.vibe.strict_intro', false),
+  vibeStrictNew<bool>('chat.keepr.strict_new', true),
+  vibeStrictIntro<bool>('chat.keepr.strict_intro', false),
   // 'direct' (own connection, like Vibgram - default), 'standard' (Firebase
   // via the Worker) or 'builtin' (ntfy, no Google)
-  vibePushMode<String>('chat.vibe.push_mode', 'direct'),
-  vibeDirectBatteryAsked<bool>('chat.vibe.direct_battery_asked', false),
+  vibePushMode<String>('chat.keepr.push_mode', 'direct'),
+  vibeDirectBatteryAsked<bool>('chat.keepr.direct_battery_asked', false),
   // last time Vibe asked to be let run in the background (ms since epoch)
-  vibeBatteryAskedAt<int>('chat.vibe.battery_asked_at', 0),
+  vibeBatteryAskedAt<int>('chat.keepr.battery_asked_at', 0),
   // Privacy: hide online / last seen; who sees my status and local time
   // ('everyone', 'picked' or 'nobody'); picked = comma-separated user ids.
-  vibeHidePresence<bool>('chat.vibe.hide_presence', false),
-  vibeStatusAudience<String>('chat.vibe.status_audience', 'everyone'),
-  vibeStatusAllowed<String>('chat.vibe.status_allowed', ''),
-  vibeMyStatus<String>('chat.vibe.my_status', ''),
+  vibeHidePresence<bool>('chat.keepr.hide_presence', false),
+  vibeStatusAudience<String>('chat.keepr.status_audience', 'everyone'),
+  vibeStatusAllowed<String>('chat.keepr.status_allowed', ''),
+  vibeMyStatus<String>('chat.keepr.my_status', ''),
   // Chat backups: auto backup 'off', 'daily' or 'weekly'.
-  vibeAutoBackup<String>('chat.vibe.auto_backup', 'off'),
-  vibeLastAutoBackup<int>('chat.vibe.last_auto_backup', 0),
-  vibeAutoBackupResult<String>('chat.vibe.auto_backup_result', ''),
+  vibeAutoBackup<String>('chat.keepr.auto_backup', 'off'),
+  vibeLastAutoBackup<int>('chat.keepr.last_auto_backup', 0),
+  vibeAutoBackupResult<String>('chat.keepr.auto_backup_result', ''),
   // Sticker packs hidden from the sticker tray (names, one per line)
-  vibeHiddenStickerPacks<String>('chat.vibe.hidden_sticker_packs', ''),
+  vibeHiddenStickerPacks<String>('chat.keepr.hidden_sticker_packs', ''),
   // Element Call server for calls ('' = the default, call.element.io)
-  vibeCallServer<String>('chat.vibe.call_server', ''),
+  vibeCallServer<String>('chat.keepr.call_server', ''),
   // Where automatic backups go when picked (Google Drive file), '' = this phone
-  vibeBackupCloudUri<String>('chat.vibe.backup_cloud_uri', ''),
-  vibeNtfyTopic<String>('chat.vibe.ntfy_topic', ''),
-  vibeNtfyLastId<String>('chat.vibe.ntfy_last_id', ''),
+  vibeBackupCloudUri<String>('chat.keepr.backup_cloud_uri', ''),
+  vibeNtfyTopic<String>('chat.keepr.ntfy_topic', ''),
+  vibeNtfyLastId<String>('chat.keepr.ntfy_last_id', ''),
   // Days to keep downloaded media on this phone. 0 = forever.
-  vibeKeepMediaDays<int>('chat.vibe.keep_media_days', 0),
+  vibeKeepMediaDays<int>('chat.keepr.keep_media_days', 0),
   // Media cache limit in MB on this phone. 0 = no limit.
-  vibeCacheLimitMb<int>('chat.vibe.cache_limit_mb', 0),
+  vibeCacheLimitMb<int>('chat.keepr.cache_limit_mb', 0),
   // Decoded pictures kept in memory while Vibe runs (MB).
-  vibeMemoryCacheMb<int>('chat.vibe.memory_cache_mb', 256),
+  vibeMemoryCacheMb<int>('chat.keepr.memory_cache_mb', 256),
   // Group tag shown next to my name in groups (room id, '' = none)
-  vibeGroupTag<String>('chat.vibe.group_tag', ''),
+  vibeGroupTag<String>('chat.keepr.group_tag', ''),
   // Web: sign out when the browser closes (shared computers)
-  vibeWebSessionOnly<bool>('chat.vibe.web_session_only', false),
-  doubleTapToReact<bool>('chat.vibe.double_tap_to_react', false),
-  doubleTapReaction<String>('chat.vibe.double_tap_reaction', '❤️'),
-  benchmarksInLogs<bool>('chat.vibe.benchmarks_in_logs', false);
+  vibeWebSessionOnly<bool>('chat.keepr.web_session_only', false),
+  doubleTapToReact<bool>('chat.keepr.double_tap_to_react', false),
+  doubleTapReaction<String>('chat.keepr.double_tap_reaction', '❤️'),
+  benchmarksInLogs<bool>('chat.keepr.benchmarks_in_logs', false);
 
   final String key;
   final T defaultValue;
@@ -174,7 +174,7 @@ enum AppSettings<T> {
 
     // Settings used to be saved as 'chat.fluffy.*': carry them over once.
     for (final setting in AppSettings.values) {
-      if (!setting.key.startsWith('chat.vibe.')) continue;
+      if (!setting.key.startsWith('chat.keepr.')) continue;
       final oldKey = 'chat.fluffy.${setting.key.substring(10)}';
       final oldValue = store.get(oldKey);
       if (oldValue == null) continue;
