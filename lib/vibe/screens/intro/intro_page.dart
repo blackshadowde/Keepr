@@ -680,7 +680,7 @@ class _IntroPageState extends State<IntroPage>
                           TextSpan(
                             text: _creating
                                 ? 'Already have an account? '
-                                : 'New to Vibe? ',
+                                : 'New to Keepr? ',
                             style: TextStyle(color: muted),
                           ),
                           TextSpan(

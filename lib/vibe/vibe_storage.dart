@@ -94,7 +94,7 @@ abstract class VibeStorage {
         total -= e.$2;
       } catch (_) {}
     }
-    Logs().i('Vibe storage: trimmed media cache to ${_mb(total)}');
+    Logs().i('Keepr storage: trimmed media cache to ${_mb(total)}');
   }
 
   /// Empties the media cache (files download again when opened).
@@ -304,7 +304,7 @@ class _VibeStoragePageState extends State<VibeStoragePage> {
             child: Text(
               'A bigger cache means photos and videos appear instantly and '
               'don\'t download again. "Keep media" changes apply after '
-              'restarting Vibe. Memory is only used while Vibe is open.',
+              'restarting Keepr. Memory is only used while Keepr is open.',
               style: TextStyle(
                 fontSize: 12.5,
                 color: VibeSettingsStyle.text2(context),

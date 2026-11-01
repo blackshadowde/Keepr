@@ -173,7 +173,7 @@ class VibeStatus {
     } catch (e) {
       // Usually: not allowed to change this chat's settings.
       _failed.add(r.id);
-      Logs().d('Vibe status: could not set in ${r.id}', e);
+      Logs().d('Keepr status: could not set in ${r.id}', e);
       return false;
     }
   }
@@ -267,7 +267,7 @@ class VibeStatus {
         _knownDms = _dms(client);
         _knownZone = DateTime.now().timeZoneOffset.inMinutes;
       } catch (e) {
-        Logs().d('Vibe status refresh failed', e);
+        Logs().d('Keepr status refresh failed', e);
       } finally {
         _running = false;
       }

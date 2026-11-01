@@ -91,7 +91,7 @@ class _VibePushModeTilesState extends State<VibePushModeTiles> {
         _tile(
           'direct',
           'Direct connection (recommended)',
-          'Like Vibgram: Vibe stays connected to your server and shows '
+          'Like Vibgram: Keepr stays connected to your server and shows '
               'messages the moment they arrive, with nothing in between. '
               'Shows a small permanent notification (you can hide it below).',
           Icons.bolt,
@@ -99,7 +99,7 @@ class _VibePushModeTilesState extends State<VibePushModeTiles> {
         _tile(
           'builtin',
           'Built-in, no Google',
-          'Vibe keeps its own connection (ntfy). Works without Google '
+          'Keepr keeps its own connection (ntfy). Works without Google '
               'services. Shows a small permanent notification and uses a '
               'little more battery.',
           Icons.cell_tower,

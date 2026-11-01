@@ -763,7 +763,7 @@ class _VibeSetStatusPageState extends State<VibeSetStatusPage> {
                         // "notification access": say plainly what Vibe does
                         final go = await ask(
                           'Allow access to the music player',
-                          'Android calls this "notification access". Vibe only '
+                          'Android calls this "notification access". Keepr only '
                               'reads the song playing in a music app. It '
                               'disconnects right away and never receives your '
                               'notifications. Videos, films and ads are never '
@@ -779,7 +779,7 @@ class _VibeSetStatusPageState extends State<VibeSetStatusPage> {
                         // nothing uses it any more: offer to switch it off
                         final go = await ask(
                           'Turn off notification access?',
-                          'Vibe no longer needs it. Switch Vibe off on the next '
+                          'Keepr no longer needs it. Switch Keepr off on the next '
                               'screen.',
                           'Open settings',
                         );

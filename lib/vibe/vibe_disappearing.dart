@@ -180,7 +180,7 @@ abstract class VibeDisappearing {
               redacted++;
               if (redacted >= 20) break;
             } catch (err) {
-              Logs().w('Vibe disappearing: redact failed', err);
+              Logs().w('Keepr disappearing: redact failed', err);
             }
           }
           from = res.end;
@@ -188,7 +188,7 @@ abstract class VibeDisappearing {
         }
       }
     } catch (e) {
-      Logs().w('Vibe disappearing sweep failed', e);
+      Logs().w('Keepr disappearing sweep failed', e);
     } finally {
       _running = false;
     }

@@ -280,7 +280,7 @@ Future<void> _tryPushHelper(
   if (VibeLock.isLocked(event.room.id) || hideContent) {
     await flutterLocalNotificationsPlugin.show(
       id: '${client.clientName}_${notification.roomId}'.hashCode,
-      title: hideContent ? AppSettings.applicationName.value : 'Vibe',
+      title: hideContent ? AppSettings.applicationName.value : 'Keepr',
       body: 'New message',
       // tapping opens the chat (not for locked chats, as before)
       payload: hideContent && !VibeLock.isLocked(event.room.id)

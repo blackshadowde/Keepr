@@ -2,7 +2,7 @@
 
 /// Mirrors src/appInfo.ts of the Vibe web app.
 class VibeAppInfo {
-  static const String name = 'Vibe';
+  static const String name = 'Keepr';
   static const String version = '3.1.0';
   static const String githubUrl = 'https://github.com/blackshadowde';
   static const String githubOwner = 'Ashish';

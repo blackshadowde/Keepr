@@ -45,7 +45,7 @@ abstract class VibeMediaSaver {
     if (!_done.add(e.eventId)) return;
     // One at a time, in order.
     _queue = _queue.then((_) => _save(e)).catchError((Object err, StackTrace s) {
-      Logs().w('Vibe: could not save media to gallery', err, s);
+      Logs().w('Keepr: could not save media to gallery', err, s);
     });
   }
 
@@ -65,7 +65,7 @@ abstract class VibeMediaSaver {
     }
 
     if (!await requestPermission()) {
-      say('Allow Vibe to add photos in your phone settings, then try again');
+      say('Allow Keepr to add photos in your phone settings, then try again');
       return;
     }
     say(t == MessageTypes.Image ? 'Saving photo…' : 'Saving video…');
@@ -76,7 +76,7 @@ abstract class VibeMediaSaver {
           ? 'Photo saved to your gallery'
           : 'Video saved to your gallery');
     } catch (err, s) {
-      Logs().w('Vibe: could not save to gallery', err, s);
+      Logs().w('Keepr: could not save to gallery', err, s);
       say('Couldn\'t save: $err');
     }
   }

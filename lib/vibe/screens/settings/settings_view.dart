@@ -292,12 +292,12 @@ class SettingsView extends StatelessWidget {
                   ),
                   VibeSettingsRow(
                     icon: Icons.favorite,
-                    title: 'Support Vibe',
+                    title: 'Support Keepr',
                     onTap: () => VibeSupport.open(context),
                   ),
                   VibeSettingsRow(
                     icon: Icons.info,
-                    title: 'About Vibe',
+                    title: 'About Keepr',
                     last: true,
                     onTap: () => context.go('/rooms/settings/vibe-about'),
                   ),

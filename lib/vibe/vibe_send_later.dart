@@ -120,7 +120,7 @@ abstract class VibeSendLater {
         room.sendTextEvent(s.text);
       }
     } catch (e) {
-      Logs().w('Vibe send later failed', e);
+      Logs().w('Keepr send later failed', e);
     } finally {
       _sending = false;
     }

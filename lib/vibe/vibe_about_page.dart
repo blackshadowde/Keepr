@@ -56,7 +56,7 @@ class _VibeAboutPageState extends State<VibeAboutPage> {
       if (!mounted) return;
       setState(
         () => _status = VibeUpdater.compare(latest, _version) > 0
-            ? 'Vibe $latest is available in AltStore / SideStore'
+            ? 'Keepr $latest is available in AltStore / SideStore'
             : "You're on the latest version",
       );
     } catch (_) {}
@@ -81,7 +81,7 @@ class _VibeAboutPageState extends State<VibeAboutPage> {
       if (r == null) {
         setState(() => _status = "You're on the latest version");
       } else {
-        setState(() => _status = 'Vibe ${r.version} is available');
+        setState(() => _status = 'Keepr ${r.version} is available');
         await VibeUpdater.install(context, r);
       }
     } catch (_) {
@@ -214,16 +214,16 @@ class _VibeAboutPageState extends State<VibeAboutPage> {
             text: 'Open-source licences',
             onTap: () => showLicensePage(
               context: context,
-              applicationName: 'Vibe',
+              applicationName: 'Keepr',
               applicationLegalese:
-                  'Vibe is free software under the GNU AGPL v3 or later, '
+                  'Keepr is free software under the GNU AGPL v3 or later, '
                   'a modified version of FluffyChat by Christian Kußowski '
                   'and contributors.',
             ),
           ),
           const SizedBox(height: 10),
           _AboutButton(
-            text: 'How Vibe keeps you safe',
+            text: 'How Keepr keeps you safe',
             onTap: () => showVibeDialog<void>(
               context: context,
               useSafeArea: false,
@@ -310,7 +310,7 @@ class VibeCreditsSheet extends StatelessWidget {
   static const List<List<String?>> _madeBy = [
     [
       'blackshadowde',
-      'Creator of Vibe and Vibgram',
+      'Creator of Keepr and Vibgram',
       'Design, features and builds',
       'https://github.com/blackshadowde',
     ],
@@ -323,13 +323,13 @@ class VibeCreditsSheet extends StatelessWidget {
   static const List<List<String?>> _builtOn = [
     [
       'FluffyChat',
-      'The app Vibe is built on',
+      'The app Keepr is built on',
       'GNU AGPL v3 · Christian Kußowski and contributors',
       'https://github.com/krille-chan/fluffychat',
     ],
     [
       'Matrix',
-      'The open standard Vibe talks over',
+      'The open standard Keepr talks over',
       'Apache License 2.0 · The Matrix.org Foundation',
       'https://matrix.org',
     ],
@@ -391,7 +391,7 @@ class VibeCreditsSheet extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 2, 4, 0),
             child: Text(
-              'The people and projects behind Vibe',
+              'The people and projects behind Keepr',
               style: TextStyle(fontSize: 15, color: cs.onSurfaceVariant),
             ),
           ),
@@ -401,7 +401,7 @@ class VibeCreditsSheet extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 18, 4, 0),
             child: Text(
-              'Vibe is free software under the GNU AGPL v3, like FluffyChat. '
+              'Keepr is free software under the GNU AGPL v3, like FluffyChat. '
               'Tap a card to open its page. '
               'Every library\'s licence: About, Open-source licences.',
               style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),

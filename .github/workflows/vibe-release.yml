@@ -167,7 +167,7 @@ jobs:
               | head -30 > RELEASE_NOTES.md || true
           fi
           {
-            echo "## Vibe ${VIBE_VERSION}"
+            echo "## Keepr ${VIBE_VERSION}"
             echo
             if [ -s RELEASE_NOTES.md ]; then
               echo "### What's new in this update"
@@ -196,7 +196,7 @@ jobs:
         if: ${{ inputs.publish }}
         with:
           tag_name: v${{ env.VIBE_VERSION }}
-          name: Vibe ${{ env.VIBE_VERSION }}
+          name: Keepr ${{ env.VIBE_VERSION }}
           target_commitish: ${{ github.sha }}
           make_latest: true
           files: Vibe-${{ env.VIBE_VERSION }}.apk

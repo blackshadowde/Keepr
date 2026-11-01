@@ -24,12 +24,12 @@
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SHORT_SERVICE" />
-    <!-- Vibe built-in notifications (ntfy) keep a connection open -->
+    <!-- Keepr built-in notifications (ntfy) keep a connection open -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_REMOTE_MESSAGING" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
-    <!-- Vibe calls: keep the microphone / camera on with the screen off,
+    <!-- Keepr calls: keep the microphone / camera on with the screen off,
          and ring on the lock screen -->
-    <!-- Vibe in-app updater: open the downloaded update in the installer -->
+    <!-- Keepr in-app updater: open the downloaded update in the installer -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- To make app compatible with tablets -->
@@ -38,13 +38,13 @@
 
     <uses-sdk
             tools:overrideLibrary="io.wazo.callkeep, net.touchcapture.qr.flutterqr, com.cloudwebrtc.webrtc, org.webrtc, com.it_nomads.fluttersecurestorage, com.pichillilorenzo.flutter_inappwebview, com.example.video_compress, com.otaliastudios.transcoder, com.otaliastudios.opengl, com.kineapps.flutter_file_dialog, com.llfbandit.record, com.pravera.flutter_foreground_task"/>
-    <!-- Vibe follows Hypr Launcher's theme -->
+    <!-- Keepr follows Hypr Launcher's theme -->
     <queries>
         <provider android:authorities="app.hypr.theme" />
     </queries>
     <application
         tools:replace="android:label,android:allowBackup,android:fullBackupContent,android:dataExtractionRules"
-        android:label="Vibe"
+        android:label="Keepr"
         android:icon="@mipmap/ic_launcher"
         android:enableOnBackInvokedCallback="false"
         android:requestLegacyExternalStorage="true"
@@ -79,7 +79,7 @@
             <!-- No https://matrix.to link handler: only matrix.org could
                  verify it (assetlinks.json), Android 12+ opens those links
                  in the browser anyway, and security scanners flag it.
-                 matrix: and vibe:// links still open Vibe. -->
+                 matrix: and vibe:// links still open Keepr. -->
 
             <!-- App can open matrix: uris -->
             <intent-filter>
@@ -139,7 +139,7 @@
 
         <!-- From flutter_local_notifications package for notification actions -->
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver" />
-        <!-- Vibe: reconnect for notifications after a restart / update -->
+        <!-- Keepr: reconnect for notifications after a restart / update -->
         <!-- Not exported: boot and update broadcasts come from Android
              itself, which reaches non-exported receivers; other apps can't. -->
         <receiver android:name=".VibeBootReceiver" android:exported="false">
@@ -168,7 +168,7 @@
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="fluffychat_push" />
-        <!-- Library parts Vibe doesn't need, removed so no other app can
+        <!-- Library parts Keepr doesn't need, removed so no other app can
              reach them: Google Assistant shortcut trampoline, and the
              profile installer receiver (only used over adb). -->
         <activity android:name="androidx.core.google.shortcuts.TrampolineActivity" tools:node="remove" />

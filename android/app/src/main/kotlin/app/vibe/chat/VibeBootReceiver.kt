@@ -26,7 +26,7 @@ class VibeBootReceiver : BroadcastReceiver() {
                 )
             }
         } catch (e: Throwable) {
-            Log.w("VibeBoot", "Could not start Vibe in the background", e)
+            Log.w("VibeBoot", "Could not start Keepr in the background", e)
         }
     }
 }

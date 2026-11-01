@@ -270,7 +270,7 @@ abstract class VibeUpdater {
       if (ctx == null || !ctx.mounted) return;
       await _show(ctx, r);
     } catch (e) {
-      Logs().w('Vibe update check failed', e);
+      Logs().w('Keepr update check failed', e);
     } finally {
       _busy = false;
     }
@@ -369,7 +369,7 @@ class _UpdateSheetState extends State<_UpdateSheet> {
       _id = id;
       _poll = Timer.periodic(const Duration(milliseconds: 500), (_) => _tick());
     } catch (e) {
-      Logs().w('Vibe update download failed to start', e);
+      Logs().w('Keepr update download failed to start', e);
       // Fallback: let the browser download it.
       await _openInBrowser();
       if (mounted) Navigator.of(context).pop();
@@ -403,7 +403,7 @@ class _UpdateSheetState extends State<_UpdateSheet> {
         setState(() => _progress = total > 0 ? done / total : null);
       }
     } catch (e) {
-      Logs().w('Vibe update status failed', e);
+      Logs().w('Keepr update status failed', e);
     }
   }
 
@@ -425,7 +425,7 @@ class _UpdateSheetState extends State<_UpdateSheet> {
         'sha256': r.sha256,
       });
     } catch (e) {
-      Logs().w('Vibe update install failed', e);
+      Logs().w('Keepr update install failed', e);
       if (mounted) {
         setState(() {
           _stage = _Stage.failed;
@@ -512,7 +512,7 @@ class _UpdateSheetState extends State<_UpdateSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Android needs your OK once: allow Vibe to install updates, '
+              'Android needs your OK once: allow Keepr to install updates, '
               'then come back and tap Install.',
               textAlign: TextAlign.center,
               style: TextStyle(color: cs.onSurfaceVariant),
@@ -611,7 +611,7 @@ class _UpdateSheetState extends State<_UpdateSheet> {
                           ),
                         ),
                         Text(
-                          'Vibe ${r.version}$mb',
+                          'Keepr ${r.version}$mb',
                           style: TextStyle(color: cs.onSurfaceVariant),
                         ),
                       ],

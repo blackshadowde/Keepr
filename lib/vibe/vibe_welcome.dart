@@ -39,15 +39,15 @@ class _PageData {
 
 final List<_PageData> _pages = [
   _PageData(
-    'Welcome to Vibe',
+    'Welcome to Keepr',
     'Chat that stays between you and them',
-    'Vibe is a private messenger built on Matrix, an open standard for secure communication. Here is how it keeps you safer, in 30 seconds.',
+    'Keepr is a private messenger built on Matrix, an open standard for secure communication. Here is how it keeps you safer, in 30 seconds.',
     () => const _HeroWelcome(),
     const [
       _Fact(
         Icons.lock,
         'Private by default',
-        'Chats you start in Vibe are end-to-end encrypted.',
+        'Chats you start in Keepr are end-to-end encrypted.',
       ),
       _Fact(
         Icons.person,
@@ -95,7 +95,7 @@ final List<_PageData> _pages = [
   _PageData(
     'The little things',
     'Safer in the details too',
-    'Privacy is not just encryption. Vibe keeps the small stuff quiet as well.',
+    'Privacy is not just encryption. Keepr keeps the small stuff quiet as well.',
     () => const _HeroSmall(),
     const [
       _Fact(
@@ -196,7 +196,7 @@ class _VibeWelcomeState extends State<VibeWelcome> {
                         ),
                         const SizedBox(width: 8),
                         const Text(
-                          'Vibe',
+                          'Keepr',
                           style: TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: 16,
@@ -1079,7 +1079,7 @@ class _HeroSmall extends StatelessWidget {
                   _card(
                     context,
                     icon: Icons.notifications,
-                    title: 'Vibe',
+                    title: 'Keepr',
                     sub: 'New message',
                   ),
                 ),

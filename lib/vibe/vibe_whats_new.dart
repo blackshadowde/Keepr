@@ -21,7 +21,7 @@ const vibeReleaseNotes = <({String version, List<String> items})>[
       'Questions, menus and settings pages slide up from the bottom and close with a swipe down',
       'Full-screen effects for words like love, miss you, good morning, good night, hug, kiss, congrats, bye, sweet dreams, hi and welcome',
       'Back up chats to Google Drive automatically: Settings, Backups, Back up to Google Drive',
-      'Your profile pane looks like Vibe X: your picture blurred behind it, a floating bar and a smaller thought bubble',
+      'Your profile pane looks like Keepr X: your picture blurred behind it, a floating bar and a smaller thought bubble',
       'Connecting shows three dots in the chat bar that turn green once you\'re connected',
       'Continue with Google, and your password manager fills in your login',
       'New messages glide into the chat, and chats slide open and closed more smoothly',
@@ -115,7 +115,7 @@ abstract class VibeWhatsNew {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'What\'s new in Vibe',
+                              'What\'s new in Keepr',
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w800,

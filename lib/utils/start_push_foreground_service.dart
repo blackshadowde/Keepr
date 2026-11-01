@@ -62,8 +62,8 @@ abstract class ForegroundServices {
           // bar icon, and one switch hides it (see VibeHideService).
           androidNotificationOptions: AndroidNotificationOptions(
             channelId: 'vibe_connection',
-            channelName: 'Vibe connection',
-            channelDescription: 'Keeps Vibe connected for notifications',
+            channelName: 'Keepr connection',
+            channelDescription: 'Keeps Keepr connected for notifications',
             onlyAlertOnce: true,
             playSound: false,
             enableVibration: false,
@@ -87,7 +87,7 @@ abstract class ForegroundServices {
         longLived = false;
         final result = await FlutterForegroundTask.startService(
           serviceTypes: [ForegroundServiceTypes.shortService],
-          notificationTitle: 'Vibe',
+          notificationTitle: 'Keepr',
           notificationText: 'Connected for notifications',
           notificationIcon: NotificationIcon(metaDataName: 'ic_launcher'),
         );

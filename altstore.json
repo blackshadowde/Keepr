@@ -1,16 +1,16 @@
 {
-  "name": "Vibe",
+  "name": "Keepr",
   "identifier": "app.vibe.chat.source",
   "subtitle": "Vibe for iPhone",
   "iconURL": "https://raw.githubusercontent.com/blackshadowde/Vibe-flutter/Vibe/vibe-icon.png",
   "website": "https://github.com/blackshadowde/Vibe-flutter",
   "apps": [
     {
-      "name": "Vibe",
+      "name": "Keepr",
       "bundleIdentifier": "app.vibe.chat",
       "developerName": "blackshadowde",
       "subtitle": "Encrypted chat with servers and channels",
-      "localizedDescription": "Vibe: an end-to-end encrypted messenger with servers and channels, built on Matrix. Free and open source (AGPL-3.0), based on FluffyChat.",
+      "localizedDescription": "Keepr: an end-to-end encrypted messenger with servers and channels, built on Matrix. Free and open source (AGPL-3.0), based on FluffyChat.",
       "iconURL": "https://raw.githubusercontent.com/blackshadowde/Vibe-flutter/Vibe/vibe-icon.png",
       "tintColor": "#5865F2",
       "category": "social",

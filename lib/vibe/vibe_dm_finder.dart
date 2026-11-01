@@ -60,7 +60,7 @@ abstract class VibeDmFinder {
         try {
           await room.addToDirectChat(userId);
         } catch (e) {
-          Logs().v('Vibe: could not mark chat as direct $e');
+          Logs().v('Keepr: could not mark chat as direct $e');
         }
       }
       return room.id;
@@ -113,7 +113,7 @@ abstract class VibeDmFinder {
         );
       });
     } catch (e) {
-      Logs().v('Vibe: local leave failed $e');
+      Logs().v('Keepr: local leave failed $e');
     }
     try {
       await client.database.forgetRoom(id);
@@ -179,10 +179,10 @@ abstract class VibeDmFinder {
                 e.type == EventTypes.Sticker,
           );
           if (written) continue;
-          Logs().i('Vibe: removing empty duplicate chat ${r.id}');
+          Logs().i('Keepr: removing empty duplicate chat ${r.id}');
           await delete(r);
         } catch (e) {
-          Logs().v('Vibe: duplicate check failed for ${r.id} $e');
+          Logs().v('Keepr: duplicate check failed for ${r.id} $e');
         }
       }
     }

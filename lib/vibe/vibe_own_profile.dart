@@ -502,7 +502,7 @@ class _OwnSheetState extends State<_OwnSheet> {
                     children: [
                       _wideButton(
                         icon: Icons.qr_code_2,
-                        label: 'Share my Vibe ID',
+                        label: 'Share my Keepr ID',
                         filled: true,
                         onTap: () => showQrCodeViewer(context, userId),
                       ),

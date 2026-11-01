@@ -110,7 +110,7 @@ abstract class VibeCommunities {
       try {
         await createChannel(client, space, 'general', invite: invite);
       } catch (e, s) {
-        Logs().w('Vibe: could not create #general', e, s);
+        Logs().w('Keepr: could not create #general', e, s);
       }
     }
     return id;
@@ -393,7 +393,7 @@ class _VibeCommunityPaneState extends State<VibeCommunityPane> {
       ];
       if (mounted) setState(() => _remote = list);
     } catch (e) {
-      Logs().w('Vibe: space hierarchy failed', e);
+      Logs().w('Keepr: space hierarchy failed', e);
       if (mounted) setState(() => _remote ??= const []);
     }
   }

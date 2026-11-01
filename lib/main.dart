@@ -93,7 +93,7 @@ void main(List<String> args) async {
     }
     await BackgroundPush.clientOnly(clients).startHeadless();
     WidgetsBinding.instance.addObserver(AppStarter(clients, store));
-    Logs().i('Vibe started after a restart: connected for notifications.');
+    Logs().i('Keepr started after a restart: connected for notifications.');
     return;
   }
 
