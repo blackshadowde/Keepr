@@ -7,6 +7,7 @@ import 'package:vibe/vibe/vibe_event_body.dart';
 import 'package:vibe/vibe/vibe_palette.dart';
 import 'package:vibe/vibe/vibe_haptics.dart';
 import 'package:vibe/vibe/vibe_new_hint.dart';
+import 'package:vibe/vibe/vibe_threads.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
 import 'package:vibe/vibe/vibe_animated_emoji.dart';
 import 'package:vibe/vibe/vibe_emoji_sheet.dart';
@@ -315,6 +316,22 @@ class _Menu extends StatelessWidget {
                 _close();
                 controller.replyAction(replyTo: event);
               }),
+            // start a thread from this message; it's pinned in the middle
+            // pane (new: highlighted the first few times)
+            if (canSend && controller.activeThreadId == null)
+              VibeNewHint(
+                id: 'create_thread',
+                child: item(
+                  Icons.forum_outlined,
+                  VibeThreads.isPinned(event.room.id, event.eventId)
+                      ? 'Open thread'
+                      : 'Create thread',
+                  () {
+                    _close();
+                    controller.createThread(event);
+                  },
+                ),
+              ),
             // answer just some words of a text message (new: highlighted
             // the first few times so people find it)
             if (canSend &&

@@ -31,6 +31,7 @@ import 'package:vibe/widgets/matrix.dart';
 import 'package:vibe/widgets/mxc_image.dart';
 import 'package:flutter/material.dart';
 import 'package:matrix/matrix.dart';
+import 'package:vibe/vibe/vibe_threads.dart';
 
 import 'package:vibe/utils/stream_extension.dart';
 import 'chat_emoji_picker.dart';
@@ -138,8 +139,73 @@ class ChatView extends StatelessWidget {
                     ? null
                     : Center(child: _BackUnread(controller.room)),
                 titleSpacing: VibeThemes.isColumnMode(context) ? 24 : 0,
-                title: ChatAppBarTitle(controller),
-                actions: [
+                title: controller.searching
+                    ? TextField(
+                        controller: controller.searchController,
+                        autofocus: true,
+                        onChanged: controller.onSearchChanged,
+                        textInputAction: TextInputAction.search,
+                        decoration: const InputDecoration(
+                          hintText: 'Search this chat',
+                          border: InputBorder.none,
+                        ),
+                      )
+                    : ChatAppBarTitle(controller),
+                actions: controller.searching
+                    ? [
+                        // "3 of 12", older / newer match, close
+                        Center(
+                          child: Text(
+                            controller.searchHits.isEmpty
+                                ? (controller.searchController.text
+                                              .trim()
+                                              .length <
+                                          2
+                                      ? ''
+                                      : 'No results')
+                                : '${controller.searchIndex + 1} of '
+                                      '${controller.searchHits.length}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.keyboard_arrow_up),
+                          tooltip: 'Older',
+                          onPressed: () => controller.searchStep(1),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.keyboard_arrow_down),
+                          tooltip: 'Newer',
+                          onPressed: () => controller.searchStep(-1),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          tooltip: 'Close search',
+                          onPressed: controller.stopSearch,
+                        ),
+                      ]
+                    : [
+                  if (!controller.selectMode && controller.activeThreadId == null)
+                    IconButton(
+                      icon: const Icon(Icons.search),
+                      tooltip: 'Search this chat',
+                      onPressed: controller.startSearch,
+                    ),
+                  // a pinned thread: close it for good (asks first)
+                  if (!controller.selectMode &&
+                      controller.activeThreadId != null &&
+                      VibeThreads.isPinned(
+                        controller.room.id,
+                        controller.activeThreadId!,
+                      ))
+                    IconButton(
+                      icon: const Icon(Icons.speaker_notes_off_outlined),
+                      tooltip: 'Close thread',
+                      onPressed: controller.closeThreadForGood,
+                    ),
                   if (controller.selectMode) ...[
                     if (controller.canEditSelectedEvents)
                       IconButton(

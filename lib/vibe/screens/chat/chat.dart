@@ -7,6 +7,7 @@ import 'package:vibe/vibe/vibe_event_body.dart';
 import 'package:vibe/vibe/vibe_drop.dart';
 import 'package:vibe/vibe/vibe_pending_files.dart';
 import 'package:vibe/vibe/vibe_quote.dart';
+import 'package:vibe/vibe/vibe_threads.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart'
     hide Priority;
 import 'package:vibe/vibe/vibe_mention_controller.dart';
@@ -224,6 +225,86 @@ class ChatController extends State<ChatPageWithRoom>
         ?.eventId;
   }
 
+  // ---- search in this chat (results jump through the chat itself)
+  bool searching = false;
+  final TextEditingController searchController = TextEditingController();
+  List<Event> searchHits = [];
+  int searchIndex = 0;
+  Timer? _searchDebounce;
+
+  void startSearch() => setState(() {
+    searching = true;
+    searchHits = [];
+    searchIndex = 0;
+    searchController.clear();
+  });
+
+  void stopSearch() {
+    _searchDebounce?.cancel();
+    setState(() {
+      searching = false;
+      searchHits = [];
+      searchController.clear();
+    });
+  }
+
+  /// Live while typing: messages and file names that contain the text,
+  /// from everything saved on this phone, newest first.
+  void onSearchChanged(String q) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () async {
+      final text = q.trim().toLowerCase();
+      if (text.length < 2) {
+        if (mounted) setState(() => searchHits = []);
+        return;
+      }
+      final all = await room.client.database.getEventList(room, limit: 5000);
+      if (!mounted || searchController.text.trim().toLowerCase() != text) {
+        return;
+      }
+      final hits = all
+          .where(
+            (e) =>
+                e.type == EventTypes.Message &&
+                !e.redacted &&
+                e
+                    .calcUnlocalizedBody(hideReply: true, plaintextBody: true)
+                    .toLowerCase()
+                    .contains(text),
+          )
+          .toList();
+      setState(() {
+        searchHits = hits;
+        searchIndex = 0;
+      });
+      if (hits.isNotEmpty) scrollToEventId(hits.first.eventId);
+    });
+  }
+
+  /// Older (up) or newer (down) match.
+  void searchStep(int delta) {
+    if (searchHits.isEmpty) return;
+    final i = (searchIndex + delta).clamp(0, searchHits.length - 1);
+    if (i == searchIndex) return;
+    setState(() => searchIndex = i);
+    scrollToEventId(searchHits[i].eventId);
+  }
+
+  /// Long-press > Create thread: pinned in the middle pane, opened here.
+  Future<void> createThread(Event event) async {
+    await VibeThreads.add(room.id, event.eventId);
+    enterThread(event.eventId);
+  }
+
+  /// Close the open thread for good (after asking).
+  Future<void> closeThreadForGood() async {
+    final id = activeThreadId;
+    if (id == null) return;
+    if (await VibeThreads.confirmClose(context, room.id, id) && mounted) {
+      closeThread();
+    }
+  }
+
   void enterThread(String eventId) => setState(() {
     activeThreadId = eventId;
     selectedEvents.clear();
@@ -433,6 +514,8 @@ class ChatController extends State<ChatPageWithRoom>
 
   @override
   void initState() {
+    // opened from a pinned thread in the middle pane
+    activeThreadId = VibeThreads.takeOpen(widget.room.id);
     // the chat sliding in gets a light tap (closing has none)
     VibeHaptics.light();
     // photos and videos dragged in from other apps (Android)
@@ -720,6 +803,8 @@ class ChatController extends State<ChatPageWithRoom>
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
+    searchController.dispose();
     VibeDrop.detach(this);
     timeline?.cancelSubscriptions();
     timeline = null;
