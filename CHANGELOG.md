@@ -5,6 +5,9 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 
 ## 2026-11-02 ([87aab93](https://github.com/blackshadowde/keepr/commit/87aab9379))
 
+- Threads: long-press a message > Create thread. It's pinned in the chat's middle pane until you close it (asks first) ([351d510](https://github.com/blackshadowde/keepr/commit/351d51001))
+- Photo stacks: 4 or more photos sent together show as one grid with "+N"; tap to swipe through them
+- Search in a chat: live results while typing, arrows for older and newer matches, each match highlighted in the chat
 - The back button in a chat shows how many other chats are unread
 - A message that can't be sent shows a notification
 - Double tap can react, reply, quote part, bookmark or copy (Settings > Chats & storage)
