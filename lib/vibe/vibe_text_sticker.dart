@@ -114,7 +114,7 @@ class VibeTextStickerBar extends StatelessWidget {
         file,
         thumbnail: thumb,
         inReplyTo: controller.replyEvent,
-        extraContent: {'chat.vibe.sticker': true, 'chat.vibe.sticker_text': text},
+        extraContent: {'chat.keepr.sticker': true, 'chat.keepr.sticker_text': text},
       );
       controller.cancelReplyEventAction();
     } catch (e) {

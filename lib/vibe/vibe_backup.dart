@@ -24,7 +24,7 @@ import 'package:share_plus/share_plus.dart';
 /// backup is opened inside Vibe to read them.
 abstract class VibeBackup {
   static const _ch = MethodChannel('vibe/backup');
-  static const _pwKey = 'chat.vibe.backup_password';
+  static const _pwKey = 'chat.keepr.backup_password';
   static const _autoPrefix = 'vibe-auto-';
   static const _keepAuto = 3;
   static const _maxPerChat = 5000;
@@ -92,7 +92,7 @@ abstract class VibeBackup {
     }
     return {
       'v': 1,
-      'app': 'Vibe',
+      'app': 'Keepr',
       'user': client.userID,
       'created': DateTime.now().millisecondsSinceEpoch,
       'rooms': out,
@@ -337,7 +337,7 @@ class _VibeBackupPageState extends State<VibeBackupPage> {
             ListTile(
               leading: const Icon(Icons.phone_android),
               title: const Text('Save on this phone'),
-              subtitle: const Text('Downloads/Vibe backups'),
+              subtitle: const Text('Downloads/Keepr backups'),
               onTap: () => Navigator.of(ctx).pop('phone'),
             ),
             ListTile(
@@ -537,7 +537,7 @@ class _VibeBackupPageState extends State<VibeBackupPage> {
                   'Photos, videos and files are not included.\n'
                   '• Without the password nobody can open a backup, not even '
                   'Keepr. If you forget it, that backup can\'t be opened.\n'
-                  '• Automatic backups go to Downloads/Vibe backups and stay '
+                  '• Automatic backups go to Downloads/Keepr backups and stay '
                   'there even if you uninstall Keepr. They run when you open Keepr.\n'
                   '• Your encryption keys are backed up separately in '
                   'Encryption & Keys.',

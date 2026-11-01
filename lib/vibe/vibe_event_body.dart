@@ -4,10 +4,10 @@ import 'package:matrix/matrix.dart';
 
 /// A message's one-line text (notifications, chat list, replies), with
 /// Vibe's text stickers called stickers: they're sent as pictures with a
-/// `chat.vibe.sticker` mark, so Matrix alone would say "sent a picture".
+/// `chat.keepr.sticker` mark, so Matrix alone would say "sent a picture".
 extension VibeEventBody on Event {
   String? _vibeSticker(MatrixLocalizations i18n) {
-    if (redacted || content['chat.vibe.sticker'] != true) return null;
+    if (redacted || content['chat.keepr.sticker'] != true) return null;
     return i18n.sentASticker(
       senderFromMemoryOrFallback.calcDisplayname(i18n: i18n),
     );

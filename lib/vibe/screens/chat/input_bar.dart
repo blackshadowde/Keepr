@@ -486,7 +486,7 @@ class InputBar extends StatelessWidget {
               room.sendFileEvent(
                 file,
                 shrinkImageMaxDimension: 1600,
-                extraContent: {'chat.vibe.sticker': true},
+                extraContent: {'chat.keepr.sticker': true},
               );
             },
           ),

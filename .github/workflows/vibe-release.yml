@@ -155,7 +155,7 @@ jobs:
       - name: Publish GitHub Release
         if: ${{ inputs.publish }}
         run: |
-          cp build/app/outputs/flutter-apk/app-release.apk "Vibe-${VIBE_VERSION}.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "Keepr-${VIBE_VERSION}.apk"
           # What's new: if RELEASE_NOTES.md wasn't updated since the last
           # release, list the changes made since then (one line per change)
           PREV=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
@@ -179,14 +179,14 @@ jobs:
             echo
             echo "An end-to-end encrypted messenger for Android, built on Matrix."
             echo
-            echo "**Download:** tap \`Vibe-${VIBE_VERSION}.apk\` below, then open it to install"
+            echo "**Download:** tap \`Keepr-${VIBE_VERSION}.apk\` below, then open it to install"
             echo "(allow \"Install unknown apps\" for your browser when Android asks)."
             echo
             echo "**Updating:** install the new APK over the old one; your chats stay."
             echo
             echo "Free and open source (AGPL-3.0), based on FluffyChat."
             echo
-            echo "**SHA-256:** \`$(sha256sum "Vibe-${VIBE_VERSION}.apk" | cut -d' ' -f1)\`"
+            echo "**SHA-256:** \`$(sha256sum "Keepr-${VIBE_VERSION}.apk" | cut -d' ' -f1)\`"
           } > release-body.raw
           # in Vibe's own words: no "X-style" comparisons with other apps
           python3 scripts/clean_notes.py < release-body.raw > release-body.md
@@ -199,7 +199,7 @@ jobs:
           name: Keepr ${{ env.VIBE_VERSION }}
           target_commitish: ${{ github.sha }}
           make_latest: true
-          files: Vibe-${{ env.VIBE_VERSION }}.apk
+          files: Keepr-${{ env.VIBE_VERSION }}.apk
           body_path: release-body.md
 
       # Independent malware check: the APK goes to VirusTotal and the report
@@ -217,7 +217,7 @@ jobs:
             echo "::notice::VT_API_KEY secret not set - no VirusTotal scan"
             exit 0
           fi
-          APK="Vibe-${VIBE_VERSION}.apk"
+          APK="Keepr-${VIBE_VERSION}.apk"
           SHA=$(sha256sum "$APK" | cut -d' ' -f1)
           # files over 32 MB need their own upload address
           URL=$(curl -sf -H "x-apikey: $VT_API_KEY" https://www.virustotal.com/api/v3/files/upload_url | jq -r .data)

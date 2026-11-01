@@ -41,7 +41,7 @@ class VibeScheduled {
 /// and are sent at the chosen time (or as soon as Vibe runs again if the
 /// phone was off / the app was closed at that moment).
 abstract class VibeSendLater {
-  static const _key = 'chat.vibe.scheduled';
+  static const _key = 'chat.keepr.scheduled';
   static final ValueNotifier<int> changes = ValueNotifier(0);
   static Timer? _timer;
   static bool _sending = false;

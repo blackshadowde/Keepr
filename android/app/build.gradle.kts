@@ -31,7 +31,7 @@ configurations.all {
 
 
 android {
-    namespace = "app.vibe.chat"
+    namespace = "app.keepr.chat"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -68,8 +68,8 @@ android {
 
     defaultConfig {
         // The installed app's identity. Releases have always shipped as
-        // com.vibe.app; changing it would install a second app and lose chats.
-        applicationId = "com.vibe.app"
+        // app.keepr.chat; changing it would install a second app and lose chats.
+        applicationId = "app.keepr.chat"
         // Vibe supports Android 10+
         minSdk = maxOf(29, flutter.minSdkVersion)
         targetSdk = flutter.targetSdkVersion

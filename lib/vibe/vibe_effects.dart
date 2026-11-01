@@ -61,8 +61,8 @@ class VibeEffect {
 /// Emoji. (Telegram's effects are files on Telegram's servers, not in its
 /// open-source app, so they can't be reused.)
 abstract class VibeEffects {
-  /// Content key on the message: `"chat.vibe.effect": "<id>"`.
-  static const contentKey = 'chat.vibe.effect';
+  /// Content key on the message: `"chat.keepr.effect": "<id>"`.
+  static const contentKey = 'chat.keepr.effect';
 
   static const List<VibeEffect> all = [
     VibeEffect(

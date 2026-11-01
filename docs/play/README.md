@@ -8,9 +8,9 @@ before submitting; you are the one declaring it to Google.
 Actions → **Keepr for Google Play (app bundle)** → Run. Download the `.aab`
 under the run's **Artifacts** and upload it in the Play Console.
 
-`com.vibe.app` is taken on Google Play by another developer, so the Play
+`app.keepr.chat` is taken on Google Play by another developer, so the Play
 version is its own app, **`app.vibe.chat`** (the workflow sets it; GitHub keeps
-`com.vibe.app`). Both can be installed side by side and each updates from its
+`app.keepr.chat`). Both can be installed side by side and each updates from its
 own store. It's signed with the same key. Otherwise it's the same app, except: no built-in updater, no "install apps" permission
 (Play does the updating) and no photo-library permission (Play allows that
 only for gallery-type apps, so the attach sheet opens the system photo picker
@@ -54,14 +54,14 @@ Keepr keeps its own connection to your Matrix server, or uses ntfy. No Google pu
 
 OPEN AND CHECKED
 The full source is public (AGPL-3.0). Every release is scanned on VirusTotal and with MobSF, CodeQL and OSV-Scanner, and every change is listed in the changelog.
-Source: https://github.com/blackshadowde/Vibe-flutter
-Privacy policy: https://github.com/blackshadowde/Vibe-flutter/blob/Vibe/PRIVACY.md
+Source: https://github.com/blackshadowde/Keepr
+Privacy policy: https://github.com/blackshadowde/Keepr/blob/Vibe/PRIVACY.md
 
 Keepr is based on FluffyChat and is built with the help of AI tools; all changes are reviewed and tested by the developer.
 ```
 
 **Category:** Communication. **Tags:** Messaging, Chat.
-**Contact email:** your public support email. **Website:** https://get-vibe.github.io
+**Contact email:** your public support email. **Website:** https://get-keepr.github.io
 
 **Graphics:** app icon 512×512 PNG, feature graphic 1024×500, at least 2
 phone screenshots (the website's `site/assets/*.webp` are a start; Play wants
@@ -69,15 +69,15 @@ PNG or JPEG).
 
 ## Policy links
 
-- **Privacy policy:** https://github.com/blackshadowde/Vibe-flutter/blob/Vibe/PRIVACY.md
+- **Privacy policy:** https://github.com/blackshadowde/Keepr/blob/Vibe/PRIVACY.md
 - **Account deletion** (required, Keepr can create Matrix accounts):
-  https://get-vibe.github.io/delete-account.html (in the app: Settings →
+  https://get-keepr.github.io/delete-account.html (in the app: Settings →
   Security & sign-in → Delete account)
-- **Terms of use** (user-content policy): https://get-vibe.github.io/terms.html.
+- **Terms of use** (user-content policy): https://get-keepr.github.io/terms.html.
   The sign-in screen says "By continuing you agree to the Terms".
 - **Child safety standards** (only required for Social/Dating/anonymous chat
   apps; Keepr is Communication, but the page exists anyway):
-  https://get-vibe.github.io/terms.html#child-safety
+  https://get-keepr.github.io/terms.html#child-safety
 
 ## User content (chat apps)
 

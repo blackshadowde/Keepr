@@ -10,10 +10,10 @@ import 'package:vibe/widgets/avatar.dart';
 /// group (Owner, Admin, Mod) and the group tag they picked (a short name of
 /// one of their groups, with its picture).
 ///
-/// The group tag travels in your own member event (`chat.vibe.tag`) in each
+/// The group tag travels in your own member event (`chat.keepr.tag`) in each
 /// group you're in, which every member is allowed to change.
 abstract class VibeMemberTags {
-  static const key = 'chat.vibe.tag';
+  static const key = 'chat.keepr.tag';
 
   /// "Wave Lovers" → "WAVE": the first word, letters and digits, 5 at most.
   static String tagFor(String name) {

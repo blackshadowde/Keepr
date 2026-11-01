@@ -84,16 +84,16 @@ abstract class VibeUpdater {
     await launchUrlString(_playWeb, mode: LaunchMode.externalApplication);
   }
 
-  static const _repo = 'blackshadowde/Vibe-flutter';
+  static const _repo = 'blackshadowde/Keepr';
   static const _api = 'https://api.github.com/repos/$_repo/releases/latest';
   static const _channel = MethodChannel('vibe/updater');
 
-  static const _lastCheckKey = 'chat.vibe.update_last_check';
-  static const _laterVersionKey = 'chat.vibe.update_later_version';
-  static const _laterUntilKey = 'chat.vibe.update_later_until';
+  static const _lastCheckKey = 'chat.keepr.update_last_check';
+  static const _laterVersionKey = 'chat.keepr.update_later_version';
+  static const _laterUntilKey = 'chat.keepr.update_later_until';
 
-  static const _pendingKey = 'chat.vibe.update_pending';
-  static const _checkedAtKey = 'chat.vibe.update_checked_at';
+  static const _pendingKey = 'chat.keepr.update_pending';
+  static const _checkedAtKey = 'chat.keepr.update_checked_at';
 
   static bool _busy = false;
   static bool _loaded = false;
@@ -228,7 +228,7 @@ abstract class VibeUpdater {
     // exactly the release's own APK, never just "any .apk"
     final assets = (j['assets'] as List? ?? const [])
         .whereType<Map>()
-        .where((a) => a['name'] == 'Vibe-$tag.apk')
+        .where((a) => a['name'] == 'Keepr-$tag.apk')
         .toList();
     if (assets.isEmpty) return null;
     final apk = assets.first;

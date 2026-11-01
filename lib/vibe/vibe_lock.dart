@@ -15,7 +15,7 @@ import 'package:matrix/matrix.dart';
 /// Locked chats: hidden from the chat list and rail, opened only after
 /// fingerprint / face / phone PIN. Stored on this phone only.
 abstract class VibeLock {
-  static const _key = 'chat.vibe.locked_rooms';
+  static const _key = 'chat.keepr.locked_rooms';
   static final ValueNotifier<int> changes = ValueNotifier(0);
   static DateTime _unlockedUntil = DateTime(2000);
 

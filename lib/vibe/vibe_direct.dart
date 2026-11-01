@@ -100,7 +100,7 @@ abstract class VibeDirect {
         'counts': {'unread': event.room.notificationCount},
         'devices': [
           {
-            'app_id': 'chat.vibe.direct',
+            'app_id': 'chat.keepr.direct',
             'pushkey': 'direct',
             'data': {'client_name': client.clientName},
           },

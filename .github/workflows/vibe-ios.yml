@@ -73,7 +73,7 @@ jobs:
           PYEOF
 
       # Third-party signers replace the Apple team, which drops the app group
-      # (group.app.vibe.chat). The app then can't read its keychain/database
+      # (group.app.keepr.chat). The app then can't read its keychain/database
       # key and sits on a white screen. For this CI build only, stop using the
       # app group. Android builds never run this workflow.
       - name: Make storage work without the app group
@@ -85,7 +85,7 @@ jobs:
               open(path, "w").write(s.replace(old, new))
           d = "lib/utils/matrix_sdk_extensions/flutter_matrix_dart_sdk_database/"
           sub(d + "cipher.dart",
-              "IOSOptions(groupId: 'group.app.vibe.chat')", "IOSOptions()")
+              "IOSOptions(groupId: 'group.app.keepr.chat')", "IOSOptions()")
           sub(d + "builder.dart",
               "Directory(containerPath!)",
               "Directory(containerPath ?? (await getTemporaryDirectory()).path)")
@@ -155,13 +155,13 @@ jobs:
             echo "::error::IPA build number $FOUND does not match $VIBE_BUILD"
             exit 1
           fi
-          zip -qry Vibe-unsigned.ipa Payload
-          cp Vibe-unsigned.ipa Vibe.ipa
+          zip -qry Keepr-unsigned.ipa Payload
+          cp Keepr-unsigned.ipa Keepr.ipa
 
       - uses: actions/upload-artifact@v4
         with:
           name: vibe-ios-unsigned
-          path: Vibe-unsigned.ipa
+          path: Keepr-unsigned.ipa
 
       # A separate "ios-v..." release (never marked latest, so Android's
       # in-app updater keeps finding the APK release).
@@ -172,26 +172,26 @@ jobs:
           name: Vibe ${{ env.VIBE_VERSION }} for iPhone
           target_commitish: ${{ github.sha }}
           make_latest: false
-          files: Vibe.ipa
+          files: Keepr.ipa
           body: |
             Vibe ${{ env.VIBE_VERSION }} for iPhone (unsigned, for AltStore / SideStore).
 
             Add the source once and updates show up in AltStore / SideStore:
-            https://raw.githubusercontent.com/blackshadowde/Vibe-flutter/Vibe/altstore.json
+            https://raw.githubusercontent.com/blackshadowde/Keepr/Vibe/altstore.json
 
       # AltStore / SideStore read this file to find updates.
       - name: Update the AltStore / SideStore source
         if: ${{ inputs.publish }}
         run: |
           set -euo pipefail
-          SIZE=$(stat -f%z Vibe.ipa)
-          git checkout -- . && git clean -fdq -e Vibe.ipa -e Vibe-unsigned.ipa
+          SIZE=$(stat -f%z Keepr.ipa)
+          git checkout -- . && git clean -fdq -e Keepr.ipa -e Keepr-unsigned.ipa
           git pull -q --rebase origin "${GITHUB_REF_NAME}"
           v="$VIBE_VERSION"
           jq --arg v "$v" --arg b "$VIBE_BUILD" --arg d "$(date -u +%Y-%m-%d)" --argjson s "$SIZE" \
             '.apps[0].versions = [{"version": $v, "buildVersion": $b, "date": $d, "size": $s,
               "localizedDescription": ("Vibe " + $v),
-              "downloadURL": ("https://github.com/blackshadowde/Vibe-flutter/releases/download/ios-v" + $v + "/Vibe.ipa")}]
+              "downloadURL": ("https://github.com/blackshadowde/Keepr/releases/download/ios-v" + $v + "/Keepr.ipa")}]
               + [.apps[0].versions[] | select(.version != $v)][0:9]' \
             altstore.json > altstore.tmp && mv altstore.tmp altstore.json
           git config user.name "github-actions[bot]"

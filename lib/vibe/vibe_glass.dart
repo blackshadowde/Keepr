@@ -289,7 +289,7 @@ abstract class VibeGlass {
 
   // ---- wallpapers -------------------------------------------------------
 
-  static String _chatKey(String roomId) => 'chat.vibe.glass_chat.$roomId';
+  static String _chatKey(String roomId) => 'chat.keepr.glass_chat.$roomId';
 
   /// The (blurred) wallpaper for a chat, or the app's when [roomId] is
   /// null. A chat without its own returns null.
@@ -335,7 +335,7 @@ abstract class VibeGlass {
     version.value++;
   }
 
-  static const _nameKey = 'chat.vibe.glass_wallpaper_name';
+  static const _nameKey = 'chat.keepr.glass_wallpaper_name';
 
   /// Which HyDE wallpaper the app uses (its file name), if it's one.
   static String get wallpaperName =>

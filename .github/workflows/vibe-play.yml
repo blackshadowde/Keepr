@@ -144,9 +144,9 @@ jobs:
           done
           echo "removed READ_MEDIA_IMAGES and READ_MEDIA_VIDEO"
           # com.vibe.app is taken on Google Play by another developer, so the
-          # Play version is its own app: app.vibe.chat. GitHub keeps com.vibe.app.
+          # Play version is its own app: app.vibe.chat. GitHub keeps app.keepr.chat.
           G=android/app/build.gradle.kts
-          sed -i 's/applicationId = "com.vibe.app"/applicationId = "app.vibe.chat"/' "$G"
+          sed -i 's/applicationId = "app.keepr.chat"/applicationId = "app.vibe.chat"/' "$G"
           grep -q 'applicationId = "app.vibe.chat"' "$G" || { echo "::error::app ID not changed"; exit 1; }
           echo "app ID app.vibe.chat"
 

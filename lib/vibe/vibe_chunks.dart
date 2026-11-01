@@ -15,11 +15,11 @@ import 'package:matrix/matrix.dart';
 ///
 /// A file bigger than the server allows is cut into parts. Each part is sent
 /// as a normal (end-to-end encrypted, in encrypted rooms) file message with
-/// a `chat.vibe.chunk` block. The LAST part also lists the event ids of all
+/// a `chat.keepr.chunk` block. The LAST part also lists the event ids of all
 /// earlier parts, so the receiver can fetch them and join the file back.
 /// Other Matrix apps just see "part 1 of 3" files.
 abstract class VibeChunks {
-  static const key = 'chat.vibe.chunk';
+  static const key = 'chat.keepr.chunk';
 
   /// Highest single upload we trust. matrix.org free accounts allow 10 MB
   /// per file (premium 100 MB); the server does not always report this.
@@ -156,7 +156,7 @@ abstract class VibeChunks {
     }
   }
 
-  /// The `chat.vibe.chunk` block of [event], or null if it is not a part.
+  /// The `chat.keepr.chunk` block of [event], or null if it is not a part.
   static Map<String, Object?>? info(Event event) {
     final c = event.content[key];
     if (c is! Map) return null;

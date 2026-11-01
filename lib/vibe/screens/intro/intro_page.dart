@@ -701,7 +701,7 @@ class _IntroPageState extends State<IntroPage>
                 Center(
                   child: GestureDetector(
                     onTap: () => launchUrlString(
-                      'https://get-vibe.github.io/terms.html',
+                      'https://get-keepr.github.io/terms.html',
                       mode: LaunchMode.externalApplication,
                     ),
                     child: Text.rich(

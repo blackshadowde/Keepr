@@ -17,7 +17,7 @@ Color get _blurple => VibePalette.accent;
 
 /// iPhone: updates come through AltStore / SideStore from this source.
 const _iosSource =
-    'https://raw.githubusercontent.com/blackshadowde/Vibe-flutter/Vibe/altstore.json';
+    'https://raw.githubusercontent.com/blackshadowde/Keepr/Vibe/altstore.json';
 
 /// About Vibe, laid out like Vibgram's About: logo, name, tagline, version
 /// pill, update status, one blurple button and outlined buttons below.
@@ -192,7 +192,7 @@ class _VibeAboutPageState extends State<VibeAboutPage> {
           _AboutButton(
             text: 'Website',
             onTap: () => launchUrlString(
-              'https://get-vibe.github.io',
+              'https://get-keepr.github.io',
               mode: LaunchMode.externalApplication,
             ),
           ),

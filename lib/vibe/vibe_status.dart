@@ -13,10 +13,10 @@ import 'package:matrix/matrix.dart';
 /// Custom status ("⚓ On watch · until 4:00 PM") + the person's time zone
 /// ("2:14 AM for Ashish").
 ///
-/// Stored as a `chat.vibe.status` state event (state key = your user id) in
+/// Stored as a `chat.keepr.status` state event (state key = your user id) in
 /// each of your direct chats, so only people you chat with can see it.
 class VibeStatus {
-  static const type = 'chat.vibe.status';
+  static const type = 'chat.keepr.status';
 
   final String emoji;
   final String text;

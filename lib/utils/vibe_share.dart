@@ -46,7 +46,7 @@ abstract class VibeShare {
     await VibeShare.share(
       l10n.inviteText(
         ownProfile.displayName ?? client.userID!,
-        'https://matrix.to/#/${client.userID}?client=app.vibe.chat',
+        'https://matrix.to/#/${client.userID}?client=app.keepr.chat',
       ),
       context,
     );

@@ -79,7 +79,7 @@
             <!-- No https://matrix.to link handler: only matrix.org could
                  verify it (assetlinks.json), Android 12+ opens those links
                  in the browser anyway, and security scanners flag it.
-                 matrix: and vibe:// links still open Keepr. -->
+                 matrix: and keepr:// links still open Keepr. -->
 
             <!-- App can open matrix: uris -->
             <intent-filter>
@@ -89,12 +89,12 @@
                <data android:scheme="matrix" />
             </intent-filter>
 
-            <!-- App can open vibe:// uris -->
+            <!-- App can open keepr:// uris -->
             <intent-filter>
                <action android:name="android.intent.action.VIEW" />
                <category android:name="android.intent.category.DEFAULT" />
                <category android:name="android.intent.category.BROWSABLE" />
-               <data android:scheme="vibe" android:host="chat" />
+               <data android:scheme="keepr" android:host="chat" />
             </intent-filter>
 
             <!-- App can receive shared text -->
@@ -124,7 +124,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="chat.vibe.auth" android:path="/login"/>
+                <data android:scheme="chat.keepr.auth" android:path="/login"/>
             </intent-filter>
         </activity>
 

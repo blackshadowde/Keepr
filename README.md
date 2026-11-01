@@ -10,11 +10,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/blackshadowde/Vibe-flutter/releases/latest"><b>⬇ Android APK</b></a>
+  <a href="https://github.com/blackshadowde/Keepr/releases/latest"><b>⬇ Android APK</b></a>
   ·
   <a href="#iphone"><b>iPhone (AltStore / SideStore)</b></a>
   ·
-  <a href="https://get-vibe.github.io"><b>Website</b></a>
+  <a href="https://get-keepr.github.io"><b>Website</b></a>
   ·
   <a href="#support-vibe">❤ Support Keepr</a>
 </p>
@@ -76,7 +76,7 @@ The layout: a rail of profile pictures on the left, your DMs in the middle, and 
 
 ## Download and install
 
-1. Open the [latest release](https://github.com/blackshadowde/Vibe-flutter/releases/latest) on your Android phone.
+1. Open the [latest release](https://github.com/blackshadowde/Keepr/releases/latest) on your Android phone.
 2. Tap **`Vibe-x.y.z.apk`** to download it.
 3. Open the file. If Android asks, allow **Install unknown apps** for your browser.
 4. Sign in with your Matrix account, or tap **Create account**.
@@ -87,21 +87,21 @@ Works on 64-bit Android phones (almost every phone from the last 7+ years).
 
 ### Obtainium (automatic updates from GitHub)
 
-[Obtainium](https://obtainium.imranr.dev) installs Keepr directly from this repository's releases and updates it: in Obtainium tap **Add app** and enter `https://github.com/blackshadowde/Vibe-flutter`, or open [obtainium://add/https://github.com/blackshadowde/Vibe-flutter](obtainium://add/https://github.com/blackshadowde/Vibe-flutter) on your phone.
+[Obtainium](https://obtainium.imranr.dev) installs Keepr directly from this repository's releases and updates it: in Obtainium tap **Add app** and enter `https://github.com/blackshadowde/Keepr`, or open [obtainium://add/https://github.com/blackshadowde/Keepr](obtainium://add/https://github.com/blackshadowde/Keepr) on your phone.
 
 ### iPhone
 
 Keepr for iPhone installs with [SideStore](https://sidestore.io) or [AltStore](https://altstore.io), and updates show up there automatically.
 
 1. Add this source in SideStore or AltStore (Sources > +):
-   `https://raw.githubusercontent.com/blackshadowde/Vibe-flutter/Vibe/altstore.json`
+   `https://raw.githubusercontent.com/blackshadowde/Keepr/Vibe/altstore.json`
 2. Install **Keepr** from the source.
 
 Already have Keepr? Settings > About > **Get updates in SideStore** adds the source in one tap.
 
 ### Web
 
-Keepr also runs in the browser: [blackshadowde.github.io/Vibe-flutter](https://blackshadowde.github.io/Vibe-flutter/).
+Keepr also runs in the browser: [blackshadowde.github.io/Keepr](https://blackshadowde.github.io/Keepr/).
 
 ## Support Keepr
 
