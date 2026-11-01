@@ -21,6 +21,7 @@ import 'package:vibe/vibe/vibe_message_menu.dart';
 import 'package:vibe/vibe/vibe_starred.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:vibe/vibe/vibe_photo_stack.dart';
 import 'package:matrix/matrix_api_lite/model/event_types.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 
@@ -54,6 +55,36 @@ class ChatEventList extends StatelessWidget {
     // ListView's findChildIndexCallback
     // Keyed by the same stable id as the list items, so a message keeps its
     // widget (and doesn't animate again) when its id changes after sending.
+    // Photo stacks: 4+ photos in a row from one person, sent within a
+    // couple of minutes of each other, show as one grid (newest position).
+    final stackAt = <int, List<Event>>{};
+    final inStack = <int>{};
+    for (var j = 0; j < events.length;) {
+      if (!VibePhotoStack.fits(events[j])) {
+        j++;
+        continue;
+      }
+      var k = j;
+      while (k + 1 < events.length &&
+          VibePhotoStack.fits(events[k + 1]) &&
+          events[k + 1].senderId == events[j].senderId &&
+          events[k]
+                  .originServerTs
+                  .difference(events[k + 1].originServerTs)
+                  .inMinutes
+                  .abs() <
+              2) {
+        k++;
+      }
+      if (k - j + 1 >= VibePhotoStack.minCount) {
+        stackAt[j] = events.sublist(j, k + 1).reversed.toList();
+        for (var m = j + 1; m <= k; m++) {
+          inStack.add(m);
+        }
+      }
+      j = k + 1;
+    }
+
     final thisEventsKeyMap = <String, int>{};
     for (var i = 0; i < events.length; i++) {
       thisEventsKeyMap[controller.stableId(events[i])] = i;
@@ -183,6 +214,17 @@ class ChatEventList extends StatelessWidget {
                   nextEvent == null ||
                   !event.originServerTs.sameDay(nextEvent.originServerTs);
 
+              // part of a photo stack shown at a newer message
+              if (inStack.contains(i)) {
+                return AutoScrollTag(
+                  key: ValueKey(stableId),
+                  index: i,
+                  controller: controller.scrollController,
+                  child: const SizedBox.shrink(),
+                );
+              }
+              final stack = stackAt[i];
+
               return AutoScrollTag(
                 key: ValueKey(stableId),
                 index: i,
@@ -197,6 +239,9 @@ class ChatEventList extends StatelessWidget {
                   children: [
                     if (!isCollapsed && displayDate)
                       VibeDateDivider(event.originServerTs),
+                    if (stack != null)
+                      VibePhotoStack(stack)
+                    else
                     Message(
                       event,
                       bigEmojis: controller.bigEmojis,

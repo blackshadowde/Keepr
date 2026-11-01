@@ -25,6 +25,7 @@ import 'package:vibe/widgets/presence_builder.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:matrix/matrix.dart';
+import 'package:vibe/vibe/vibe_threads.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 final RegExp _urlRegex = RegExp(r'https?://\S+');
@@ -207,6 +208,41 @@ class VibeDmDetail extends StatelessWidget {
                   onTap: () => VibeCall.startFrom(context, room, video: true),
                 ),
               ],
+              // threads made from messages, until they're closed
+              ValueListenableBuilder<int>(
+                valueListenable: VibeThreads.revision,
+                builder: (context, _, _) {
+                  final ids = VibeThreads.ids(room.id);
+                  if (ids.isEmpty) return const SizedBox.shrink();
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const VibePaneHeader('THREADS'),
+                      for (final id in ids)
+                        FutureBuilder<Event?>(
+                          future: room.getEventById(id),
+                          builder: (context, snap) => VibeHashRow(
+                            label: VibeThreads.title(snap.data),
+                            icon: Icons.forum_outlined,
+                            onTap: () {
+                              VibeThreads.openNext(room.id, id);
+                              onOpenChat();
+                            },
+                            trailing: IconButton(
+                              tooltip: 'Close thread',
+                              icon: const Icon(Icons.close, size: 18),
+                              onPressed: () => VibeThreads.confirmClose(
+                                context,
+                                room.id,
+                                id,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
               const VibePaneHeader('INFO'),
               VibeHashRow(
                 label: 'media',
