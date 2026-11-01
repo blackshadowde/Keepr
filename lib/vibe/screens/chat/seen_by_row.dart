@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import 'package:vibe/config/themes.dart';
+import 'package:vibe/utils/room_status_extension.dart';
 import 'package:vibe/widgets/avatar.dart';
 import 'package:vibe/widgets/matrix.dart';
 import 'package:flutter/material.dart';
@@ -11,7 +12,8 @@ import 'package:matrix/matrix.dart';
 
 class SeenByRow extends StatelessWidget {
   final Event event;
-  const SeenByRow({super.key, required this.event});
+  final Timeline timeline;
+  const SeenByRow({super.key, required this.event, required this.timeline});
 
   @override
   Widget build(BuildContext context) {
@@ -27,14 +29,11 @@ class SeenByRow extends StatelessWidget {
             false,
       ),
       builder: (context, asyncSnapshot) {
-        final seenByUsers = event.receipts
-            .map((r) => r.user)
-            .where(
-              (user) =>
-                  user.id != event.room.client.userID &&
-                  user.id != event.senderId,
-            )
-            .toList();
+        // also counts receipts on hidden events after this message
+        final seenByUsers = event.room.getSeenByUsers(
+          timeline,
+          eventId: event.eventId,
+        );
         return Container(
           width: double.infinity,
           alignment: Alignment.center,

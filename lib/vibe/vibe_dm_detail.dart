@@ -110,6 +110,7 @@ class VibeDmDetail extends StatelessWidget {
                       mxContent: room.avatar,
                       name: name,
                       size: 62,
+                      animated: true,
                       client: room.client,
                     ),
                   ),

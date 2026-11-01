@@ -56,6 +56,7 @@ class SettingsView extends StatelessWidget {
                     mxContent: profile?.avatarUrl,
                     name: displayname,
                     size: 96,
+                    animated: true,
                   ),
                   const SizedBox(height: 12),
                   Text(

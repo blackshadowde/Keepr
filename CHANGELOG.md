@@ -22,6 +22,10 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 - A thread slides in when opened and slides back out when closed
 - Photo stacks: your own photos sit on the right, the date line goes by the first photo, and long-press on a photo opens its menu (react, reply, delete)
 - Downloaded builds are named Keepr (keepr-apk, keepr-play, keepr-ios-unsigned)
+- Voice messages recorded on Android now play on every phone (the file is repackaged; the sound is unchanged). From FluffyChat 31f7fff
+- "Seen by" still shows when the last thing in a chat is a hidden event. From FluffyChat c1477f7
+- A chat's notification goes away as soon as you read it, here or on another device. From FluffyChat ceb1331
+- Animated profile pictures play in your profile, chat details and the profile popup, and stay animated when picked from the gallery. From FluffyChat c1f0de1
 
 ## 2026-11-01
 

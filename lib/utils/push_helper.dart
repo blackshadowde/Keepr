@@ -623,3 +623,56 @@ extension on PushNotification {
     return '${clientName}_$roomId'.hashCode;
   }
 }
+
+/// When a chat is read (here or on another device), its notification goes
+/// away. Called on every sync while Keepr is running.
+Future<void> cancelNotificationsOnSync(
+  SyncUpdate syncUpdate,
+  String clientName,
+  String userId,
+  L10n l10n,
+  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin,
+) async {
+  if (!PlatformInfos.isMobile) return;
+  bool readByMe(Object? value) =>
+      value is Map<String, Object?> &&
+      (value.tryGetMap<String, Object?>('m.read')?.keys.contains(userId) ==
+              true ||
+          value
+                  .tryGetMap<String, Object?>('m.read.private')
+                  ?.keys
+                  .contains(userId) ==
+              true);
+  final readRoomIds =
+      syncUpdate.rooms?.join?.entries
+          .where(
+            (entry) =>
+                (entry.value.ephemeral?.any(
+                      (event) =>
+                          event.type == 'm.receipt' &&
+                          event.content.values.any(readByMe),
+                    ) ??
+                    false) &&
+                entry.value.unreadNotifications?.notificationCount == 0,
+          )
+          .map((entry) => entry.key)
+          .toSet() ??
+      {};
+  if (readRoomIds.isEmpty) return;
+  try {
+    for (final roomId in readRoomIds) {
+      await flutterLocalNotificationsPlugin.cancel(
+        id: '${clientName}_$roomId'.hashCode,
+      );
+    }
+    if (PlatformInfos.isAndroid) {
+      await updateSummaryNotification(
+        clientName: clientName,
+        flutterLocalNotificationsPlugin: flutterLocalNotificationsPlugin,
+        l10n: l10n,
+      );
+    }
+  } catch (e) {
+    Logs().w('Could not clear read notifications', e);
+  }
+}
