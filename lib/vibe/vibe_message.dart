@@ -3,7 +3,9 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'package:flutter/services.dart';
 import 'package:vibe/vibe/vibe_event_body.dart';
+import 'package:vibe/vibe/vibe_starred.dart';
 import 'package:vibe/vibe/vibe_member_tags.dart';
 import 'package:vibe/vibe/vibe_palette.dart';
 import 'package:vibe/vibe/vibe_quote.dart';
@@ -861,6 +863,28 @@ class VibeMessage extends StatelessWidget {
                           event.room.canSendDefaultMessages
                       ? () {
                           VibeHaptics.light();
+                          // the action picked in Settings > Chats & storage
+                          switch (AppSettings.doubleTapAction.value) {
+                            case 'reply':
+                              onSwipe();
+                              return;
+                            case 'quote':
+                              (onQuote ?? onSwipe)();
+                              return;
+                            case 'star':
+                              VibeStarred.toggle(event.room.id, event.eventId);
+                              return;
+                            case 'copy':
+                              Clipboard.setData(
+                                ClipboardData(
+                                  text: event.calcUnlocalizedBody(
+                                    hideReply: true,
+                                    plaintextBody: true,
+                                  ),
+                                ),
+                              );
+                              return;
+                          }
                           final emoji = AppSettings.doubleTapReaction.value;
                           final existing = event
                               .aggregatedEvents(

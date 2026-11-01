@@ -152,6 +152,8 @@ enum AppSettings<T> {
   vibeWebSessionOnly<bool>('chat.keepr.web_session_only', false),
   doubleTapToReact<bool>('chat.keepr.double_tap_to_react', false),
   doubleTapReaction<String>('chat.keepr.double_tap_reaction', '❤️'),
+  // what a double tap does: react, reply, quote, star or copy
+  doubleTapAction<String>('chat.keepr.double_tap_action', 'react'),
   benchmarksInLogs<bool>('chat.keepr.benchmarks_in_logs', false);
 
   final String key;

@@ -7,6 +7,7 @@ import 'package:vibe/vibe/vibe_event_body.dart';
 import 'package:vibe/vibe/vibe_drop.dart';
 import 'package:vibe/vibe/vibe_pending_files.dart';
 import 'package:vibe/vibe/vibe_quote.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:vibe/vibe/vibe_mention_controller.dart';
 import 'package:vibe/vibe/vibe_reply_thread.dart';
 import 'package:vibe/vibe/vibe_dialog.dart';
@@ -833,13 +834,20 @@ class ChatController extends State<ChatPageWithRoom>
       );
     } else {
       // ignore: unawaited_futures
-      room.sendTextEvent(
-        _withQuote(sendController.text),
-        inReplyTo: replyEvent,
-        editEventId: editEvent?.eventId,
-        parseCommands: parseCommands,
-        threadRootEventId: activeThreadId,
-      );
+      final isCommand = sendController.text.startsWith('/');
+      room
+          .sendTextEvent(
+            _withQuote(sendController.text),
+            inReplyTo: replyEvent,
+            editEventId: editEvent?.eventId,
+            parseCommands: parseCommands,
+            threadRootEventId: activeThreadId,
+          )
+          // the server refused or couldn't be reached in time
+          .then((id) {
+            if (id == null && !isCommand) _sendFailed();
+          })
+          .catchError((Object _) => _sendFailed());
     }
     sendController.value = TextEditingValue(
       text: pendingText,
@@ -1389,6 +1397,14 @@ class ChatController extends State<ChatPageWithRoom>
       preferPosition: AutoScrollPosition.middle,
     );
     _updateScrollController();
+    // the highlight only flashes, then the message looks normal again
+    if (highlightEvent) {
+      Future.delayed(const Duration(milliseconds: 1800), () {
+        if (mounted && scrollToEventIdMarker == eventId) {
+          setState(() => scrollToEventIdMarker = null);
+        }
+      });
+    }
   }
 
   Future<void> scrollDown() async {
@@ -1735,6 +1751,27 @@ class ChatController extends State<ChatPageWithRoom>
     replyQuote = null;
     editEvent = null;
   });
+
+  /// A message that couldn't be sent: a notification, so it's noticed even
+  /// when Keepr is in the background.
+  Future<void> _sendFailed() async {
+    try {
+      await FlutterLocalNotificationsPlugin().show(
+        id: 'send_failed_${room.id}'.hashCode,
+        title: room.getLocalizedDisplayname(),
+        body: 'Message not sent. Open the chat to try again.',
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'send_failed',
+            'Messages not sent',
+            importance: Importance.high,
+            priority: Priority.high,
+          ),
+          iOS: DarwinNotificationDetails(),
+        ),
+      );
+    } catch (_) {}
+  }
 
   /// Quote part of [event]: pick the words, then answer them.
   Future<void> quotePartAction(Event event) async {

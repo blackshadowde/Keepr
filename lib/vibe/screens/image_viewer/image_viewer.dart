@@ -227,6 +227,10 @@ class _ImageViewerState extends State<ImageViewer> {
                                 child: MxcImage(
                                   key: ValueKey(event.eventId),
                                   event: event,
+                                  // as big as the screen allows (it was
+                                  // drawn at its own size, with bars)
+                                  width: double.infinity,
+                                  height: double.infinity,
                                   fit: BoxFit.contain,
                                   isThumbnail: false,
                                   animated: true,

@@ -134,6 +134,27 @@ class _VibeChatSettingsPageState extends State<VibeChatSettingsPage> {
               ),
               if (AppSettings.doubleTapToReact.value)
                 ListTile(
+                  title: const Text('Double tap does'),
+                  trailing: DropdownButton<String>(
+                    value: AppSettings.doubleTapAction.value,
+                    underline: const SizedBox.shrink(),
+                    items: const [
+                      DropdownMenuItem(value: 'react', child: Text('React')),
+                      DropdownMenuItem(value: 'reply', child: Text('Reply')),
+                      DropdownMenuItem(value: 'quote', child: Text('Quote part')),
+                      DropdownMenuItem(value: 'star', child: Text('Bookmark')),
+                      DropdownMenuItem(value: 'copy', child: Text('Copy text')),
+                    ],
+                    onChanged: (v) async {
+                      if (v == null) return;
+                      await AppSettings.doubleTapAction.setItem(v);
+                      _refresh();
+                    },
+                  ),
+                ),
+              if (AppSettings.doubleTapToReact.value &&
+                  AppSettings.doubleTapAction.value == 'react')
+                ListTile(
                   title: Text(L10n.of(context).doubleTapReaction),
                   trailing: Text(
                     AppSettings.doubleTapReaction.value,
