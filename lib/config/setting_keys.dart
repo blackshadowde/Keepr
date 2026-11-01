@@ -65,7 +65,7 @@ enum AppSettings<T> {
   ),
   displayChatDetailsColumn('chat.vibe.display_chat_details_column', false),
   // AppConfig-mirrored settings
-  applicationName<String>('chat.vibe.application_name', 'Vibe'),
+  applicationName<String>('chat.vibe.application_name', 'Keepr'),
   defaultHomeserver<String>(
     'chat.vibe.default_homeserver',
     'matrix.unredacted.org',

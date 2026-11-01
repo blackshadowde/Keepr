@@ -196,9 +196,9 @@ abstract class VibeBackup {
         'Last backup ${_stamp(now)} · $where',
       );
     } catch (e) {
-      Logs().w('Vibe auto backup failed', e);
+      Logs().w('Keepr auto backup failed', e);
       await AppSettings.vibeAutoBackupResult.setItem(
-        'Last automatic backup failed. It will try again next time Vibe opens.',
+        'Last automatic backup failed. It will try again next time Keepr opens.',
       );
     } finally {
       _running = false;
@@ -373,7 +373,7 @@ class _VibeBackupPageState extends State<VibeBackupPage> {
   }
 
   Future<void> _openBackup() async {
-    final files = await selectFiles(context, title: 'Pick a Vibe backup');
+    final files = await selectFiles(context, title: 'Pick a Keepr backup');
     if (files.isEmpty || !mounted) return;
     final bytes = await files.first.readAsBytes();
     if (!mounted) return;
@@ -392,7 +392,7 @@ class _VibeBackupPageState extends State<VibeBackupPage> {
         e.code == 'wrong_password'
             ? 'Wrong password'
             : e.code == 'not_backup'
-            ? 'That file is not a Vibe backup'
+            ? 'That file is not a Keepr backup'
             : 'Could not open: ${e.message}',
       );
     } catch (e) {
@@ -536,9 +536,9 @@ class _VibeBackupPageState extends State<VibeBackupPage> {
                   '• Backups hold the text of your messages: who, when and what. '
                   'Photos, videos and files are not included.\n'
                   '• Without the password nobody can open a backup, not even '
-                  'Vibe. If you forget it, that backup can\'t be opened.\n'
+                  'Keepr. If you forget it, that backup can\'t be opened.\n'
                   '• Automatic backups go to Downloads/Vibe backups and stay '
-                  'there even if you uninstall Vibe. They run when you open Vibe.\n'
+                  'there even if you uninstall Keepr. They run when you open Keepr.\n'
                   '• Your encryption keys are backed up separately in '
                   'Encryption & Keys.',
                   style: TextStyle(fontSize: 13.5, height: 1.4),
@@ -624,7 +624,7 @@ class _PasswordDialogState extends State<_PasswordDialog> {
             const Padding(
               padding: EdgeInsets.only(bottom: 12),
               child: Text(
-                'You\'ll need this password to open the backup. Vibe can\'t '
+                'You\'ll need this password to open the backup. Keepr can\'t '
                 'recover it for you.',
               ),
             ),

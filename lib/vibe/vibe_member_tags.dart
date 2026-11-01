@@ -96,7 +96,7 @@ abstract class VibeMemberTags {
             next,
           );
         } catch (e) {
-          Logs().d('Vibe tag: could not set in ${r.id}', e);
+          Logs().d('Keepr tag: could not set in ${r.id}', e);
         }
       });
     }

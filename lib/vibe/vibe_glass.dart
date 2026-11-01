@@ -425,7 +425,7 @@ abstract class VibeGlass {
       FileImage(f).evict();
       if (f.existsSync()) f.deleteSync();
     } catch (e) {
-      Logs().v('Vibe glass: could not delete old wallpaper', e);
+      Logs().v('Keepr glass: could not delete old wallpaper', e);
     }
   }
 

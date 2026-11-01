@@ -57,7 +57,7 @@ abstract class VibeChunks {
         title: 'File too big',
         message:
             '${file.name} is ${file.bytes.length.sizeString}. '
-            'Vibe can send files up to '
+            'Keepr can send files up to '
             '${(_maxParts * _partSizeFor(serverLimit)).sizeString}.',
       );
       return false;
@@ -68,8 +68,8 @@ abstract class VibeChunks {
       message:
           'Your file (${file.bytes.length.sizeString}) is more than the '
           'allowed size limit (${_limit(serverLimit).sizeString}).\n\n'
-          'To send it, Vibe will split it into $parts parts.\n\n'
-          'This only works if the person on the other side also uses Vibe. '
+          'To send it, Keepr will split it into $parts parts.\n\n'
+          'This only works if the person on the other side also uses Keepr. '
           'Other Matrix apps will only see separate parts.\n\n'
           'Your server may also limit uploads per day '
           '(matrix.org free accounts: 100 MB a day).',
@@ -107,7 +107,7 @@ abstract class VibeChunks {
       );
       final last = i == total - 1;
       final extra = <String, Object?>{
-        'body': '📦 ${file.name} (part ${i + 1} of $total, open in Vibe)',
+        'body': '📦 ${file.name} (part ${i + 1} of $total, open in Keepr)',
         key: {
           'v': 1,
           'id': id,

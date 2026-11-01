@@ -33,7 +33,7 @@ abstract class VibePrivacy {
           hide ? PresenceType.offline : PresenceType.online,
         );
       } catch (e) {
-        Logs().d('Vibe privacy: could not set presence', e);
+        Logs().d('Keepr privacy: could not set presence', e);
       }
     }
   }

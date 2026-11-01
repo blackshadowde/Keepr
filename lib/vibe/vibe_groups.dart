@@ -113,7 +113,7 @@ abstract class VibeGroups {
                     leading: Icon(Icons.person_add, color: t1),
                     title: Text('New chat', style: TextStyle(color: t1)),
                     subtitle: Text(
-                      'Message someone by their Vibe ID',
+                      'Message someone by their Keepr ID',
                       style: TextStyle(color: t2),
                     ),
                     onTap: () {
@@ -1063,7 +1063,7 @@ class _VibeCreateGroupPageState extends State<VibeCreateGroupPage> {
   void _addTyped() {
     final id = VibeGroups._matrixId(_id.text);
     if (!id.isValidMatrixId) {
-      setState(() => _error = 'That doesn\'t look like a Vibe ID (@name:server)');
+      setState(() => _error = 'That doesn\'t look like a Keepr ID (@name:server)');
       return;
     }
     setState(() {
@@ -1390,7 +1390,7 @@ class _VibeCreateGroupPageState extends State<VibeCreateGroupPage> {
                     Padding(
                       padding: const EdgeInsets.all(16),
                       child: Text(
-                        'Type someone\'s Vibe ID above to add them. You can also '
+                        'Type someone\'s Keepr ID above to add them. You can also '
                         'invite people later.',
                         style: TextStyle(color: t2),
                       ),
@@ -1632,7 +1632,7 @@ class _InviteState extends State<_Invite> {
   Future<void> _invite(String raw) async {
     final id = VibeGroups._matrixId(raw);
     if (!id.isValidMatrixId) {
-      setState(() => _error = 'That doesn\'t look like a Vibe ID (@name:server)');
+      setState(() => _error = 'That doesn\'t look like a Keepr ID (@name:server)');
       return;
     }
     setState(() => _error = null);
@@ -1713,7 +1713,7 @@ class _InviteState extends State<_Invite> {
               style: TextStyle(color: t2),
             ),
             onTap: () => SharePlus.instance.share(
-              ShareParams(text: 'Join ${VibeGroups.nameOf(context, room)} on Vibe: $link'),
+              ShareParams(text: 'Join ${VibeGroups.nameOf(context, room)} on Keepr: $link'),
             ),
           ),
         ),

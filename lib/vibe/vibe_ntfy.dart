@@ -75,8 +75,8 @@ abstract class VibeNtfy {
       FlutterForegroundTask.init(
         androidNotificationOptions: AndroidNotificationOptions(
           channelId: 'vibe_connection',
-          channelName: 'Vibe connection',
-          channelDescription: 'Keeps Vibe connected for built-in notifications',
+          channelName: 'Keepr connection',
+          channelDescription: 'Keeps Keepr connected for built-in notifications',
           onlyAlertOnce: true,
           playSound: false,
           enableVibration: false,
@@ -97,7 +97,7 @@ abstract class VibeNtfy {
       ForegroundServices.longLived = true;
       await FlutterForegroundTask.startService(
         serviceTypes: [ForegroundServiceTypes.remoteMessaging],
-        notificationTitle: 'Vibe',
+        notificationTitle: 'Keepr',
         notificationText: 'Connected for notifications',
         notificationIcon: NotificationIcon(metaDataName: 'ic_launcher'),
       );

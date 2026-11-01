@@ -39,7 +39,7 @@ abstract class VibeCrashReport {
       if (ctx == null || !ctx.mounted) return;
       final reason = info['reason'] as String? ?? 'crash';
       final report = [
-        'Vibe ${VibeAppInfo.version} — $reason',
+        'Keepr ${VibeAppInfo.version} — $reason',
         'when: $when',
         if ((info['description'] as String? ?? '').isNotEmpty)
           'details: ${info['description']}',
@@ -49,12 +49,12 @@ abstract class VibeCrashReport {
       await showVibeDialog<void>(
         context: ctx,
         builder: (dctx) => AlertDialog(
-          title: const Text('Vibe closed unexpectedly'),
+          title: const Text('Keepr closed unexpectedly'),
           content: Text(
             reason == 'not responding'
-                ? 'Last time Vibe stopped responding and Android closed it. '
+                ? 'Last time Keepr stopped responding and Android closed it. '
                       'Copy the report and send it to support to help fix it.'
-                : 'Last time Vibe crashed and restarted. Copy the report '
+                : 'Last time Keepr crashed and restarted. Copy the report '
                       'and send it to support to help fix it.',
           ),
           actions: [
@@ -78,7 +78,7 @@ abstract class VibeCrashReport {
         ),
       );
     } catch (e) {
-      Logs().v('Vibe crash report: $e');
+      Logs().v('Keepr crash report: $e');
     }
   }
 }

@@ -10,12 +10,12 @@ import 'package:flutter/services.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
-/// "Support Vibe": UPI donations. Settings card → page, plus a gentle
+/// "Support Keepr": UPI donations. Settings card → page, plus a gentle
 /// pop-up now and then (after a few days of use, at most once a month,
 /// with "Don't ask again").
 abstract class VibeSupport {
   static const upiId = 'ashish.boddu@ybl';
-  static const _payeeName = 'Vibe';
+  static const _payeeName = 'Keepr';
   static Color get blurple => VibePalette.accent;
 
   static const _firstSeenKey = 'chat.vibe.support_first_seen';
@@ -94,12 +94,12 @@ abstract class VibeSupport {
                 const Text('❤️', style: TextStyle(fontSize: 40)),
                 const SizedBox(height: 8),
                 const Text(
-                  'Enjoying Vibe?',
+                  'Enjoying Keepr?',
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Vibe is free, with no ads and no tracking. It is built by '
+                  'Keepr is free, with no ads and no tracking. It is built by '
                   'one person. If it helps you stay in touch, a small UPI '
                   'donation keeps the notification server running.',
                   textAlign: TextAlign.center,
@@ -123,7 +123,7 @@ abstract class VibeSupport {
                     },
                     icon: const Icon(Icons.favorite),
                     label: const Text(
-                      'Support Vibe',
+                      'Support Keepr',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -165,7 +165,7 @@ class VibeSupportPage extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final blurple = VibeSupport.blurple;
     return Scaffold(
-      appBar: AppBar(title: const Text('Support Vibe')),
+      appBar: AppBar(title: const Text('Support Keepr')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
         children: [
@@ -173,7 +173,7 @@ class VibeSupportPage extends StatelessWidget {
           const SizedBox(height: 8),
           const Center(
             child: Text(
-              'Keep Vibe free',
+              'Keep Keepr free',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
             ),
           ),

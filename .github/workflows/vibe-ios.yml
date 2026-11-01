@@ -94,8 +94,8 @@ jobs:
       - name: Vibe app name
         run: |
           set -euo pipefail
-          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Vibe" ios/Runner/Info.plist
-          /usr/libexec/PlistBuddy -c "Set :CFBundleName Vibe" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Keepr" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleName Keepr" ios/Runner/Info.plist
           /usr/libexec/PlistBuddy -c "Print :CFBundleDisplayName" ios/Runner/Info.plist
 
       # Optional: if this step fails the build still goes on with the old icon.

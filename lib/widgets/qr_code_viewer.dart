@@ -83,7 +83,7 @@ class QrCodeViewer extends StatelessWidget {
             icon: Icon(Icons.adaptive.share_outlined),
             onPressed: () => VibeShare.share(
               content.startsWith('@')
-                  ? 'Chat with me on Vibe: $inviteLink'
+                  ? 'Chat with me on Keepr: $inviteLink'
                   : inviteLink,
               context,
             ),

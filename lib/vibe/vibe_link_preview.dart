@@ -75,7 +75,7 @@ class VibeLinkPreview extends StatelessWidget {
           // Older servers without authenticated media.
           return await client.getUrlPreview(uri, ts: ts);
         } catch (e) {
-          Logs().v('Vibe link preview failed for $url', e);
+          Logs().v('Keepr link preview failed for $url', e);
           return null;
         }
       }

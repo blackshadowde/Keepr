@@ -372,7 +372,7 @@ class _StrictIntroState extends State<_StrictIntro>
                   ),
                   const SizedBox(height: 28),
                   const Text(
-                    'New in Vibe',
+                    'New in Keepr',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: green,

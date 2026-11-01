@@ -50,7 +50,7 @@ abstract class VibeLock {
       }
       return ok;
     } catch (e) {
-      Logs().w('Vibe lock: authentication failed', e);
+      Logs().w('Keepr lock: authentication failed', e);
       return false;
     }
   }

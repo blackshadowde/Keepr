@@ -123,7 +123,7 @@ abstract class VibeCall {
     if (_inCall) return;
     stopRinging();
     if (url != null && !safeUrl(url)) {
-      Logs().w('Vibe call: refused a call link to an unknown website');
+      Logs().w('Keepr call: refused a call link to an unknown website');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -140,7 +140,7 @@ abstract class VibeCall {
     if (perms[Permission.microphone] != PermissionStatus.granted) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Vibe needs the microphone for calls')),
+          const SnackBar(content: Text('Keepr needs the microphone for calls')),
         );
       }
       return;
@@ -198,7 +198,7 @@ abstract class VibeCall {
         'm.relates_to': {'rel_type': 'm.replace', 'event_id': eventId},
       });
     } catch (e) {
-      Logs().w('Vibe call: could not mark ended', e);
+      Logs().w('Keepr call: could not mark ended', e);
     }
   }
 
@@ -607,7 +607,7 @@ class _VibeCallScreenState extends State<_VibeCallScreen> {
     try {
       _eventId = await VibeCall._announce(widget.room, link, widget.video);
     } catch (e) {
-      Logs().w('Vibe call: could not post the call', e);
+      Logs().w('Keepr call: could not post the call', e);
     }
   }
 

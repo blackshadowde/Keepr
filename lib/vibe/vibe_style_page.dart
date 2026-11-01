@@ -213,7 +213,7 @@ class _VibeStylePageState extends State<VibeStylePage> {
                 segments: [
                   const ButtonSegment(
                     value: VibeLook.vibe,
-                    label: Text('Vibe'),
+                    label: Text('Keepr'),
                     icon: Icon(Icons.forum_outlined),
                   ),
                   ButtonSegment(

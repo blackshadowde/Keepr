@@ -125,7 +125,7 @@ class _VibeUpdatesPageState extends State<VibeUpdatesPage> {
             icon = Icons.system_update;
             color = const Color(0xFFF23F43);
             title = 'Update available';
-            sub = 'Vibe ${r.version}'
+            sub = 'Keepr ${r.version}'
                 '${r.size > 0 ? ' · ${(r.size / 1e6).toStringAsFixed(0)} MB' : ''}';
           } else if (busy) {
             icon = Icons.sync;
@@ -141,7 +141,7 @@ class _VibeUpdatesPageState extends State<VibeUpdatesPage> {
             icon = Icons.check_circle;
             color = _green;
             title = 'You\'re up to date';
-            sub = 'This is the newest Vibe';
+            sub = 'This is the newest Keepr';
           } else {
             icon = Icons.help_outline;
             color = cs.onSurfaceVariant;

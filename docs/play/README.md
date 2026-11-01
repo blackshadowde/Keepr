@@ -1,11 +1,11 @@
-# Vibe on Google Play: listing and forms
+# Keepr on Google Play: listing and forms
 
 Everything to paste into the Play Console. Check each answer against the app
 before submitting; you are the one declaring it to Google.
 
 ## Build
 
-Actions → **Vibe for Google Play (app bundle)** → Run. Download the `.aab`
+Actions → **Keepr for Google Play (app bundle)** → Run. Download the `.aab`
 under the run's **Artifacts** and upload it in the Play Console.
 
 `com.vibe.app` is taken on Google Play by another developer, so the Play
@@ -18,12 +18,12 @@ instead of its own gallery grid).
 
 ## Store listing
 
-**App name** (max 30): `Vibe – Secure Chat`
+**App name** (max 30): `Keepr – Secure Chat`
 
 Google Play's metadata policy doesn't allow other companies' brand names in
 the listing, so it never mentions Discord (or Telegram, WhatsApp...). "Matrix"
 is a trademark of The Matrix.org Foundation, so it isn't in the app name
-either; the description only says Vibe *works with* the Matrix protocol, which
+either; the description only says Keepr *works with* the Matrix protocol, which
 the Foundation's trademark policy allows. No Matrix logo anywhere.
 
 **Short description** (max 80):
@@ -32,14 +32,14 @@ the Foundation's trademark policy allows. No Matrix logo anywhere.
 **Full description** (max 4000):
 
 ```
-Vibe is a free, open-source messenger with a server-and-channel layout. It works with the Matrix protocol, the open standard for secure chat, so you can talk to people on other Matrix apps too. Vibe is an independent app, not made by or affiliated with The Matrix.org Foundation.
+Keepr is a free, open-source messenger with a server-and-channel layout. It works with the Matrix protocol, the open standard for secure chat, so you can talk to people on other Matrix apps too. Keepr is an independent app, not made by or affiliated with The Matrix.org Foundation.
 
 PRIVATE BY DESIGN
 • End-to-end encryption for direct messages and private groups
 • Strict encryption mode that changes keys more often
 • No ads, no analytics, no trackers (MobSF finds 0 of 432 known trackers)
 • No phone number needed: sign in with any Matrix account, or create one in the app
-• Vibe has no servers of its own: your account lives on the Matrix server you choose
+• Keepr has no servers of its own: your account lives on the Matrix server you choose
 
 FEELS LIKE HOME
 • Server rail, direct-message panes and communities
@@ -50,14 +50,14 @@ FEELS LIKE HOME
 • Encrypted chat backups with your own password
 
 NOTIFICATIONS WITHOUT GOOGLE
-Vibe keeps its own connection to your Matrix server, or uses ntfy. No Google push service is involved.
+Keepr keeps its own connection to your Matrix server, or uses ntfy. No Google push service is involved.
 
 OPEN AND CHECKED
 The full source is public (AGPL-3.0). Every release is scanned on VirusTotal and with MobSF, CodeQL and OSV-Scanner, and every change is listed in the changelog.
 Source: https://github.com/blackshadowde/Vibe-flutter
 Privacy policy: https://github.com/blackshadowde/Vibe-flutter/blob/Vibe/PRIVACY.md
 
-Vibe is based on FluffyChat and is built with the help of AI tools; all changes are reviewed and tested by the developer.
+Keepr is based on FluffyChat and is built with the help of AI tools; all changes are reviewed and tested by the developer.
 ```
 
 **Category:** Communication. **Tags:** Messaging, Chat.
@@ -70,18 +70,18 @@ PNG or JPEG).
 ## Policy links
 
 - **Privacy policy:** https://github.com/blackshadowde/Vibe-flutter/blob/Vibe/PRIVACY.md
-- **Account deletion** (required, Vibe can create Matrix accounts):
+- **Account deletion** (required, Keepr can create Matrix accounts):
   https://get-vibe.github.io/delete-account.html (in the app: Settings →
   Security & sign-in → Delete account)
 - **Terms of use** (user-content policy): https://get-vibe.github.io/terms.html.
   The sign-in screen says "By continuing you agree to the Terms".
 - **Child safety standards** (only required for Social/Dating/anonymous chat
-  apps; Vibe is Communication, but the page exists anyway):
+  apps; Keepr is Communication, but the page exists anyway):
   https://get-vibe.github.io/terms.html#child-safety
 
 ## User content (chat apps)
 
-| Requirement | Where in Vibe |
+| Requirement | Where in Keepr |
 | --- | --- |
 | Report a message | Long-press it → **Report** (goes to the user's server admins) |
 | Report / block a user | Their profile → **Report** / **Block** |
@@ -96,7 +96,7 @@ access**.
 
 ## Data safety (draft)
 
-Vibe sends data only to the Matrix server the user picks, never to the
+Keepr sends data only to the Matrix server the user picks, never to the
 developer. Google still counts data sent to a server as "collected", so
 declare it:
 
@@ -119,7 +119,7 @@ declare it:
 
 | Item | What to declare |
 | --- | --- |
-| Foreground service: **remoteMessaging** | "Vibe can keep its own connection to the user's Matrix server so messages arrive without Google's push service. The user turns this on in Settings → Notifications; a permanent notification shows while it runs." Play may ask for a short screen recording. |
+| Foreground service: **remoteMessaging** | "Keepr can keep its own connection to the user's Matrix server so messages arrive without Google's push service. The user turns this on in Settings → Notifications; a permanent notification shows while it runs." Play may ask for a short screen recording. |
 | Foreground service: **shortService** | "Finishes sending a file the user just sent if they leave the app." |
 | **Ignore battery optimisations** | Requested so the direct connection keeps delivering messages; real-time chat is the core feature. Expect questions; if Play refuses, the Play build can skip this request. |
 | Camera, microphone, contacts, location | Each is asked for only when the user uses that feature (calls, voice messages, sharing a contact or location). |

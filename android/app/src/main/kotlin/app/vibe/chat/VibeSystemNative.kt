@@ -17,8 +17,8 @@ import io.flutter.plugin.common.MethodChannel
 /**
  * Small system shortcuts for Vibe (Dart side: lib/vibe/vibe_hide_service.dart).
  *
- * "openChannelSettings": opens Android's settings for one of Vibe's
- * notification categories, e.g. the "Vibe connection" one, so it can be
+ * "openChannelSettings": opens Android's settings for one of Keepr's
+ * notification categories, e.g. the "Keepr connection" one, so it can be
  * turned off in one tap. Android keeps Vibe's background connection
  * running; only the permanent notification disappears.
  *

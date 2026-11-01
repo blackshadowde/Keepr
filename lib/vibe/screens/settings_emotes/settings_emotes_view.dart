@@ -221,7 +221,7 @@ class EmotesSettingsView extends StatelessWidget {
                   child: ElevatedButton.icon(
                     onPressed: controller.addVibePack,
                     icon: const Icon(Icons.auto_awesome),
-                    label: const Text('Add Vibe animated emoji pack'),
+                    label: const Text('Add Keepr animated emoji pack'),
                   ),
                 ),
               if (controller.room == null &&
@@ -264,7 +264,7 @@ class EmotesSettingsView extends StatelessWidget {
                   child: ElevatedButton.icon(
                     onPressed: controller.addTeluguPack,
                     icon: const Icon(Icons.translate),
-                    label: const Text('Add Vibe Telugu sticker pack'),
+                    label: const Text('Add Keepr Telugu sticker pack'),
                   ),
                 ),
               if (controller.room == null &&
@@ -274,7 +274,7 @@ class EmotesSettingsView extends StatelessWidget {
                   child: ElevatedButton.icon(
                     onPressed: () => controller.addVibePack(love: true),
                     icon: const Icon(Icons.favorite),
-                    label: const Text('Add Vibe love pack'),
+                    label: const Text('Add Keepr love pack'),
                   ),
                 ),
               const Divider(),

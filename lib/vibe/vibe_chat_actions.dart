@@ -53,7 +53,7 @@ abstract class VibeChatActions {
               title: const Text('Delete chat?'),
               content: Text(
                 'You\'ll leave ${room.getLocalizedDisplayname()} and it '
-                'disappears from Vibe. The other person keeps their copy.',
+                'disappears from Keepr. The other person keeps their copy.',
               ),
               actions: [
                 TextButton(
@@ -75,7 +75,7 @@ abstract class VibeChatActions {
           final name = room.getLocalizedDisplayname();
           final problem = await VibeDmFinder.delete(room);
           if (problem != null) {
-            Logs().w('Vibe: delete chat: server said $problem');
+            Logs().w('Keepr: delete chat: server said $problem');
           }
           messenger.showSnackBar(
             SnackBar(content: Text('Deleted $name')),

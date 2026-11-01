@@ -37,7 +37,7 @@ object VibeUpdater {
                                 name,
                             ).delete()
                             val request = DownloadManager.Request(Uri.parse(url))
-                                .setTitle("Vibe update")
+                                .setTitle("Keepr update")
                                 .setDescription(name)
                                 .setMimeType(APK_MIME)
                                 .setNotificationVisibility(
@@ -181,7 +181,7 @@ object VibeUpdater {
             val pm = app.packageManager
             val flags = android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES
             val mine = pm.getPackageInfo(app.packageName, flags).signingInfo
-                ?: return "Can't read Vibe's signature"
+                ?: return "Can't read Keepr's signature"
             val ours = (if (mine.hasMultipleSigners()) mine.apkContentsSigners else mine.signingCertificateHistory)
                 .map { certId(it.toByteArray()) }.toSet()
             // some Android 10-12 phones leave signingInfo empty for APK
@@ -195,7 +195,7 @@ object VibeUpdater {
                 )?.signatures
                 ?: return "The update isn't signed"
             val theirs = theirsRaw.map { certId(it.toByteArray()) }.toSet()
-            if (theirs.intersect(ours).isEmpty()) return "The update isn't signed by Vibe"
+            if (theirs.intersect(ours).isEmpty()) return "The update isn't signed by Keepr"
         } finally {
             tmp.delete()
         }

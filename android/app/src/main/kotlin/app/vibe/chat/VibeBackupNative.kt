@@ -44,7 +44,7 @@ object VibeBackupNative {
                 if (call.method == "pickCloud") {
                     val act = MainActivity.current
                     if (act == null) {
-                        result.error("failed", "Open Vibe first", null)
+                        result.error("failed", "Open Keepr first", null)
                     } else {
                         pending?.success(null)
                         pending = result
@@ -92,7 +92,7 @@ object VibeBackupNative {
                     } catch (e: WrongPassword) {
                         main.post { result.error("wrong_password", "Wrong password", null) }
                     } catch (e: NotABackup) {
-                        main.post { result.error("not_backup", "Not a Vibe backup", null) }
+                        main.post { result.error("not_backup", "Not a Keepr backup", null) }
                     } catch (e: Throwable) {
                         main.post { result.error("failed", e.message, null) }
                     }

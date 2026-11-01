@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="vibe-icon.png" width="120" alt="Vibe logo">
+  <img src="vibe-icon.png" width="120" alt="Keepr logo">
 </p>
 
-<h1 align="center">Vibe</h1>
+<h1 align="center">Keepr</h1>
 
 <p align="center">
   <b>An end-to-end encrypted messenger with servers and channels, built on Matrix.</b><br>
@@ -16,11 +16,11 @@
   ·
   <a href="https://get-vibe.github.io"><b>Website</b></a>
   ·
-  <a href="#support-vibe">❤ Support Vibe</a>
+  <a href="#support-vibe">❤ Support Keepr</a>
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/hero.png" alt="Vibe: your servers, Matrix privacy. Home and chat screens on two phones." width="100%">
+  <img src="docs/screenshots/hero.png" alt="Keepr: your servers, Matrix privacy. Home and chat screens on two phones." width="100%">
 </p>
 
 <p align="center">
@@ -33,9 +33,9 @@
 
 ---
 
-## Why Vibe
+## Why Keepr
 
-Vibe is a private chat app for family and friends. It runs on [Matrix](https://matrix.org), the open, decentralised chat network, so you can talk to anyone on any Matrix server, like matrix.org, Unredacted or Mozilla, and no single company owns your account.
+Keepr is a private chat app for family and friends. It runs on [Matrix](https://matrix.org), the open, decentralised chat network, so you can talk to anyone on any Matrix server, like matrix.org, Unredacted or Mozilla, and no single company owns your account.
 
 The layout: a rail of profile pictures on the left, your DMs in the middle, and chats that slide over the top.
 
@@ -52,7 +52,7 @@ The layout: a rail of profile pictures on the left, your DMs in the middle, and 
 - Starred messages, pinned chats, edits and read receipts
 - Media slideshow for every photo and video in a chat
 - Share phone contacts and Matrix contacts
-- Send big files in parts (Vibe to Vibe)
+- Send big files in parts (Keepr to Keepr)
 - 🎵 **Music link cards** for Spotify, YouTube Music, Apple Music, JioSaavn, SoundCloud and more
 - 📞 Encrypted **voice and video calls** inside the app (Element Call)
 
@@ -87,25 +87,25 @@ Works on 64-bit Android phones (almost every phone from the last 7+ years).
 
 ### Obtainium (automatic updates from GitHub)
 
-[Obtainium](https://obtainium.imranr.dev) installs Vibe directly from this repository's releases and updates it: in Obtainium tap **Add app** and enter `https://github.com/blackshadowde/Vibe-flutter`, or open [obtainium://add/https://github.com/blackshadowde/Vibe-flutter](obtainium://add/https://github.com/blackshadowde/Vibe-flutter) on your phone.
+[Obtainium](https://obtainium.imranr.dev) installs Keepr directly from this repository's releases and updates it: in Obtainium tap **Add app** and enter `https://github.com/blackshadowde/Vibe-flutter`, or open [obtainium://add/https://github.com/blackshadowde/Vibe-flutter](obtainium://add/https://github.com/blackshadowde/Vibe-flutter) on your phone.
 
 ### iPhone
 
-Vibe for iPhone installs with [SideStore](https://sidestore.io) or [AltStore](https://altstore.io), and updates show up there automatically.
+Keepr for iPhone installs with [SideStore](https://sidestore.io) or [AltStore](https://altstore.io), and updates show up there automatically.
 
 1. Add this source in SideStore or AltStore (Sources > +):
    `https://raw.githubusercontent.com/blackshadowde/Vibe-flutter/Vibe/altstore.json`
-2. Install **Vibe** from the source.
+2. Install **Keepr** from the source.
 
-Already have Vibe? Settings > About > **Get updates in SideStore** adds the source in one tap.
+Already have Keepr? Settings > About > **Get updates in SideStore** adds the source in one tap.
 
 ### Web
 
-Vibe also runs in the browser: [blackshadowde.github.io/Vibe-flutter](https://blackshadowde.github.io/Vibe-flutter/).
+Keepr also runs in the browser: [blackshadowde.github.io/Vibe-flutter](https://blackshadowde.github.io/Vibe-flutter/).
 
-## Support Vibe
+## Support Keepr
 
-Vibe is free, with no ads and no tracking. If you'd like to help pay for its development:
+Keepr is free, with no ads and no tracking. If you'd like to help pay for its development:
 
 <p align="center">
   <img src="docs/donate-upi.png" width="220" alt="UPI QR code for donations"><br>
@@ -117,11 +117,11 @@ Thank you! ❤
 ## Privacy
 
 - Messages and files are end-to-end encrypted. Your server only stores scrambled data.
-- Vibe has no analytics and no ads.
+- Keepr has no analytics and no ads.
 - Push notifications only carry a room and event ID, never message text.
 - Your account lives on the Matrix server you choose.
 
-Every server Vibe talks to, and what it sees, is listed in [PRIVACY.md](PRIVACY.md).
+Every server Keepr talks to, and what it sees, is listed in [PRIVACY.md](PRIVACY.md).
 
 ## How every release is checked
 
@@ -129,7 +129,7 @@ Every server Vibe talks to, and what it sees, is listed in [PRIVACY.md](PRIVACY.
 2. **Scanned automatically:** the release workflow uploads the APK to [VirusTotal](https://www.virustotal.com) (about 70 antivirus engines) and adds the result and report link to the release notes.
 3. **Fingerprint you can check:** the release notes list the APK's SHA-256. VirusTotal's report shows the SHA-256 of the file it scanned; when they match, it's the same file.
 4. **Every change listed:** [CHANGELOG.md](CHANGELOG.md) lists each change with the commit that made it.
-5. **Security scans** (the *Vibe security scans* workflow, on every change and weekly): [MobSF](https://github.com/MobSF/Mobile-Security-Framework-MobSF) checks the APK against the OWASP mobile standard (MASVS) and finds **0 of 432 known trackers**; OSV-Scanner checks every library for known security holes; CodeQL checks the build workflows. Each run's page lists the findings, with the full MobSF report (PDF) under Artifacts.
+5. **Security scans** (the *Keepr security scans* workflow, on every change and weekly): [MobSF](https://github.com/MobSF/Mobile-Security-Framework-MobSF) checks the APK against the OWASP mobile standard (MASVS) and finds **0 of 432 known trackers**; OSV-Scanner checks every library for known security holes; CodeQL checks the build workflows. Each run's page lists the findings, with the full MobSF report (PDF) under Artifacts.
 
 To check a download yourself: `sha256sum Vibe-x.y.z.apk` (or `certutil -hashfile Vibe-x.y.z.apk SHA256` on Windows) and compare with the release notes.
 
@@ -137,11 +137,11 @@ To check a download yourself: `sha256sum Vibe-x.y.z.apk` (or `certutil -hashfile
 
 Builds run on GitHub Actions, so no local setup is needed.
 
-- **Vibe build:** debug build for testing (Actions > Vibe build)
-- **Vibe release:** signed APK. Tick **Publish** to create a public GitHub Release.
-- **Vibe iOS (unsigned IPA):** iPhone build. Tick **Publish for AltStore / SideStore** to create an `ios-v…` release and update `altstore.json`.
-- **Vibe web:** builds the web app and deploys it to GitHub Pages.
-- **Vibe check:** code check only, about 3 minutes.
+- **Keepr build:** debug build for testing (Actions > Keepr build)
+- **Keepr release:** signed APK. Tick **Publish** to create a public GitHub Release.
+- **Keepr iOS (unsigned IPA):** iPhone build. Tick **Publish for AltStore / SideStore** to create an `ios-v…` release and update `altstore.json`.
+- **Keepr web:** builds the web app and deploys it to GitHub Pages.
+- **Keepr check:** code check only, about 3 minutes.
 
 Version numbers are `major.minor` from `pubspec.yaml` plus the build number, e.g. `2.0.41`.
 
@@ -157,12 +157,12 @@ Keep the keystore backed up outside the repository. Without it, installed apps c
 
 ## Credits and licence
 
-Vibe is a modified version of [FluffyChat](https://github.com/krille-chan/fluffychat) by Christian Kußowski and contributors, licensed under **AGPL-3.0-or-later**. Vibe keeps that licence (see `LICENSE`) and FluffyChat's copyright notices. Vibe's changes, from October 2026 onwards, are in this repository's history and [CHANGELOG.md](CHANGELOG.md).
+Keepr is a modified version of [FluffyChat](https://github.com/krille-chan/fluffychat) by Christian Kußowski and contributors, licensed under **AGPL-3.0-or-later**. Keepr keeps that licence (see `LICENSE`) and FluffyChat's copyright notices. Keepr's changes, from October 2026 onwards, are in this repository's history and [CHANGELOG.md](CHANGELOG.md).
 
 Bundled third-party material: the Figtree typeface and the sticker fonts Bangers, Caveat Brush, Lobster and Pacifico (SIL Open Font License 1.1), Luckiest Guy and Permanent Marker (Apache 2.0), FluffyChat's call and notification sounds, and Matrix's verification emoji list (Apache 2.0). Every library's licence is listed in the app under About → Open-source licences.
 
 Matrix is an open standard from the [Matrix.org Foundation](https://matrix.org).
 
-Vibe is an independent project, not affiliated with or endorsed by any other app or company. Names such as Matrix, Element and Spotify belong to their owners.
+Keepr is an independent project, not affiliated with or endorsed by any other app or company. Names such as Matrix, Element and Spotify belong to their owners.
 
 <sub>Keywords: Matrix client, Android messenger, iPhone Matrix app, servers and channels, end-to-end encryption, E2EE, private messenger, no phone number, FluffyChat fork, Flutter.</sub>
