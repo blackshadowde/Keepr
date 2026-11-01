@@ -22,6 +22,7 @@ import 'package:vibe/vibe/vibe_starred.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:vibe/vibe/vibe_photo_stack.dart';
+import 'package:matrix/matrix.dart' show Event;
 import 'package:matrix/matrix_api_lite/model/event_types.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 
