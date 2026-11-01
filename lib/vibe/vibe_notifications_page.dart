@@ -20,6 +20,7 @@ import 'package:vibe/utils/background_push.dart';
 import 'package:vibe/utils/platform_infos.dart';
 import 'package:vibe/utils/push_helper.dart';
 import 'package:vibe/vibe/vibe_push_mode_tiles.dart';
+import 'package:vibe/vibe/vibe_sound.dart';
 import 'package:vibe/widgets/layouts/max_width_body.dart';
 import 'package:vibe/widgets/settings_switch_list_tile.dart';
 import 'package:flutter/foundation.dart';
@@ -228,6 +229,7 @@ class _VibeNotificationsPageState extends State<VibeNotificationsPage> {
               child: VibeGroups(
                 children: [
                   if (PlatformInfos.isAndroid) const VibePushModeTiles(),
+                  if (PlatformInfos.isAndroid) const VibeSoundTile(),
                   if (PlatformInfos.isAndroid) const Divider(),
                   SettingsSwitchListTile.adaptive(
                     title: 'Notification privacy',

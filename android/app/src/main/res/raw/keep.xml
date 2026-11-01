@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Keepr's notification sounds are picked by name from Dart: keep them
+     when unused resources are removed from the release build. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@raw/keepr_chime,@raw/keepr_pop,@raw/keepr_bell,@raw/keepr_pluck" />

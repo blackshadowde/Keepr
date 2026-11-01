@@ -24,6 +24,7 @@ import 'package:vibe/vibe/vibe_peek.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:vibe/vibe/vibe_sound.dart';
 import 'package:flutter_new_badger/flutter_new_badger.dart';
 import 'package:flutter_shortcuts_new/flutter_shortcuts_new.dart';
 import 'package:http/http.dart' as http;
@@ -111,7 +112,9 @@ Future<void> pushHelper(
                 '${notification.clientName}_${notification.roomId}',
           ),
           android: AndroidNotificationDetails(
-            AppConfig.pushNotificationsChannelId,
+            VibeSound.channelId,
+            sound: VibeSound.sound,
+            playSound: VibeSound.playSound,
             l10n.incomingMessages,
             number: notification.counts?.unread,
             ticker: l10n.unreadChatsInApp(
@@ -290,9 +293,11 @@ Future<void> _tryPushHelper(
               event.eventId,
             ).toString()
           : null,
-      notificationDetails: const NotificationDetails(
+      notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
-          AppConfig.pushNotificationsChannelId,
+          VibeSound.channelId,
+            sound: VibeSound.sound,
+            playSound: VibeSound.playSound,
           'Incoming messages',
           importance: Importance.high,
           priority: Priority.max,
@@ -409,7 +414,9 @@ Future<void> _tryPushHelper(
       ?.createNotificationChannel(roomsChannel);
 
   final androidPlatformChannelSpecifics = AndroidNotificationDetails(
-    AppConfig.pushNotificationsChannelId,
+    VibeSound.channelId,
+            sound: VibeSound.sound,
+            playSound: VibeSound.playSound,
     l10n.incomingMessages,
     number: notification.counts?.unread,
     category: AndroidNotificationCategory.message,
@@ -547,7 +554,9 @@ Future<void> updateSummaryNotification({
     id: clientName.hashCode,
     notificationDetails: NotificationDetails(
       android: AndroidNotificationDetails(
-        AppConfig.pushNotificationsChannelId,
+        VibeSound.channelId,
+            sound: VibeSound.sound,
+            playSound: VibeSound.playSound,
         l10n.incomingMessages,
         groupKey: clientName,
         setAsGroupSummary: true,
