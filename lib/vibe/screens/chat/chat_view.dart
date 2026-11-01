@@ -463,9 +463,35 @@ class ChatView extends StatelessWidget {
                               ),
                             ),
                           ),
-                        GestureDetector(
-                          onTap: controller.clearSingleSelectedEvent,
-                          child: ChatEventList(controller: controller),
+                        // a thread slides in from the right and back out
+                        AnimatedSlide(
+                          offset: controller.threadClosing
+                              ? const Offset(1, 0)
+                              : Offset.zero,
+                          duration: controller.threadClosing
+                              ? const Duration(milliseconds: 220)
+                              : Duration.zero,
+                          curve: Curves.easeInCubic,
+                          child: TweenAnimationBuilder<Offset>(
+                            key: ValueKey(controller.activeThreadId),
+                            tween: Tween(
+                              begin: controller.activeThreadId == null
+                                  ? Offset.zero
+                                  : const Offset(1, 0),
+                              end: Offset.zero,
+                            ),
+                            duration: const Duration(milliseconds: 280),
+                            curve: Curves.easeOutCubic,
+                            builder: (context, o, child) =>
+                                FractionalTranslation(
+                                  translation: o,
+                                  child: child,
+                                ),
+                            child: GestureDetector(
+                              onTap: controller.clearSingleSelectedEvent,
+                              child: ChatEventList(controller: controller),
+                            ),
+                          ),
                         ),
                         if (controller.room.isDirectChat &&
                             controller.routeSettled &&

@@ -591,7 +591,7 @@ class _HeroWelcomeState extends State<_HeroWelcome>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Text(
-                        'vibe',
+                        'keepr',
                         style: TextStyle(
                           fontSize: 32,
                           height: 1,

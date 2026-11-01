@@ -310,10 +310,21 @@ class ChatController extends State<ChatPageWithRoom>
     selectedEvents.clear();
   });
 
-  void closeThread() => setState(() {
-    activeThreadId = null;
-    selectedEvents.clear();
-  });
+  /// True while an open thread slides out before the chat comes back.
+  bool threadClosing = false;
+
+  void closeThread() {
+    if (activeThreadId == null || threadClosing) return;
+    setState(() => threadClosing = true);
+    Future.delayed(const Duration(milliseconds: 220), () {
+      if (!mounted) return;
+      setState(() {
+        activeThreadId = null;
+        threadClosing = false;
+        selectedEvents.clear();
+      });
+    });
+  }
 
   Future<void> recreateChat() async {
     final room = this.room;

@@ -18,6 +18,10 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 - The highlight on a tapped reply fades after a moment
 - Photos fill the screen in the viewer
 - New app icon: a white chat bubble with a lock on a dark blue background
+- The welcome screen shows the Keepr name instead of the old one
+- A thread slides in when opened and slides back out when closed
+- Photo stacks: your own photos sit on the right, the date line goes by the first photo, and long-press on a photo opens its menu (react, reply, delete)
+- Downloaded builds are named Keepr (keepr-apk, keepr-play, keepr-ios-unsigned)
 
 ## 2026-11-01
 

@@ -225,6 +225,14 @@ class ChatEventList extends StatelessWidget {
                 );
               }
               final stack = stackAt[i];
+              // a stack's date divider goes by its oldest photo
+              final last = stack == null ? i : i + stack.length - 1;
+              final showDate = stack == null
+                  ? displayDate
+                  : last + 1 >= events.length ||
+                      !events[last].originServerTs.sameDay(
+                        events[last + 1].originServerTs,
+                      );
 
               return AutoScrollTag(
                 key: ValueKey(stableId),
@@ -238,10 +246,16 @@ class ChatEventList extends StatelessWidget {
                   child: Column(
                   mainAxisSize: .min,
                   children: [
-                    if (!isCollapsed && displayDate)
+                    if (!isCollapsed && showDate)
                       VibeDateDivider(event.originServerTs),
                     if (stack != null)
-                      VibePhotoStack(stack)
+                      VibePhotoStack(
+                        stack,
+                        mine: event.senderId ==
+                            controller.room.client.userID,
+                        onLongPress: (e) =>
+                            VibeMessageMenu.show(context, controller, e),
+                      )
                     else
                     Message(
                       event,
