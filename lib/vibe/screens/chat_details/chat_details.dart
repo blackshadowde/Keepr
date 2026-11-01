@@ -147,11 +147,11 @@ class _ChatDetailsState extends State<ChatDetails> {
       return;
     }
     MatrixFile file;
-    if (PlatformInfos.isMobile) {
+    // Gallery goes through the file picker, so animated pictures (GIF)
+    // stay animated instead of being turned into a still photo.
+    if (action == AvatarAction.camera) {
       final result = await ImagePicker().pickImage(
-        source: action == AvatarAction.camera
-            ? ImageSource.camera
-            : ImageSource.gallery,
+        source: ImageSource.camera,
         imageQuality: 50,
       );
       if (result == null) return;
@@ -261,6 +261,7 @@ class _ChatDetailsState extends State<ChatDetails> {
                                   mxContent: room.avatar,
                                   name: displayname,
                                   size: Avatar.defaultSize * 2.5,
+                                  animated: true,
                                   onTap: roomAvatar != null
                                       ? () => showVibeDialog(
                                           context: context,

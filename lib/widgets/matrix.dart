@@ -13,6 +13,7 @@ import 'package:collection/collection.dart';
 import 'package:vibe/vibe/vibe_privacy.dart';
 import 'package:vibe/vibe/vibe_direct.dart';
 import 'package:vibe/l10n/l10n.dart';
+import 'package:vibe/utils/push_helper.dart';
 import 'package:vibe/utils/client_manager.dart';
 import 'package:vibe/utils/init_with_restore.dart';
 import 'package:vibe/utils/matrix_sdk_extensions/matrix_file_extension.dart';
@@ -178,6 +179,7 @@ class MatrixState extends State<Matrix> {
   final onRoomKeyRequestSub = <String, StreamSubscription>{};
   final onKeyVerificationRequestSub = <String, StreamSubscription>{};
   final onNotification = <String, StreamSubscription>{};
+  final onReceipts = <String, StreamSubscription>{};
   final onLogoutSub = <String, StreamSubscription<LoginState>>{};
   final onUiaRequest = <String, StreamSubscription<UiaRequest>>{};
 
@@ -285,6 +287,18 @@ class MatrixState extends State<Matrix> {
           VibeApp.router.go('/');
         });
     onUiaRequest[name] ??= c.onUiaRequest.stream.listen(uiaRequestHandler);
+    // a chat read here or on another device: its notification goes away
+    onReceipts[name] ??= c.onSync.stream.listen((syncUpdate) {
+      final userId = c.userID;
+      if (userId == null || !mounted) return;
+      cancelNotificationsOnSync(
+        syncUpdate,
+        c.clientName,
+        userId,
+        L10n.of(context),
+        FlutterLocalNotificationsPlugin(),
+      );
+    });
     if (PlatformInfos.isWeb || PlatformInfos.isLinux) {
       FlutterLocalNotificationsPlugin().initialize(
         settings: InitializationSettings(
@@ -317,6 +331,8 @@ class MatrixState extends State<Matrix> {
     onLogoutSub.remove(name);
     onNotification[name]?.cancel();
     onNotification.remove(name);
+    onReceipts[name]?.cancel();
+    onReceipts.remove(name);
   }
 
   void initMatrix() {
@@ -396,6 +412,10 @@ class MatrixState extends State<Matrix> {
     for (final sub in onUiaRequest.values) {
       sub.cancel();
     }
+    for (final sub in onReceipts.values) {
+      sub.cancel();
+    }
+    onReceipts.clear();
     onRoomKeyRequestSub.clear();
     onKeyVerificationRequestSub.clear();
     onLogoutSub.clear();

@@ -40,6 +40,7 @@ import 'package:vibe/utils/error_reporter.dart';
 import 'package:vibe/utils/file_selector.dart';
 import 'package:vibe/utils/matrix_sdk_extensions/filtered_timeline_extension.dart';
 import 'package:vibe/utils/matrix_sdk_extensions/matrix_locals.dart';
+import 'package:vibe/utils/ogg_opus_remuxer.dart';
 import 'package:vibe/utils/other_party_can_receive.dart';
 import 'package:vibe/utils/platform_infos.dart';
 import 'package:vibe/utils/show_scaffold_dialog.dart';
@@ -1129,8 +1130,14 @@ class ChatController extends State<ChatPageWithRoom>
       context: context,
       future: audioFile.readAsBytes,
     );
-    final bytes = bytesResult.result;
+    var bytes = bytesResult.result;
     if (bytes == null) return;
+
+    // Android writes voice messages in a slightly broken file format that
+    // some phones can't play: repackage it (the sound itself is unchanged).
+    if (PlatformInfos.isAndroid && fileName.endsWith('.ogg')) {
+      bytes = remuxOggOpus(bytes);
+    }
 
     final mimeType = lookupMimeType(fileName, headerBytes: bytes);
     final extension = mimeType == null ? null : extensionFromMime(mimeType);

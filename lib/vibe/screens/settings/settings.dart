@@ -136,11 +136,11 @@ class SettingsController extends State<Settings> {
       return;
     }
     MatrixFile file;
-    if (PlatformInfos.isMobile) {
+    // Gallery goes through the file picker, so animated pictures (GIF)
+    // stay animated instead of being turned into a still photo.
+    if (action == AvatarAction.camera) {
       final result = await ImagePicker().pickImage(
-        source: action == AvatarAction.camera
-            ? ImageSource.camera
-            : ImageSource.gallery,
+        source: ImageSource.camera,
         imageQuality: 50,
       );
       if (result == null) return;
