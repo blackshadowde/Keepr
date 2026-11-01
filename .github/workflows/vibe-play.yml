@@ -1,4 +1,4 @@
-name: Vibe for Google Play (app bundle)
+name: Keepr for Google Play (app bundle)
 
 # Builds the Google Play version of Vibe as an .aab to upload in the Play
 # Console. Same code as the GitHub APK, except: no built-in updater and no

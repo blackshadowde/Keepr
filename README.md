@@ -77,7 +77,7 @@ The layout: a rail of profile pictures on the left, your DMs in the middle, and 
 ## Download and install
 
 1. Open the [latest release](https://github.com/blackshadowde/Keepr/releases/latest) on your Android phone.
-2. Tap **`Vibe-x.y.z.apk`** to download it.
+2. Tap **`Keepr-x.y.z.apk`** to download it.
 3. Open the file. If Android asks, allow **Install unknown apps** for your browser.
 4. Sign in with your Matrix account, or tap **Create account**.
 
@@ -131,7 +131,7 @@ Every server Keepr talks to, and what it sees, is listed in [PRIVACY.md](PRIVACY
 4. **Every change listed:** [CHANGELOG.md](CHANGELOG.md) lists each change with the commit that made it.
 5. **Security scans** (the *Keepr security scans* workflow, on every change and weekly): [MobSF](https://github.com/MobSF/Mobile-Security-Framework-MobSF) checks the APK against the OWASP mobile standard (MASVS) and finds **0 of 432 known trackers**; OSV-Scanner checks every library for known security holes; CodeQL checks the build workflows. Each run's page lists the findings, with the full MobSF report (PDF) under Artifacts.
 
-To check a download yourself: `sha256sum Vibe-x.y.z.apk` (or `certutil -hashfile Vibe-x.y.z.apk SHA256` on Windows) and compare with the release notes.
+To check a download yourself: `sha256sum Keepr-x.y.z.apk` (or `certutil -hashfile Keepr-x.y.z.apk SHA256` on Windows) and compare with the release notes.
 
 ## For developers
 

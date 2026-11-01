@@ -303,7 +303,7 @@ class BootstrapViewModel extends ValueNotifier<BootstrapViewModelState> {
   ) async {
     final path = await FilePicker.saveFile(
       fileName:
-          'Vibe-Recovery-Key-${DateTime.now().toIso8601String().substring(0, 10)}.txt',
+          'Keepr-Recovery-Key-${DateTime.now().toIso8601String().substring(0, 10)}.txt',
       bytes: Uint8List.fromList(value.recoveryKey!.codeUnits),
     );
     if (path == null) return;

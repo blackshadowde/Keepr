@@ -1,4 +1,4 @@
-name: Vibe security scans
+name: Keepr security scans
 
 # Independent checks, kept apart from the release so they can never block or
 # change it. Results: the run's summary page, the files under "Artifacts",

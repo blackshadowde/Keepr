@@ -25,7 +25,7 @@ abstract class VibeSupport {
   /// Standard UPI link: any UPI app (GPay, PhonePe, Paytm, BHIM…) opens it.
   static String get upiLink =>
       'upi://pay?pa=$upiId&pn=${Uri.encodeComponent(_payeeName)}'
-      '&tn=${Uri.encodeComponent('Support Vibe')}&cu=INR';
+      '&tn=${Uri.encodeComponent('Support Keepr')}&cu=INR';
 
   static Future<void> open(BuildContext context) => Navigator.of(
     context,

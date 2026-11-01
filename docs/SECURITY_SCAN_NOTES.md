@@ -1,8 +1,8 @@
 # Security scan notes
 
-Vibe's APK is scanned on every change by **MobSF** (static analysis against
+Keepr's APK is scanned on every change by **MobSF** (static analysis against
 the OWASP MASVS), plus **OSV-Scanner** (dependencies) and **CodeQL**
-(workflows). See the *Vibe security scans* runs under Actions. This page
+(workflows). See the *Keepr security scans* runs under Actions. This page
 explains every MobSF finding: what it is, where it comes from, and what was
 done.
 
@@ -16,14 +16,14 @@ static score is a starting point, not a verdict.
 
 ### "AES in CBC mode with PKCS5/PKCS7 padding" (CWE-649)
 
-Two places in the APK, both inside libraries, neither encrypting Vibe data:
+Two places in the APK, both inside libraries, neither encrypting Keepr data:
 
 | Where (minified name) | What it really is | Why it can't simply change |
 | --- | --- | --- |
-| `t/i` (`CryptoObjectUtils`) | Google's **AndroidX Biometric** library. It creates a throwaway key in the Android Keystore ("fake crypto object") so the fingerprint prompt can open for Vibe's app lock. No data is encrypted with it. | It's Google's own code; removing it means removing fingerprint unlock. |
+| `t/i` (`CryptoObjectUtils`) | Google's **AndroidX Biometric** library. It creates a throwaway key in the Android Keystore ("fake crypto object") so the fingerprint prompt can open for Keepr's app lock. No data is encrypted with it. | It's Google's own code; removing it means removing fingerprint unlock. |
 | `O0/a` (decrypts a stream with `CipherInputStream`) | The video player's (**ExoPlayer / Media3**) decryptor for **HLS AES-128** streams. The HLS standard (RFC 8216) defines that encryption as AES-128-CBC. | Required by the streaming standard; it's part of the video player library. |
 
-How Vibe itself encrypts:
+How Keepr itself encrypts:
 - **Messages and files:** Matrix end-to-end encryption via vodozemac (Olm/Megolm), and attachments with AES-CTR plus a SHA-256 hash, as the Matrix spec defines.
 - **Chat backups:** AES-256-GCM with a PBKDF2-HMAC-SHA256 key (310,000 rounds, random salt).
 - **Database password and app lock:** flutter_secure_storage v11 (AES-GCM; v11 removed CBC).
@@ -31,10 +31,10 @@ How Vibe itself encrypts:
 
 ### "App Link assetlinks.json not found" for matrix.to
 
-Vibe used to declare that it can open `https://matrix.to` links. Only
+Keepr used to declare that it can open `https://matrix.to` links. Only
 matrix.org could verify that, and Android 12+ opens unverified links in the
 browser anyway. **Removed** ([660a668](https://github.com/blackshadowde/Keepr/commit/660a66834)).
-`matrix:` and `keepr://` links still open Vibe. (Vibe never used
+`matrix:` and `keepr://` links still open Keepr. (Keepr never used
 `autoVerify` on matrix.to.)
 
 ## Warnings
@@ -46,7 +46,7 @@ browser anyway. **Removed** ([660a668](https://github.com/blackshadowde/Keepr/co
 | Google Assistant shortcut `TrampolineActivity` exported | **Fixed:** removed from the app (unused). |
 | `ProfileInstallReceiver` protected by `DUMP` | **Fixed:** removed (only used over adb). |
 | UnifiedPush `MessagingReceiverImpl` / `RaiseToForegroundService` exported | **By design:** UnifiedPush distributor apps deliver notifications through them. |
-| Login `CallbackActivity` exported | **By design:** your server's sign-in page returns to Vibe through it. |
+| Login `CallbackActivity` exported | **By design:** your server's sign-in page returns to Keepr through it. |
 | "Trusts system certificates" | **By design:** normal HTTPS. User-added certificates are not trusted; cleartext HTTP is off. |
 
 ## Native libraries

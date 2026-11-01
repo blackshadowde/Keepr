@@ -1,4 +1,4 @@
-name: Vibe iOS (unsigned IPA)
+name: Keepr iOS (unsigned IPA)
 
 on:
   workflow_dispatch:

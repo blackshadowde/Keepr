@@ -1,20 +1,20 @@
-# Vibe: its own Matrix client
+# Keepr: its own Matrix client
 
-Vibe started from FluffyChat's code. This checklist makes it a Matrix client of
+Keepr started from FluffyChat's code. This checklist makes it a Matrix client of
 its own. FluffyChat's copyright notices and the AGPL licence stay, as the
-licence requires; everything else becomes Vibe's.
+licence requires; everything else becomes Keepr's.
 
-## Level 1: Vibe's own identity
+## Level 1: Keepr's own identity
 
 - [x] Code package `fluffychat` → `vibe` (all `package:` imports)
 - [x] Android code folder `chat.fluffy.fluffychat` → `app.keepr.chat`
-- [x] App IDs and links: `im.fluffychat://` → `keepr://`, push/app IDs → Vibe's
+- [x] App IDs and links: `im.fluffychat://` → `keepr://`, push/app IDs → Keepr's
 - [x] iPhone app ID `im.fluffychat.app` → `app.keepr.chat` (iPhone users reinstall once)
-- [x] Internal names (`FluffyChatApp`, `fluffy_chat_app.dart`, …) → Vibe
-- [x] Old FluffyChat build scripts and leftovers removed; desktop (Linux, Windows, Mac) named Vibe; Vibe's own privacy, security, contributing and changelog pages
+- [x] Internal names (`FluffyChatApp`, `fluffy_chat_app.dart`, …) → Keepr
+- [x] Old FluffyChat build scripts and leftovers removed; desktop (Linux, Windows, Mac) named Keepr; Keepr's own privacy, security, contributing and changelog pages
 - [x] Settings keys `chat.fluffy.*` → `chat.keepr.*` (old ones carried over on first start)
 - [x] Help links, homeserver list, website and logo now on get-keepr.github.io
-- [x] iPhone notification extension: app group and ID now Vibe's
+- [x] iPhone notification extension: app group and ID now Keepr's
 - [ ] iPhone: FluffyChat's Firebase file (`GoogleService-Info.plist`) and the "FluffyChat Share" folder name (kept for now: removing them needs an iPhone build to test)
 
 Kept on purpose (stored data and Matrix event types; renaming would log people
@@ -22,7 +22,7 @@ out or lose settings): `im.fluffychat.store.clients`, `im.fluffychat.account_con
 `im.fluffychat.account_bundles`, `im.fluffychat.checkboxes`, the app-lock keys
 and the `fluffychat_push` notification channel.
 
-## Level 2: Vibe's own screens
+## Level 2: Keepr's own screens
 
 Each FluffyChat screen is rewritten in `lib/vibe/`, then the old file is deleted.
 

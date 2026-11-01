@@ -1,4 +1,4 @@
-name: Vibe build
+name: Keepr build
 
 on:
   workflow_dispatch:
