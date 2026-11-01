@@ -3,6 +3,14 @@
 Vibe's changes are listed on each release:
 https://github.com/blackshadowde/Vibe-flutter/releases
 
+## 2026-11-02 ([87aab93](https://github.com/blackshadowde/keepr/commit/87aab9379))
+
+- The back button in a chat shows how many other chats are unread
+- A message that can't be sent shows a notification
+- Double tap can react, reply, quote part, bookmark or copy (Settings > Chats & storage)
+- The highlight on a tapped reply fades after a moment
+- Photos fill the screen in the viewer
+
 ## 2026-11-01
 
 ### Changed
