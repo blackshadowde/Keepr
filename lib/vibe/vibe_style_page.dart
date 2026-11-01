@@ -2,6 +2,7 @@
 
 import 'package:file_picker/file_picker.dart';
 import 'package:vibe/config/setting_keys.dart';
+import 'package:vibe/vibe/vibe_typing_style.dart';
 import 'package:vibe/utils/account_config.dart';
 import 'package:vibe/utils/file_selector.dart';
 import 'package:vibe/widgets/future_loading_dialog.dart';
@@ -155,7 +156,7 @@ class _VibeStylePageState extends State<VibeStylePage> {
       appBar: AppBar(
         automaticallyImplyLeading: !VibeThemes.isColumnMode(context),
         centerTitle: VibeThemes.isColumnMode(context),
-        title: Text(L10n.of(context).changeTheme),
+        title: const Text('Customisation'),
       ),
       body: MaxWidthBody(
         child: VibeGroups(
@@ -308,6 +309,13 @@ class _VibeStylePageState extends State<VibeStylePage> {
               title: 'Haptic feedback',
               subtitle: 'Vibrate gently on taps, menus and reactions',
               setting: AppSettings.vibeHaptics,
+            ),
+            ListTile(
+              leading: const Icon(Icons.more_horiz_rounded),
+              title: const Text('Typing indicator'),
+              subtitle: const Text('What people see while you type'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => VibeTypingStylePage.open(context),
             ),
 
           ],
