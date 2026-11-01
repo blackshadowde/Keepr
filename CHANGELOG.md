@@ -3,6 +3,11 @@
 Vibe's changes are listed on each release:
 https://github.com/blackshadowde/Vibe-flutter/releases
 
+## 2026-11-01
+
+### Changed
+- Vibe is now called **Keepr**. Updates, settings, links and backups keep working ([0549bc6](https://github.com/blackshadowde/Vibe-flutter/commit/0549bc679))
+
 ## 2026-10-30
 
 ### Security and privacy ([a4ec5c0](https://github.com/blackshadowde/Vibe-flutter/commit/a4ec5c05c))
