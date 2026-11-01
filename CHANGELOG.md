@@ -5,6 +5,8 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 
 ## 2026-11-02 ([87aab93](https://github.com/blackshadowde/keepr/commit/87aab9379))
 
+- Your own typing indicator: up to three emojis with an animation and a phrase (Settings > Customisation > Typing indicator). Other Keepr users see it while you type ([8b0a187](https://github.com/blackshadowde/keepr/commit/8b0a187fd))
+- "Appearance" in Settings is now "Customisation"
 - Keepr's own notification sounds: Keepr chime, Pop, Bell, Pluck, phone default or silent (Settings > Notifications, with a play button) ([e390ffc](https://github.com/blackshadowde/keepr/commit/e390ffc0c))
 - If the phone stops Keepr in the background, it starts again within 15 minutes with a short "Checking for new messages" notification, so messages still arrive
 - Threads: long-press a message > Create thread. It's pinned in the chat's middle pane until you close it (asks first) ([351d510](https://github.com/blackshadowde/keepr/commit/351d51001))
