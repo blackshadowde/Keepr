@@ -149,7 +149,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: vibe-${{ env.VIBE_VERSION }}
+          name: keepr-${{ env.VIBE_VERSION }}
           path: build/app/outputs/flutter-apk/app-release.apk
 
       - name: Publish GitHub Release

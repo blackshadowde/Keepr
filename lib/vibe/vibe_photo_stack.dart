@@ -12,7 +12,18 @@ import 'package:vibe/widgets/mxc_image.dart';
 class VibePhotoStack extends StatelessWidget {
   /// Oldest first.
   final List<Event> events;
-  const VibePhotoStack(this.events, {super.key});
+
+  /// Sent by me: on the right, without my name.
+  final bool mine;
+
+  /// Long-press on a photo: the message menu for that photo.
+  final void Function(Event)? onLongPress;
+  const VibePhotoStack(
+    this.events, {
+    super.key,
+    this.mine = false,
+    this.onLongPress,
+  });
 
   static const int minCount = 4;
 
@@ -33,17 +44,19 @@ class VibePhotoStack extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(64, 8, 16, 6),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            mine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
           Text.rich(
             TextSpan(
               children: [
+                if (!mine)
+                  TextSpan(
+                    text: '$name  ',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
                 TextSpan(
-                  text: name,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-                TextSpan(
-                  text: '  ${events.length} photos · '
+                  text: '${events.length} photos · '
                       '${last.originServerTs.localizedTimeShort(context)}',
                   style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
                 ),
@@ -63,6 +76,9 @@ class VibePhotoStack extends StatelessWidget {
                 for (var i = 0; i < shown.length; i++)
                   GestureDetector(
                     onTap: () => VibeMediaViewer.open(context, events, i),
+                    onLongPress: onLongPress == null
+                        ? null
+                        : () => onLongPress!(shown[i]),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: Stack(

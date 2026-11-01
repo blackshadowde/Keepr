@@ -160,7 +160,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: vibe-ios-unsigned
+          name: keepr-ios-unsigned
           path: Keepr-unsigned.ipa
 
       # A separate "ios-v..." release (never marked latest, so Android's
