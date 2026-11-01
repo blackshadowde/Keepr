@@ -5,6 +5,8 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 
 ## 2026-11-02 ([87aab93](https://github.com/blackshadowde/keepr/commit/87aab9379))
 
+- Keepr's own notification sounds: Keepr chime, Pop, Bell, Pluck, phone default or silent (Settings > Notifications, with a play button) ([e390ffc](https://github.com/blackshadowde/keepr/commit/e390ffc0c))
+- If the phone stops Keepr in the background, it starts again within 15 minutes with a short "Checking for new messages" notification, so messages still arrive
 - Threads: long-press a message > Create thread. It's pinned in the chat's middle pane until you close it (asks first) ([351d510](https://github.com/blackshadowde/keepr/commit/351d51001))
 - Photo stacks: 4 or more photos sent together show as one grid with "+N"; tap to swipe through them
 - Search in a chat: live results while typing, arrows for older and newer matches, each match highlighted in the chat
