@@ -9,6 +9,7 @@ import 'package:vibe/vibe/screens/chat/chat.dart';
 import 'package:vibe/widgets/avatar.dart';
 import 'package:vibe/widgets/matrix.dart';
 import 'package:flutter/material.dart';
+import 'package:vibe/vibe/vibe_typing_style.dart';
 
 /// Typing indicator at the bottom of the timeline, like Vibgram: a small
 /// round picture of who is typing and three bouncing dots, no bubble.
@@ -37,6 +38,10 @@ class TypingIndicators extends StatelessWidget {
             .toList();
         final typing = typingUsers.isNotEmpty;
         final who = typing ? typingUsers.first : null;
+        // their own typing indicator (Settings > Customisation), if any
+        final style = who == null
+            ? null
+            : VibeTypingStyle.of(controller.room, who.id);
 
         return AnimatedContainer(
           duration: _duration,
@@ -66,7 +71,24 @@ class TypingIndicators extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                     ],
-                    if (typing) const _VibeTypingDots(),
+                    if (typing && style == null) const _VibeTypingDots(),
+                    if (style != null && who != null) ...[
+                      if (style.emojis.isNotEmpty) ...[
+                        VibeTypingEmojis(style),
+                        const SizedBox(width: 6),
+                      ],
+                      Flexible(
+                        child: Text(
+                          '${who.calcDisplayname()} ${style.text}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

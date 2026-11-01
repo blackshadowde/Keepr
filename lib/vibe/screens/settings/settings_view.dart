@@ -251,7 +251,7 @@ class SettingsView extends StatelessWidget {
                   ),
                   VibeSettingsRow(
                     icon: Icons.palette,
-                    title: 'Appearance',
+                    title: 'Customisation',
                     onTap: () => context.go('/rooms/settings/style'),
                   ),
                   VibeSettingsRow(
