@@ -1,4 +1,4 @@
-name: Vibe check
+name: Keepr check
 
 # Code check only (no APK): about 3 minutes. Shows every error on the run's
 # summary page. Use it before "Vibe release" to catch mistakes quickly.

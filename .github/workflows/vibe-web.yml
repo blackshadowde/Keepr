@@ -1,4 +1,4 @@
-name: Vibe web (GitHub Pages)
+name: Keepr web (GitHub Pages)
 
 on:
   workflow_dispatch:

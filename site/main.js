@@ -1,4 +1,4 @@
-// Vibe site motion. Without GSAP or with "reduce motion" on, every section
+// Keepr site motion. Without GSAP or with "reduce motion" on, every section
 // simply shows its finished state.
 (() => {
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;

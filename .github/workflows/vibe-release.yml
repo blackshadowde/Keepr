@@ -1,4 +1,4 @@
-name: Vibe release
+name: Keepr release
 
 on:
   workflow_dispatch:
