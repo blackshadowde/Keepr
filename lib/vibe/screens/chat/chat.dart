@@ -7,7 +7,8 @@ import 'package:vibe/vibe/vibe_event_body.dart';
 import 'package:vibe/vibe/vibe_drop.dart';
 import 'package:vibe/vibe/vibe_pending_files.dart';
 import 'package:vibe/vibe/vibe_quote.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart'
+    hide Priority;
 import 'package:vibe/vibe/vibe_mention_controller.dart';
 import 'package:vibe/vibe/vibe_reply_thread.dart';
 import 'package:vibe/vibe/vibe_dialog.dart';
@@ -1765,7 +1766,6 @@ class ChatController extends State<ChatPageWithRoom>
             'send_failed',
             'Messages not sent',
             importance: Importance.high,
-            priority: Priority.high,
           ),
           iOS: DarwinNotificationDetails(),
         ),
