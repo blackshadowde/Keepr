@@ -125,6 +125,8 @@ class MainActivity : FlutterFragmentActivity() {
             VibeBackupNative.register(context, eng)
             VibeSystemNative.register(context, eng)
             VibeDropNative.register(eng)
+            // revives Keepr every 15 min if the phone stopped it
+            VibeCheckWorker.schedule(app)
             engine = eng
             return eng
         }

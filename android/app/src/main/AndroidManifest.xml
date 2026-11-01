@@ -132,6 +132,11 @@
              downloaded app that has one ("Listening to" is off for now). -->
 
 
+        <!-- WorkManager's short "Checking for new messages" job -->
+        <service android:name="androidx.work.impl.foreground.SystemForegroundService"
+             android:foregroundServiceType="shortService"
+             tools:node="merge" />
+
         <service android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
              android:foregroundServiceType="shortService|remoteMessaging"
              android:exported="false">

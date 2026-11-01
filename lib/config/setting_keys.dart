@@ -105,6 +105,9 @@ enum AppSettings<T> {
   vibeSaveMedia<bool>('chat.keepr.save_media', false),
   vibeStatusBubble<bool>('chat.keepr.status_bubble', true),
   vibeLowData<bool>('chat.keepr.low_data', false),
+  // notification sound: keepr_chime, keepr_pop, keepr_bell, keepr_pluck,
+  // system or silent
+  vibeNotificationSound<String>('chat.keepr.notification_sound', 'keepr_chime'),
   // Hike-style text stickers above the text box while typing
   vibeTextStickers<bool>('chat.keepr.text_stickers', true),
   vibeLinkPreviews<bool>('chat.keepr.link_previews', true),
