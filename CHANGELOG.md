@@ -17,6 +17,7 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 - Double tap can react, reply, quote part, bookmark or copy (Settings > Chats & storage)
 - The highlight on a tapped reply fades after a moment
 - Photos fill the screen in the viewer
+- New app icon: a white chat bubble with a lock on a dark blue background
 
 ## 2026-11-01
 
