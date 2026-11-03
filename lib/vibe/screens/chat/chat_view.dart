@@ -150,6 +150,12 @@ class ChatView extends StatelessWidget {
                           border: InputBorder.none,
                         ),
                       )
+                    : controller.activeThreadId != null &&
+                          VibeThreads.isPinned(
+                            controller.room.id,
+                            controller.activeThreadId!,
+                          )
+                    ? _ThreadTitle(controller)
                     : ChatAppBarTitle(controller),
                 actions: controller.searching
                     ? [
@@ -205,6 +211,27 @@ class ChatView extends StatelessWidget {
                       icon: const Icon(Icons.speaker_notes_off_outlined),
                       tooltip: 'Close thread',
                       onPressed: controller.closeThreadForGood,
+                    ),
+                  if (!controller.selectMode &&
+                      controller.activeThreadId != null &&
+                      VibeThreads.isPinned(
+                        controller.room.id,
+                        controller.activeThreadId!,
+                      ))
+                    IconButton(
+                      icon: const Icon(Icons.edit_outlined),
+                      tooltip: 'Rename thread',
+                      onPressed: () async {
+                        final id = controller.activeThreadId!;
+                        final root = await controller.room.getEventById(id);
+                        if (!context.mounted) return;
+                        await VibeThreads.rename(
+                          context,
+                          controller.room.id,
+                          id,
+                          root,
+                        );
+                      },
                     ),
                   if (controller.selectMode) ...[
                     if (controller.canEditSelectedEvents)
@@ -686,4 +713,43 @@ class _BackUnread extends StatelessWidget {
       );
     },
   );
+}
+
+/// A pinned thread's name in the bar; tap to rename it.
+class _ThreadTitle extends StatelessWidget {
+  final ChatController controller;
+  const _ThreadTitle(this.controller);
+
+  @override
+  Widget build(BuildContext context) {
+    final id = controller.activeThreadId!;
+    final roomId = controller.room.id;
+    return FutureBuilder<Event?>(
+      future: controller.room.getEventById(id),
+      builder: (context, snap) => ValueListenableBuilder<int>(
+        valueListenable: VibeThreads.revision,
+        builder: (context, _, _) => InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: () => VibeThreads.rename(context, roomId, id, snap.data),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.forum_outlined, size: 20),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    VibeThreads.nameOf(roomId, id, snap.data),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
