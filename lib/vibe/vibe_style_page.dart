@@ -9,6 +9,7 @@ import 'package:vibe/widgets/future_loading_dialog.dart';
 import 'package:vibe/widgets/theme_builder.dart';
 import 'package:vibe/vibe/vibe_text_size.dart';
 import 'package:flutter/material.dart';
+import 'package:vibe/vibe/vibe_new_hint.dart';
 import 'package:vibe/widgets/matrix.dart';
 import 'package:vibe/vibe/vibe_glass.dart';
 import 'package:vibe/vibe/vibe_settings_style.dart';
@@ -309,6 +310,16 @@ class _VibeStylePageState extends State<VibeStylePage> {
               title: 'Haptic feedback',
               subtitle: 'Vibrate gently on taps, menus and reactions',
               setting: AppSettings.vibeHaptics,
+            ),
+            VibeNewHint(
+              id: 'chat_dock_setting',
+              child: SettingsSwitchListTile.adaptive(
+                title: 'Keep the chat you leave docked',
+                subtitle:
+                    'Opening another chat from the top pill, or pulling a '
+                    'chat\'s name down, keeps it in a strip under the text box',
+                setting: AppSettings.vibeChatDock,
+              ),
             ),
             ListTile(
               leading: const Icon(Icons.more_horiz_rounded),

@@ -27,6 +27,8 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 - Thread screen redesigned to match the chat: same top bar, a back arrow, the thread's name with "Thread in <chat>" below it, and Rename / Close in one menu. The "Reply in thread" strip is gone
 - New filled thread icon in the theme's colour (middle pane, message menu, replies button)
 - Photo stacks are laid out like messages: avatar, name and time on the left, for your photos too
+- Docked chat: open another chat from the top pill, or pull a chat's name down, and the chat you were in waits in a slim strip under the text box (name, typing or last message, unread count). Swipe it up or tap it to go back; the back button does the same; swipe it down or tap X to close it. Settings > Customisation > "Keep the chat you leave docked"
+- After a big update, a short tour shows what's new: one page per area with cards, Continue, and "Skip for now"
 - New hot words: rain, thunder or storm darkens the screen with rain and lightning; sunny, summer, yenda or full hot brings a blazing sun and heat waves; winter, chali, so cold or cool weather brings frost and snowflakes
 - Threads can be renamed: tap the thread's name at the top, Rename in the thread menu, or the pencil (or long-press) in the middle pane. Without a name, a thread is named after its first message
 - Photo stacks: the date line goes by the first photo, and long-press on a photo opens its menu (react, reply, delete)

@@ -93,6 +93,9 @@ enum AppSettings<T> {
   hideRoomsInSpaces<bool>('chat.keepr.hideRoomsInSpaces', false),
   showThumbnailsInTimeline<bool>('chat.keepr.showThumbnailsInTimeline', true),
   vibeHaptics<bool>('chat.keepr.haptics', true),
+  // Opening another chat from the pill (or pulling the top bar down) keeps the
+  // chat you were in docked under the text box
+  vibeChatDock<bool>('chat.keepr.chat_dock', true),
   // Notifications show only the app name and "New message" (no names, text or pictures)
   vibeHideNotificationContent<bool>('chat.keepr.notification_privacy', false),
   // Glass look: palette ('wallbash' = from the wallpaper), the processed

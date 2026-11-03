@@ -32,6 +32,7 @@ import 'package:vibe/widgets/mxc_image.dart';
 import 'package:flutter/material.dart';
 import 'package:matrix/matrix.dart';
 import 'package:vibe/vibe/vibe_threads.dart';
+import 'package:vibe/vibe/vibe_chat_dock.dart';
 
 import 'package:vibe/utils/stream_extension.dart';
 import 'chat_emoji_picker.dart';
@@ -63,7 +64,8 @@ class ChatView extends StatelessWidget {
       canPop:
           controller.selectedEvents.isEmpty &&
           !controller.showEmojiPicker &&
-          controller.activeThreadId == null,
+          controller.activeThreadId == null &&
+          !VibeChatDock.showing,
       onPopInvokedWithResult: (pop, _) async {
         if (pop) return;
         if (controller.selectedEvents.isNotEmpty) {
@@ -72,6 +74,9 @@ class ChatView extends StatelessWidget {
           controller.emojiPickerAction();
         } else if (controller.activeThreadId != null) {
           controller.closeThread();
+        } else if (VibeChatDock.showing) {
+          // back brings the docked chat up again
+          VibeChatDock.restore(swap: false);
         }
       },
       child: StreamBuilder(
@@ -146,7 +151,8 @@ class ChatView extends StatelessWidget {
                       )
                     : controller.activeThreadId != null
                     ? _ThreadTitle(controller)
-                    : ChatAppBarTitle(controller),
+                    // pull the name down to dock this chat
+                    : VibeDockPull(child: ChatAppBarTitle(controller)),
                 actions: controller.searching
                     ? [
                         // "3 of 12", older / newer match, close
@@ -630,6 +636,8 @@ class ChatView extends StatelessWidget {
                                                   VibeTextStickerBar(controller),
                                                   ChatInputRow(controller),
                                                   ChatEmojiPicker(controller),
+                                                  // room for the docked chat
+                                                  const VibeDockSpace(),
                                                 ],
                                               ),
                                       )
