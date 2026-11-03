@@ -6,6 +6,7 @@ import 'dart:async';
 
 import 'package:vibe/l10n/l10n.dart';
 import 'package:vibe/utils/matrix_sdk_extensions/matrix_locals.dart';
+import 'package:vibe/vibe/vibe_boot_intro.dart';
 import 'package:vibe/vibe/vibe_chat_dock.dart';
 import 'package:vibe/vibe/vibe_haptics.dart';
 import 'package:vibe/vibe/vibe_peek.dart';
@@ -220,6 +221,8 @@ class _VibeActivityHostState extends State<VibeActivityHost> {
           ),
         if (client != null)
           Positioned.fill(child: VibeDockTransition(client: client)),
+        // the home screen building itself on start
+        const Positioned.fill(child: VibeBootIntro()),
         if (item != null)
           Positioned(
             top: top + 8,
