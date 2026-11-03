@@ -22,7 +22,7 @@ abstract class VibeStickers {
   /// Which pack a sticker of your personal pack belongs to.
   static String packOf(Client c, String shortcode) {
     final img = _raw(c)[shortcode];
-    final named = img is Map ? img[_field] : null;
+    final named = img is Map ? (img[_field] ?? img['chat.vibe.pack']) : null;
     if (named is String && named.isNotEmpty) return named;
     if (shortcode.startsWith('vibe_')) return 'Vibey';
     if (shortcode.startsWith('love_')) return 'Love';

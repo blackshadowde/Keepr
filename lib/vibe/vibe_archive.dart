@@ -20,7 +20,11 @@ import 'package:matrix/matrix.dart';
 abstract class VibeArchive {
   static const tag = 'chat.keepr.archived';
 
-  static bool isArchived(Room room) => room.tags.containsKey(tag);
+  /// The tag as set before the rename.
+  static const legacyTag = 'chat.vibe.archived';
+
+  static bool isArchived(Room room) =>
+      room.tags.containsKey(tag) || room.tags.containsKey(legacyTag);
 
   /// Hidden from Home right now?
   static bool hidden(Room room) =>
@@ -28,8 +32,11 @@ abstract class VibeArchive {
       !(room.notificationCount > 0 &&
           room.pushRuleState == PushRuleState.notify);
 
-  static Future<void> setArchived(Room room, bool archived) =>
-      archived ? room.addTag(tag) : room.removeTag(tag);
+  static Future<void> setArchived(Room room, bool archived) async {
+    if (archived) return room.addTag(tag);
+    await room.removeTag(tag);
+    if (room.tags.containsKey(legacyTag)) await room.removeTag(legacyTag);
+  }
 
   static List<Room> archived(Client client) => client.rooms
       .where(

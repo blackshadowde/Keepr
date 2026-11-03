@@ -127,6 +127,11 @@ abstract class ClientManager {
         // Vibe custom status + time zone
         'chat.keepr.status',
         'chat.keepr.disappearing',
+        // the same as sent before the rename (and by the old version)
+        'chat.vibe.status',
+        'chat.vibe.disappearing',
+        // people's own typing indicator
+        'chat.keepr.typing',
         // Who is in a call (MatrixRTC), for the call buttons and badges
         'org.matrix.msc3401.call.member',
       },

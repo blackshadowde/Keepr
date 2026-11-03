@@ -17,6 +17,9 @@ import 'package:matrix/matrix.dart';
 abstract class VibeDisappearing {
   static const type = 'chat.keepr.disappearing';
 
+  /// The same, as set before the rename (and by the old version).
+  static const legacyType = 'chat.vibe.disappearing';
+
   static const options = <(Duration?, String)>[
     (null, 'Off'),
     (Duration(hours: 1), '1 hour'),
@@ -36,7 +39,7 @@ abstract class VibeDisappearing {
 
   /// Current timer of [room], or null when off.
   static ({Duration duration, int since})? of(Room room) {
-    final c = room.getState(type)?.content;
+    final c = (room.getState(type) ?? room.getState(legacyType))?.content;
     if (c == null) return null;
     final seconds = c['seconds'];
     final since = c['since'];

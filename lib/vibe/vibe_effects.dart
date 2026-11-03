@@ -160,8 +160,11 @@ abstract class VibeEffects {
     return null;
   }
 
-  static VibeEffect? of(Event event) =>
-      byId(event.content.tryGet<String>(contentKey));
+  static VibeEffect? of(Event event) => byId(
+    event.content.tryGet<String>(contentKey) ??
+        // sent before the rename, or by the old version
+        event.content.tryGet<String>('chat.vibe.effect'),
+  );
 
   /// Emoji-only messages tapped by the user: a burst made from that emoji.
   static VibeEffect forEmoji(String emoji) => VibeEffect(
