@@ -9,7 +9,9 @@ import 'package:vibe/vibe/vibe_updater.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:vibe/vibe/vibe_threads.dart';
+import 'dart:async';
 import 'dart:math' as math;
+import 'package:vibe/vibe/vibe_tour_demos.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 /// Release notes. NEWEST FIRST. Add a new entry at the top for every
@@ -320,7 +322,10 @@ class VibeTourItem {
   final IconData icon;
   final String title;
   final String body;
-  const VibeTourItem(this.icon, this.title, this.body);
+
+  /// The little animation that shows where it is and what it does.
+  final VibeDemo? demo;
+  const VibeTourItem(this.icon, this.title, this.body, [this.demo]);
 }
 
 class VibeTourPage {
@@ -343,7 +348,7 @@ const vibeTour = (
       'A new name and a new icon. Same account, same chats, same encryption.',
       [
         VibeTourItem(Icons.badge_outlined, 'A new name',
-            'Vibe is now Keepr everywhere: the app, the website and the store.'),
+            'Vibe is now Keepr everywhere: the app, the website and the store.', VibeDemo.rename),
         VibeTourItem(Icons.apps_rounded, 'A new icon',
             'A white chat bubble with a lock, on a smooth dark blue background.'),
         VibeTourItem(Icons.verified_user_outlined, 'Nothing to set up',
@@ -356,9 +361,9 @@ const vibeTour = (
       'Keep side conversations out of the main chat.',
       [
         VibeTourItem(Icons.add_comment_outlined, 'Start one from any message',
-            'Long-press a message, then Create thread.'),
+            'Long-press a message, then Create thread.', VibeDemo.threadCreate),
         VibeTourItem(Icons.edit_outlined, 'Give it a name',
-            'Tap the thread\'s name to rename it. Without a name, it\'s called after its first message.'),
+            'Tap the thread\'s name to rename it. Without a name, it\'s called after its first message.', VibeDemo.threadRename),
         VibeTourItem(Icons.push_pin_outlined, 'Pinned until you close it',
             'Threads stay in the chat\'s side pane until you close them.'),
       ],
@@ -369,15 +374,15 @@ const vibeTour = (
       'Small things that make every chat quicker.',
       [
         VibeTourItem(Icons.call_to_action_outlined, 'Keep a chat docked',
-            'Open another chat from the top pill, or pull a chat\'s name down, and it waits under the text box. Swipe it up to go back.'),
+            'Open another chat from the top pill, or pull a chat\'s name down, and it waits under the text box. Swipe it up to go back.', VibeDemo.dock),
         VibeTourItem(Icons.search_rounded, 'Search in a chat',
-            'Results as you type, with arrows to step through every match.'),
+            'Results as you type, with arrows to step through every match.', VibeDemo.search),
         VibeTourItem(Icons.format_quote_rounded, 'Quote part of a message',
-            'Swipe to reply and hold a moment to pick the words you want.'),
+            'Swipe to reply and hold a moment to pick the words you want.', VibeDemo.quote),
         VibeTourItem(Icons.photo_library_outlined, 'Photo stacks',
-            'Four or more photos sent together show as one grid.'),
+            'Four or more photos sent together show as one grid.', VibeDemo.stack),
         VibeTourItem(Icons.touch_app_outlined, 'Double tap, your way',
-            'React, reply, quote, bookmark or copy: you choose.'),
+            'React, reply, quote, bookmark or copy: you choose.', VibeDemo.doubleTap),
       ],
     ),
     VibeTourPage(
@@ -386,13 +391,13 @@ const vibeTour = (
       'Customisation has more to play with.',
       [
         VibeTourItem(Icons.more_horiz_rounded, 'Your own typing indicator',
-            'Up to three emojis, an animation and a phrase others see while you type.'),
+            'Up to three emojis, an animation and a phrase others see while you type.', VibeDemo.typing),
         VibeTourItem(Icons.music_note_outlined, 'Notification sounds',
-            'Keepr chime, Pop, Bell or Pluck, each with a play button.'),
+            'Keepr chime, Pop, Bell or Pluck, each with a play button.', VibeDemo.sounds),
         VibeTourItem(Icons.thunderstorm_outlined, 'Weather on screen',
-            'Rain, sunny day or winter words fill the screen with their own scene.'),
+            'Rain, sunny day or winter words fill the screen with their own scene.', VibeDemo.weather),
         VibeTourItem(Icons.gif_box_outlined, 'Animated profile pictures',
-            'GIF profile pictures play in profiles and chat details.'),
+            'GIF profile pictures play in profiles and chat details.', VibeDemo.avatar),
       ],
     ),
     VibeTourPage(
@@ -401,13 +406,13 @@ const vibeTour = (
       'Messages arrive, and read ones tidy themselves up.',
       [
         VibeTourItem(Icons.refresh_rounded, 'Back on its own',
-            'If the phone stops Keepr in the background, it starts again within 15 minutes.'),
+            'If the phone stops Keepr in the background, it starts again within 15 minutes.', VibeDemo.restart),
         VibeTourItem(Icons.done_all_rounded, 'Read here, cleared there',
-            'Reading a chat on another device clears its notification.'),
+            'Reading a chat on another device clears its notification.', VibeDemo.clearRead),
         VibeTourItem(Icons.error_outline_rounded, 'Know when a message fails',
-            'A notification tells you if a message couldn\'t be sent.'),
+            'A notification tells you if a message couldn\'t be sent.', VibeDemo.failed),
         VibeTourItem(Icons.mic_none_rounded, 'Voice messages everywhere',
-            'Voice messages recorded on Android now play on every phone.'),
+            'Voice messages recorded on Android now play on every phone.', VibeDemo.voice),
       ],
     ),
   ],
@@ -575,19 +580,61 @@ class _VibeTourState extends State<VibeTour> {
   }
 }
 
-class _TourPageView extends StatelessWidget {
+class _TourPageView extends StatefulWidget {
   final VibeTourPage page;
   final void Function(int)? onItem;
   const _TourPageView({required this.page, this.onItem});
 
   @override
+  State<_TourPageView> createState() => _TourPageViewState();
+}
+
+class _TourPageViewState extends State<_TourPageView> {
+  int _sel = 0;
+  Timer? _next;
+
+  List<VibeTourItem> get _items => widget.page.items;
+  bool get _hasDemos => _items.any((i) => i.demo != null);
+
+  @override
+  void initState() {
+    super.initState();
+    _schedule();
+  }
+
+  // each card's animation plays once, then the next card's
+  void _schedule() {
+    _next?.cancel();
+    if (!_hasDemos) return;
+    _next = Timer(const Duration(milliseconds: 4600), () {
+      if (!mounted) return;
+      setState(() => _sel = (_sel + 1) % _items.length);
+      _schedule();
+    });
+  }
+
+  @override
+  void dispose() {
+    _next?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final page = widget.page;
+    final demo = _items[_sel].demo;
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
       children: [
-        Center(child: _TourBlob(icon: page.icon)),
-        const SizedBox(height: 20),
+        if (_hasDemos && demo != null)
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: VibeDemoView(demo, key: ValueKey(demo)),
+          )
+        else
+          Center(child: _TourBlob(icon: page.icon)),
+        const SizedBox(height: 16),
         Text(
           page.title,
           style: TextStyle(
@@ -608,57 +655,76 @@ class _TourPageView extends StatelessWidget {
             index: k + 3,
             child: Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: Material(
-                color: cs.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(20),
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  onTap: onItem == null ? null : () => onItem!(k),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 14, 16, 14),
-                    child: Row(
-                      crossAxisAlignment: item.body.isEmpty
-                          ? CrossAxisAlignment.center
-                          : CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: cs.surfaceContainerHighest,
-                            shape: BoxShape.circle,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    width: 2,
+                    color: _hasDemos && k == _sel
+                        ? cs.primary
+                        : Colors.transparent,
+                  ),
+                ),
+                child: Material(
+                  color: cs.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(18),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: widget.onItem != null
+                        ? () => widget.onItem!(k)
+                        : item.demo == null
+                        ? null
+                        : () {
+                            setState(() => _sel = k);
+                            _schedule();
+                          },
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 14, 16, 14),
+                      child: Row(
+                        crossAxisAlignment: item.body.isEmpty
+                            ? CrossAxisAlignment.center
+                            : CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: cs.surfaceContainerHighest,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(item.icon, size: 21, color: cs.onSurface),
                           ),
-                          child: Icon(item.icon, size: 21, color: cs.onSurface),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item.title,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              if (item.body.isNotEmpty) ...[
-                                const SizedBox(height: 3),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
                                 Text(
-                                  item.body,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    height: 1.35,
-                                    color: cs.onSurfaceVariant,
+                                  item.title,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
+                                if (item.body.isNotEmpty) ...[
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    item.body,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      height: 1.35,
+                                      color: cs.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
                               ],
-                            ],
+                            ),
                           ),
-                        ),
-                        if (onItem != null)
-                          Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
-                      ],
+                          if (widget.onItem != null)
+                            Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
+                        ],
+                      ),
                     ),
                   ),
                 ),
