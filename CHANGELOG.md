@@ -3,6 +3,10 @@
 Vibe's changes are listed on each release:
 https://github.com/blackshadowde/Vibe-flutter/releases
 
+## 2026-11-03 ([3a27365](https://github.com/blackshadowde/keepr/commit/3a27365a5))
+
+- Security update: Keepr now uses Flutter 3.47.9, which no longer trusts a set of leaked eMudhra security certificates. Before, someone holding them could have faked a secure connection on Android ([3a27365](https://github.com/blackshadowde/keepr/commit/3a27365a5))
+
 ## 2026-11-02 ([87aab93](https://github.com/blackshadowde/keepr/commit/87aab9379))
 
 - Your own typing indicator: up to three emojis with an animation and a phrase (Settings > Customisation > Typing indicator). Other Keepr users see it while you type ([8b0a187](https://github.com/blackshadowde/keepr/commit/8b0a187fd))
