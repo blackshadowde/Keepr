@@ -10,6 +10,8 @@ extension VibeStickerX on Event {
     if (messageType == MessageTypes.Sticker) return true;
     if (messageType != MessageTypes.Image) return false;
     if (content['chat.keepr.sticker'] == true) return true;
+    // sent before the rename (and by phones still on the old version)
+    if (content['chat.vibe.sticker'] == true) return true;
     final mime = content.tryGetMap<String, Object?>('info')?.tryGet<String>('mimetype');
     return mime == 'image/webp';
   }

@@ -158,7 +158,8 @@ abstract class VibeChunks {
 
   /// The `chat.keepr.chunk` block of [event], or null if it is not a part.
   static Map<String, Object?>? info(Event event) {
-    final c = event.content[key];
+    // also the old key (sent before the rename, or by the old version)
+    final c = event.content[key] ?? event.content['chat.vibe.chunk'];
     if (c is! Map) return null;
     final m = Map<String, Object?>.from(c);
     if (m['id'] is! String || m['index'] is! int || m['total'] is! int) {

@@ -59,7 +59,8 @@ abstract class VibeCall {
   }
 
   static Map<String, Object?>? info(Event e) {
-    final v = e.content[_key];
+    // also the old key (sent before the rename, or by the old version)
+    final v = e.content[_key] ?? e.content['chat.vibe.call'];
     return v is Map ? Map<String, Object?>.from(v) : null;
   }
 

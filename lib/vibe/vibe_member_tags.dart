@@ -37,7 +37,9 @@ abstract class VibeMemberTags {
   }
 
   static Map<String, Object?>? tagOf(Room room, String userId) {
-    final t = room.getState(EventTypes.RoomMember, userId)?.content[key];
+    final member = room.getState(EventTypes.RoomMember, userId)?.content;
+    // also the old key (set before the rename, or by the old version)
+    final t = member?[key] ?? member?['chat.vibe.tag'];
     if (t is! Map || t['tag'] is! String || (t['tag'] as String).isEmpty) {
       return null;
     }

@@ -7,7 +7,12 @@ import 'package:matrix/matrix.dart';
 /// `chat.keepr.sticker` mark, so Matrix alone would say "sent a picture".
 extension VibeEventBody on Event {
   String? _vibeSticker(MatrixLocalizations i18n) {
-    if (redacted || content['chat.keepr.sticker'] != true) return null;
+    if (redacted) return null;
+    // the old mark too: sent before the rename, or by the old version
+    if (content['chat.keepr.sticker'] != true &&
+        content['chat.vibe.sticker'] != true) {
+      return null;
+    }
     return i18n.sentASticker(
       senderFromMemoryOrFallback.calcDisplayname(i18n: i18n),
     );

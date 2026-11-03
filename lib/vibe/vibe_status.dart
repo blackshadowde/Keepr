@@ -18,6 +18,9 @@ import 'package:matrix/matrix.dart';
 class VibeStatus {
   static const type = 'chat.keepr.status';
 
+  /// The same, as sent before the rename (and by the old version).
+  static const legacyType = 'chat.vibe.status';
+
   final String emoji;
   final String text;
   final int? untilMs; // null = don't clear
@@ -81,7 +84,9 @@ class VibeStatus {
   /// Status of [userId] as seen in [room], or null.
   static VibeStatus? of(Room room, String? userId) {
     if (userId == null) return null;
-    final c = room.getState(type, userId)?.content;
+    final c = (room.getState(type, userId) ??
+            room.getState(legacyType, userId))
+        ?.content;
     if (c == null) return null;
     return VibeStatus.fromContent(c);
   }
