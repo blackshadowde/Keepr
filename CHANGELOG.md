@@ -21,7 +21,7 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 - Double tap can react, reply, quote part, bookmark or copy (Settings > Chats & storage)
 - The highlight on a tapped reply fades after a moment
 - Photos fill the screen in the viewer
-- New app icon: a white chat bubble with a lock on a dark blue background
+- New app icon: a white chat bubble with a lock on a dark blue background. On Android the background is its own layer, so the launcher's round or rounded-square shape shows a smooth background
 - The welcome screen shows the Keepr name instead of the old one
 - A thread slides in when opened and slides back out when closed
 - Photo stacks: your own photos sit on the right, the date line goes by the first photo, and long-press on a photo opens its menu (react, reply, delete)
