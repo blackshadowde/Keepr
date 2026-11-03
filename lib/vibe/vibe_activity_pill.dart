@@ -6,6 +6,7 @@ import 'dart:async';
 
 import 'package:vibe/l10n/l10n.dart';
 import 'package:vibe/utils/matrix_sdk_extensions/matrix_locals.dart';
+import 'package:vibe/vibe/vibe_chat_dock.dart';
 import 'package:vibe/vibe/vibe_haptics.dart';
 import 'package:vibe/vibe/vibe_lock.dart';
 import 'package:vibe/vibe/vibe_disappearing.dart';
@@ -194,9 +195,17 @@ class _VibeActivityHostState extends State<VibeActivityHost> {
   Widget build(BuildContext context) {
     final item = _item;
     final top = MediaQuery.paddingOf(context).top;
+    final client = _client;
     return Stack(
       children: [
         widget.child,
+        if (client != null)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: VibeDockStrip(client: client),
+          ),
         if (item != null)
           Positioned(
             top: top + 8,
@@ -224,7 +233,8 @@ class _VibeActivityHostState extends State<VibeActivityHost> {
                           unread: _otherUnread(),
                           onTap: () {
                             _dismiss();
-                            VibeApp.router.go('/rooms/${item.room.id}');
+                            // the chat you're in docks under the text box
+                            VibeChatDock.openKeeping(item.room.id);
                           },
                         ),
                       ),

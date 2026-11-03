@@ -8,6 +8,7 @@ import 'package:vibe/vibe/vibe_drop.dart';
 import 'package:vibe/vibe/vibe_pending_files.dart';
 import 'package:vibe/vibe/vibe_quote.dart';
 import 'package:vibe/vibe/vibe_threads.dart';
+import 'package:vibe/vibe/vibe_chat_dock.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart'
     hide Priority;
 import 'package:vibe/vibe/vibe_mention_controller.dart';
@@ -528,6 +529,7 @@ class ChatController extends State<ChatPageWithRoom>
   void initState() {
     // opened from a pinned thread in the middle pane
     activeThreadId = VibeThreads.takeOpen(widget.room.id);
+    VibeChatDock.opened(widget.room.id);
     // the chat sliding in gets a light tap (closing has none)
     VibeHaptics.light();
     // photos and videos dragged in from other apps (Android)
