@@ -25,7 +25,10 @@ enum VibeScene {
   sweetDreams(3.6), // sweet dreams: a soft dusk, a moon on a cloud, hearts and stars float up
   welcome(3.2), // welcome: golden rays, a ribbon with "WELCOME", stars fall
   bye(2.8), // bye: a big hand waves goodbye and floats away
-  hi(2.6); // hi / hello / namaste: a hand waves in, ripples and a "Hi!" bubble
+  hi(2.6), // hi / hello / namaste: a hand waves in, ripples and a "Hi!" bubble
+  rain(3.4), // rain / thunder / storm: the sky darkens, rain pours, lightning flashes
+  summer(3.2), // sunny / summer / so hot: a blazing sun, heat waves rising
+  winter(3.6); // winter / cold / chali: a cold blue tint, snowflakes drift down
 
   const VibeScene(this.seconds);
   final double seconds;
@@ -51,6 +54,9 @@ abstract class VibeHotWords {
     (VibeScene.welcome, _r(r"(?<!you'?re\s)(?<!your\s)(?<!ur\s)\bwelcome\b|\bswagat|स्वागत|స్వాగతం")),
     (VibeScene.bye, _r(r'\b(good\s*)?by+e+\b|\bbye\s*bye\b|\bta\s*ta\b|\bcya\b|\bsee\s*(you|ya|u)\b|अलविदा')),
     (VibeScene.hi, _r(r'^\s*(hi+|hel+o+|hey+|hai+|namaste|namaskar|नमस्ते|నమస్తే|👋)(\s|[!.,]|$)')),
+    (VibeScene.rain, _r(r'\brain(s|ing|y|ed)?\b|\bthunder\w*|\bstorm\w*|\bstrom\b|\blightning\b|\bbaa?rish\b|बारिश|వర్షం|⛈|🌧')),
+    (VibeScene.summer, _r(r'\bsunny\b|\by?enda+\b|\bfull\s*hot\b|\bso\s*hot\b|\bsummer\b|\bgarmi\b|गर्मी|ఎండ|🥵|☀️')),
+    (VibeScene.winter, _r(r'\bchali\b|\bwinter\b|\bso\s*cold\b|\bfreezing\b|\bcool\s*(weather|breeze|day|morning|night|climate)\b|\bthand\b|ठंड|सर्दी|చలి|❄|🥶|⛄')),
     (VibeScene.laugh, _r(r'\b(ha){3,}h?\b|\b(he){3,}\b|\blo+l+\b|\blmf?a+o+\b|\brofl\b|😂|🤣')),
   ];
 
@@ -81,6 +87,9 @@ abstract class VibeHotWords {
     VibeScene.sweetDreams,
     VibeScene.missYou,
     VibeScene.goodMorning,
+    VibeScene.rain,
+    VibeScene.summer,
+    VibeScene.winter,
   };
 
   static OverlayEntry? _entry;
@@ -302,6 +311,20 @@ class _ScenePlayerState extends State<_ScenePlayer> with SingleTickerProviderSta
       case VibeScene.welcome:
         await wait(350);
         VibeHaptics.medium();
+      case VibeScene.rain:
+        // thunder with each flash
+        await wait(700);
+        VibeHaptics.heavy();
+        await wait(1000);
+        VibeHaptics.medium();
+      case VibeScene.summer:
+        await wait(400);
+        VibeHaptics.light();
+      case VibeScene.winter:
+        for (var i = 0; i < 3; i++) {
+          await wait(500);
+          VibeHaptics.selection();
+        }
       default:
         VibeHaptics.medium();
     }
@@ -427,6 +450,12 @@ class _ScenePainter extends CustomPainter {
         _wave(canvas, t, r, w, h, bye: true);
       case VibeScene.hi:
         _wave(canvas, t, r, w, h, bye: false);
+      case VibeScene.rain:
+        _rain(canvas, t, r, w, h);
+      case VibeScene.summer:
+        _summer(canvas, t, r, w, h);
+      case VibeScene.winter:
+        _winter(canvas, t, r, w, h);
     }
   }
 
@@ -970,6 +999,117 @@ class _ScenePainter extends CustomPainter {
       }
       _glyph(c, '🙏', 48, base.translate(0, -30), alpha: ba, scale: _backOut(_seg(t, 0.62, 0.8)));
     }
+  }
+
+  void _rain(Canvas c, double t, math.Random r, double w, double h) {
+    final dark = _fadeInOut(t, 0.15, 0.82);
+    final full = Offset.zero & Size(w, h);
+    if (bg) c.drawRect(full, Paint()
+      ..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [_a(const Color(0xAA263238), dark), _a(const Color(0x55455A64), dark)]).createShader(full));
+    // lightning: two flashes with a bolt
+    for (final at in const [0.22, 0.52]) {
+      final f = 1 - _seg(t, at, at + 0.07);
+      if (t < at || f <= 0) continue;
+      c.drawRect(full, _fill(_a(const Color(0x66FFFFFF), f * dark)));
+      final x0 = w * (at < 0.4 ? 0.35 : 0.62);
+      final bolt = Path()..moveTo(x0, h * 0.08);
+      var x = x0, y = h * 0.08;
+      final br = math.Random(seed + (at * 100).round());
+      for (var k = 0; k < 6; k++) {
+        x += (br.nextDouble() - 0.5) * 70;
+        y += h * 0.07;
+        bolt.lineTo(x, y);
+      }
+      c.drawPath(bolt, _stroke(_a(const Color(0xFFFFF59D), f), 5)..strokeJoin = StrokeJoin.round);
+    }
+    // dark clouds along the top
+    final ca = _fadeInOut(t, 0.12, 0.85);
+    for (var i = 0; i < 5; i++) {
+      final cx = w * (i + 0.5) / 5 + math.sin(t * 2 + i) * 10;
+      final cy = h * 0.07 + (i.isEven ? 0 : 18);
+      final p = _fill(_a(const Color(0xFF455A64), 0.95 * ca));
+      c.drawCircle(Offset(cx - 28, cy + 8), 34, p);
+      c.drawCircle(Offset(cx + 6, cy - 6), 44, p);
+      c.drawCircle(Offset(cx + 40, cy + 10), 30, p);
+    }
+    // heavy rain, slanting a little
+    for (var i = 0; i < 90; i++) {
+      final x0 = r.nextDouble() * (w + 80);
+      final st = 0.05 + r.nextDouble() * 0.6;
+      final len = 18 + r.nextDouble() * 16;
+      final u = _seg(t, st, st + 0.22);
+      if (u <= 0 || u >= 1) continue;
+      final y = h * 0.08 + u * h * 0.95;
+      final x = x0 - u * 60;
+      c.drawLine(Offset(x, y), Offset(x - 6, y + len), _stroke(_a(const Color(0xFF90CAF9), 0.75 * dark), 2.2));
+    }
+    final u = _seg(t, 0.3, 0.9);
+    if (u > 0 && u < 1) _glyph(c, '☔', 64, Offset(w / 2, h * 0.55), alpha: 1 - _seg(u, 0.75, 1), scale: _backOut(_seg(u, 0, 0.3)));
+  }
+
+  void _summer(Canvas c, double t, math.Random r, double w, double h) {
+    final hot = _fadeInOut(t, 0.15, 0.8);
+    final full = Offset.zero & Size(w, h);
+    if (bg) c.drawRect(full, Paint()
+      ..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [_a(const Color(0x66FF9800), hot), _a(const Color(0x33FFEB3B), hot), _a(const Color(0x55FF7043), hot)]).createShader(full));
+    final sun = Offset(w / 2, h * 0.26);
+    final sr = 70.0 * _backOut(_seg(t, 0.02, 0.3));
+    if (hot > 0 && sr > 0) {
+      c.drawCircle(sun, sr * 3.4, Paint()..shader = RadialGradient(colors: [_a(const Color(0xAAFFC107), hot), Colors.transparent]).createShader(Rect.fromCircle(center: sun, radius: sr * 3.4)));
+      for (var k = 0; k < 16; k++) {
+        final a = k / 16 * 2 * math.pi + t * 1.4;
+        final outer = sr * (2.0 + 0.35 * math.sin(t * 24 + k));
+        c.drawLine(sun + Offset(math.cos(a), math.sin(a)) * sr * 1.25, sun + Offset(math.cos(a), math.sin(a)) * outer, _stroke(_a(const Color(0xFFFF9800), 0.9 * hot), 7));
+      }
+      c.drawCircle(sun, sr, Paint()..shader = RadialGradient(colors: [_a(const Color(0xFFFFF59D), hot), _a(const Color(0xFFFF8F00), hot)]).createShader(Rect.fromCircle(center: sun, radius: sr)));
+    }
+    // heat waves rising from the bottom
+    for (var i = 0; i < 7; i++) {
+      final x0 = w * (i + 0.5) / 7;
+      final st = 0.1 + r.nextDouble() * 0.3;
+      final u = _seg(t, st, st + 0.55);
+      if (u <= 0 || u >= 1) continue;
+      final path = Path();
+      final yb = h * (0.95 - u * 0.4);
+      for (var k = 0; k <= 12; k++) {
+        final y = yb - k * 10.0;
+        final x = x0 + math.sin(k * 0.9 + t * 18 + i) * 8;
+        k == 0 ? path.moveTo(x, y) : path.lineTo(x, y);
+      }
+      c.drawPath(path, _stroke(_a(const Color(0xFFFFFFFF), 0.5 * (1 - u) * hot), 3));
+    }
+    final u = _seg(t, 0.3, 0.9);
+    if (u > 0 && u < 1) _glyph(c, '😎', 64, Offset(w / 2, h * 0.58), alpha: 1 - _seg(u, 0.75, 1), scale: _backOut(_seg(u, 0, 0.3)));
+  }
+
+  void _winter(Canvas c, double t, math.Random r, double w, double h) {
+    final cold = _fadeInOut(t, 0.15, 0.82);
+    final full = Offset.zero & Size(w, h);
+    if (bg) c.drawRect(full, Paint()
+      ..shader = LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [_a(const Color(0x664FC3F7), cold), _a(const Color(0x22E1F5FE), cold), _a(const Color(0x66B3E5FC), cold)]).createShader(full));
+    // frost creeping in from the corners
+    for (final corner in [Offset.zero, Offset(w, 0), Offset(0, h), Offset(w, h)]) {
+      c.drawCircle(corner, 170 * _smooth(_seg(t, 0.05, 0.4)), Paint()..shader = RadialGradient(colors: [_a(const Color(0x99FFFFFF), cold), Colors.transparent]).createShader(Rect.fromCircle(center: corner, radius: 170)));
+    }
+    // snowflakes drifting down
+    for (var i = 0; i < 40; i++) {
+      final x0 = r.nextDouble() * w;
+      final st = r.nextDouble() * 0.55;
+      final size = 8 + r.nextDouble() * 14;
+      final sway = r.nextDouble() * 6;
+      final u = _seg(t, st, st + 0.45);
+      if (u <= 0 || u >= 1) continue;
+      final p = Offset(x0 + math.sin(u * 7 + sway) * 24, -20 + u * (h + 40));
+      final a = (1 - _seg(u, 0.8, 1)) * cold;
+      final paint = _stroke(_a(Colors.white, 0.9 * a), size > 15 ? 2.6 : 1.8);
+      for (var k = 0; k < 3; k++) {
+        final ang = k * math.pi / 3 + u * 3 + sway;
+        final d = Offset(math.cos(ang), math.sin(ang)) * size / 2;
+        c.drawLine(p - d, p + d, paint);
+      }
+    }
+    final u = _seg(t, 0.3, 0.9);
+    if (u > 0 && u < 1) _glyph(c, '🥶', 64, Offset(w / 2, h * 0.5), alpha: 1 - _seg(u, 0.75, 1), scale: _backOut(_seg(u, 0, 0.3)), deg: math.sin(t * 60) * 4);
   }
 
   void _wow(Canvas c, double t, math.Random r, double w, double h) {
