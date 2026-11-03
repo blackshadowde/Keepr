@@ -132,6 +132,23 @@ abstract class VibeThreads {
     return true;
   }
 
+  /// The thread icon: a filled bubble pair on the theme's own colour.
+  static const IconData icon = Icons.forum_rounded;
+
+  static Widget badge(BuildContext context, {double size = 34}) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: cs.primaryContainer,
+        borderRadius: BorderRadius.circular(size * 0.32),
+      ),
+      alignment: Alignment.center,
+      child: Icon(icon, size: size * 0.55, color: cs.onPrimaryContainer),
+    );
+  }
+
   /// A short name for the thread: the start of its first message.
   static String title(Event? root) {
     if (root == null) return 'thread';

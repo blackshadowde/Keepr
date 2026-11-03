@@ -224,7 +224,8 @@ class VibeDmDetail extends StatelessWidget {
                           future: room.getEventById(id),
                           builder: (context, snap) => VibeHashRow(
                             label: VibeThreads.nameOf(room.id, id, snap.data),
-                            icon: Icons.forum_outlined,
+                            icon: VibeThreads.icon,
+                            iconColor: Theme.of(context).colorScheme.primary,
                             onTap: () {
                               VibeThreads.openNext(room.id, id);
                               onOpenChat();
