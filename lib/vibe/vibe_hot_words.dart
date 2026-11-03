@@ -389,9 +389,13 @@ class _ScenePainter extends CustomPainter {
   final Animation<double> anim;
   final int seed;
   final Map<String, TextPainter> _text = {};
+  static final _hasWord = RegExp(r'[A-Za-z0-9]');
 
   void _glyph(Canvas canvas, String s, double size, Offset at, {double alpha = 1, double scale = 1, double deg = 0, bool bold = false, Color color = Colors.white}) {
     if (alpha <= 0 || scale <= 0) return;
+    // only words ("HA", "WOW!", "Hi!", "Zz"...): no emojis over the scenes,
+    // the full-screen animation is the effect
+    if (!_hasWord.hasMatch(s)) return;
     final key = '$s|$size|$bold|${color.toARGB32()}';
     final tp = _text.putIfAbsent(key, () => TextPainter(
           text: TextSpan(
