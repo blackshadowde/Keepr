@@ -318,6 +318,13 @@ class _VibeStylePageState extends State<VibeStylePage> {
                   'chat\'s name down, keeps it in a strip under the text box',
               setting: AppSettings.vibeChatDock,
             ),
+            SettingsSwitchListTile.adaptive(
+              title: 'Start-up animation',
+              subtitle:
+                  'The home screen builds itself when Keepr opens, or comes '
+                  'back after a few minutes away',
+              setting: AppSettings.vibeBootIntro,
+            ),
             ListTile(
               leading: const Icon(Icons.more_horiz_rounded),
               title: const Text('Typing indicator'),
