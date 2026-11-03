@@ -13,6 +13,27 @@ extension VibeEventBody on Event {
     );
   }
 
+  /// Plain-text message types that get the "Name: " prefix.
+  static const Set<String> _textTypes = {
+    MessageTypes.Text,
+    MessageTypes.Notice,
+    MessageTypes.Emote,
+    MessageTypes.None,
+  };
+
+  /// "Name: text" (or "You: text") for chat lists and group notifications.
+  /// The Matrix SDK stopped doing this in 15.0, so Keepr adds it itself,
+  /// the same way the SDK used to.
+  String _withPrefix(MatrixLocalizations i18n, String body) {
+    if (type != EventTypes.Message || !_textTypes.contains(messageType)) {
+      return body;
+    }
+    final who = senderId == room.client.userID
+        ? i18n.you
+        : senderFromMemoryOrFallback.calcDisplayname(i18n: i18n);
+    return '$who: $body';
+  }
+
   Future<String> vibeBody(
     MatrixLocalizations i18n, {
     bool withSenderNamePrefix = false,
@@ -20,17 +41,26 @@ extension VibeEventBody on Event {
     bool hideEdit = false,
     bool plaintextBody = false,
     bool removeMarkdown = false,
-  }) async =>
-      _vibeSticker(i18n) ??
-      await calcLocalizedBody(
-        i18n,
-        withSenderNamePrefix: withSenderNamePrefix,
-        hideReply: hideReply,
-        hideEdit: hideEdit,
-        plaintextBody: plaintextBody,
-        removeMarkdown: removeMarkdown,
-      );
+  }) async {
+    final sticker = _vibeSticker(i18n);
+    if (sticker != null) return sticker;
+    // names come from memory: load the sender (and who removed it) first
+    if (redacted) await redactedBecause?.fetchSenderUser();
+    if (withSenderNamePrefix &&
+        (type == EventTypes.Message || type.contains(EventTypes.Encrypted))) {
+      await fetchSenderUser();
+    }
+    return vibeBodyFallback(
+      i18n,
+      withSenderNamePrefix: withSenderNamePrefix,
+      hideReply: hideReply,
+      hideEdit: hideEdit,
+      plaintextBody: plaintextBody,
+      removeMarkdown: removeMarkdown,
+    );
+  }
 
+  /// The same, right away (names only from what's already loaded).
   String vibeBodyFallback(
     MatrixLocalizations i18n, {
     bool withSenderNamePrefix = false,
@@ -38,14 +68,16 @@ extension VibeEventBody on Event {
     bool hideEdit = false,
     bool plaintextBody = false,
     bool removeMarkdown = false,
-  }) =>
-      _vibeSticker(i18n) ??
-      calcLocalizedBodyFallback(
-        i18n,
-        withSenderNamePrefix: withSenderNamePrefix,
-        hideReply: hideReply,
-        hideEdit: hideEdit,
-        plaintextBody: plaintextBody,
-        removeMarkdown: removeMarkdown,
-      );
+  }) {
+    final sticker = _vibeSticker(i18n);
+    if (sticker != null) return sticker;
+    final body = calcLocalizedBody(
+      i18n,
+      hideReply: hideReply,
+      hideEdit: hideEdit,
+      plaintextBody: plaintextBody,
+      removeMarkdown: removeMarkdown,
+    );
+    return withSenderNamePrefix ? _withPrefix(i18n, body) : body;
+  }
 }

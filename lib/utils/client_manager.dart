@@ -143,9 +143,12 @@ abstract class ClientManager {
       defaultNetworkRequestTimeout: const Duration(minutes: 30),
       enableDehydratedDevices: true,
       shareKeysWith:
-          ShareKeysWith.values.singleWhereOrNull(
-            (share) => share.name == shareKeysWith,
-          ) ??
+          // a choice saved as the old "verified only" is the new one
+          (shareKeysWith == 'directlyVerifiedOnly'
+              ? ShareKeysWith.verifiedOnly
+              : ShareKeysWith.values.singleWhereOrNull(
+                  (share) => share.name == shareKeysWith,
+                )) ??
           ShareKeysWith.all,
       onSoftLogout: enableSoftLogout ? onSoftLogout : null,
       sendTimelineEventTimeout: Duration(

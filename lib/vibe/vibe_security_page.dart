@@ -329,6 +329,9 @@ class _VibeSecurityPageState extends State<VibeSecurityPage> {
                         underline: const SizedBox.shrink(),
                         value: Matrix.of(context).client.shareKeysWith,
                         items: ShareKeysWith.values
+                            // the old "verified only" is the same as the new one
+                            // ignore: deprecated_member_use
+                            .where((s) => s != ShareKeysWith.directlyVerifiedOnly)
                             .map(
                               (share) => DropdownMenuItem(
                                 value: share,
@@ -441,6 +444,8 @@ extension on ShareKeysWith {
         return l10n.crossVerifiedDevicesIfEnabled;
       case ShareKeysWith.crossVerified:
         return l10n.crossVerifiedDevices;
+      case ShareKeysWith.verifiedOnly:
+      // ignore: deprecated_member_use
       case ShareKeysWith.directlyVerifiedOnly:
         return l10n.verifiedDevicesOnly;
     }
