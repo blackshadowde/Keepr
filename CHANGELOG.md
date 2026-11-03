@@ -34,7 +34,7 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 - After a big update, What's new opens as a small server with a channel per area (#welcome, #threads, #chatting, #make-it-yours, #notifications). Keepr types and posts each feature as a message with a live mockup of where it is and what it does; quick replies at the bottom move on, and Start chatting ends with a little party
 - Matrix SDK 15.0: older encrypted messages unlock right after you enter your security key, "Verified devices only" now really shares keys with verified devices only, and group notification rules use the right member count
 - Pasting images uses pasteboard 0.6
-- Hot-word scenes no longer put an emoji over the animation (no ☕, 🙏, ☔, 😎, 🥶, 👋, 🎂 and so on): just the full-screen scene, plus words like HA, WOW!, Hi! and Zz
+- Hot-word scenes no longer put an emoji over the animation (no ☕, 🙏, ☔, 😎, 🥶, 🎂 and so on): just the full-screen scene, plus words like HA, WOW! and Zz. The kiss keeps its lips. Hi and bye now have a person: for hi they walk in, stop and wave with a "Hi!" bubble; for bye they wave with a "Bye!" bubble, then walk away
 - New hot words: rain, thunder or storm darkens the screen with rain and lightning; sunny, summer, yenda or full hot brings a blazing sun and heat waves; winter, chali, so cold or cool weather brings frost and snowflakes
 - Threads can be renamed: tap the thread's name at the top, Rename in the thread menu, or the pencil (or long-press) in the middle pane. Without a name, a thread is named after its first message
 - Photo stacks: the date line goes by the first photo, and long-press on a photo opens its menu (react, reply, delete)
