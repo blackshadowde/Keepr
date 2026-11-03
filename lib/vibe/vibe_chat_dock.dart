@@ -9,6 +9,7 @@ import 'package:vibe/vibe/vibe_event_body.dart';
 import 'package:vibe/vibe/vibe_haptics.dart';
 import 'package:vibe/vibe/vibe_lock.dart';
 import 'package:vibe/widgets/avatar.dart';
+import 'package:vibe/widgets/typing_animation.dart';
 import 'package:vibe/widgets/vibe_app.dart';
 
 /// The docked chat: when you jump to another chat (the pill at the top, or
@@ -230,56 +231,48 @@ class _Strip extends StatelessWidget {
                           .where((u) => u.id != room.client.userID)
                           .isNotEmpty;
                       final last = room.lastEvent;
-                      final line = typing
-                          ? 'typing…'
-                          : last == null
-                          ? 'Swipe up to go back'
-                          : last.vibeBodyFallback(
-                              MatrixLocals(L10n.of(context)),
-                              plaintextBody: true,
-                              hideReply: true,
-                              hideEdit: true,
-                              removeMarkdown: true,
-                            );
                       final unread = room.notificationCount;
-                      return Row(
-                        children: [
-                          Avatar(
-                            mxContent: room.avatar,
-                            name: name,
-                            size: 32,
-                            client: room.client,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                Text(
-                                  line,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: typing
-                                        ? cs.primary
-                                        : cs.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
+                      // typing: picture + typing. Unread: picture + the
+                      // newest message (+N when there are more). Neither:
+                      // picture + name.
+                      final Widget middle;
+                      if (typing) {
+                        middle = Row(
+                          key: const ValueKey('typing'),
+                          children: [
+                            const TypingAnimation(size: 6),
+                            const SizedBox(width: 8),
+                            Text(
+                              'typing…',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: cs.primary,
+                              ),
                             ),
-                          ),
-                          if (unread > 0)
+                          ],
+                        );
+                      } else if (unread > 0 && last != null) {
+                        middle = Row(
+                          key: ValueKey('unread$unread'),
+                          children: [
+                            Expanded(
+                              child: Text(
+                                last.vibeBodyFallback(
+                                  MatrixLocals(L10n.of(context)),
+                                  plaintextBody: true,
+                                  hideReply: true,
+                                  hideEdit: true,
+                                  removeMarkdown: true,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
                             Container(
                               margin: const EdgeInsets.only(left: 6),
                               padding: const EdgeInsets.symmetric(
@@ -291,7 +284,7 @@ class _Strip extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Text(
-                                '$unread',
+                                unread > 1 ? '+$unread' : '1',
                                 style: TextStyle(
                                   color: cs.onPrimary,
                                   fontSize: 11,
@@ -299,6 +292,49 @@ class _Strip extends StatelessWidget {
                                 ),
                               ),
                             ),
+                          ],
+                        );
+                      } else {
+                        middle = Text(
+                          name,
+                          key: const ValueKey('name'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                          ),
+                        );
+                      }
+                      return Row(
+                        children: [
+                          Avatar(
+                            mxContent: room.avatar,
+                            name: name,
+                            size: 32,
+                            client: room.client,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 220),
+                              transitionBuilder: (child, a) => FadeTransition(
+                                opacity: a,
+                                child: SlideTransition(
+                                  position: Tween(
+                                    begin: const Offset(0, 0.4),
+                                    end: Offset.zero,
+                                  ).animate(a),
+                                  child: child,
+                                ),
+                              ),
+                              layoutBuilder: (cur, prev) => Stack(
+                                alignment: Alignment.centerLeft,
+                                children: [...prev, ?cur],
+                              ),
+                              child: middle,
+                            ),
+                          ),
                           IconButton(
                             tooltip: 'Close',
                             visualDensity: VisualDensity.compact,
