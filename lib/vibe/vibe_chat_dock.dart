@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:matrix/matrix.dart';
 import 'package:vibe/config/setting_keys.dart';
 import 'package:vibe/l10n/l10n.dart';
@@ -38,10 +41,32 @@ abstract class VibeChatDock {
     return id != null && enabled && id != currentRoomId();
   }
 
+  /// Around the whole app, so the chat can be pictured as it slides down.
+  static final GlobalKey shotKey = GlobalKey();
+
+  /// The slide being played (down into the strip, or up out of it).
+  static final ValueNotifier<VibeDockMove?> move = ValueNotifier(null);
+
+  static Future<ui.Image?> _shot() async {
+    try {
+      final b = shotKey.currentContext?.findRenderObject();
+      if (b is! RenderRepaintBoundary) return null;
+      final ratio = WidgetsBinding
+          .instance.platformDispatcher.views.first.devicePixelRatio;
+      return await b.toImage(pixelRatio: ratio * 0.6);
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Open [roomId]; the chat you're in docks under the text box.
-  static void openKeeping(String roomId) {
+  static void openKeeping(String roomId) => _openKeeping(roomId);
+
+  static Future<void> _openKeeping(String roomId) async {
     final cur = currentRoomId();
     if (enabled && cur != null && cur != roomId && !VibeLock.isLocked(cur)) {
+      final shot = await _shot();
+      move.value = VibeDockMove(down: true, roomId: cur, shot: shot);
       docked.value = cur;
     } else if (docked.value == roomId) {
       docked.value = null;
@@ -55,15 +80,20 @@ abstract class VibeChatDock {
     final id = docked.value;
     if (id == null) return;
     final cur = currentRoomId();
+    move.value = VibeDockMove(down: false, roomId: id);
     docked.value = swap && enabled && cur != null && cur != id ? cur : null;
     VibeHaptics.light();
     VibeApp.router.go('/rooms/$id');
   }
 
   /// Dock the open chat and go back to the chat list.
-  static void dockCurrent() {
+  static void dockCurrent() => _dockCurrent();
+
+  static Future<void> _dockCurrent() async {
     final cur = currentRoomId();
     if (cur == null || !enabled || VibeLock.isLocked(cur)) return;
+    final shot = await _shot();
+    move.value = VibeDockMove(down: true, roomId: cur, shot: shot);
     docked.value = cur;
     VibeHaptics.medium();
     VibeApp.router.go('/rooms');
@@ -379,6 +409,157 @@ class _Strip extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class VibeDockMove {
+  final bool down;
+  final String roomId;
+  final ui.Image? shot;
+  VibeDockMove({required this.down, required this.roomId, this.shot});
+}
+
+/// Plays the slide: docking, the chat (a picture of it) shrinks down into
+/// the strip; bringing it back, a panel grows up out of the strip and fills
+/// the screen, then fades into the real chat. Sits over the whole app and
+/// never takes touches.
+class VibeDockTransition extends StatefulWidget {
+  final Client client;
+  const VibeDockTransition({required this.client, super.key});
+
+  @override
+  State<VibeDockTransition> createState() => _VibeDockTransitionState();
+}
+
+class _VibeDockTransitionState extends State<VibeDockTransition>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 440),
+  );
+  VibeDockMove? _m;
+
+  @override
+  void initState() {
+    super.initState();
+    VibeChatDock.move.addListener(_play);
+  }
+
+  void _play() {
+    final m = VibeChatDock.move.value;
+    if (m == null) return;
+    _m?.shot?.dispose();
+    setState(() => _m = m);
+    _c.forward(from: 0).whenComplete(() {
+      if (!mounted || _m != m) return;
+      m.shot?.dispose();
+      setState(() => _m = null);
+      VibeChatDock.move.value = null;
+    });
+  }
+
+  @override
+  void dispose() {
+    VibeChatDock.move.removeListener(_play);
+    _m?.shot?.dispose();
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final m = _m;
+    if (m == null) return const SizedBox.shrink();
+    final cs = Theme.of(context).colorScheme;
+    final mq = MediaQuery.of(context);
+    return IgnorePointer(
+      child: LayoutBuilder(
+        builder: (context, box) => AnimatedBuilder(
+          animation: _c,
+          builder: (context, _) {
+            final t = Curves.easeInOutCubic.transform(_c.value);
+            final w = box.maxWidth, h = box.maxHeight;
+            final stripH = VibeChatDock.height + mq.padding.bottom;
+            final full = Rect.fromLTWH(0, 0, w, h);
+            final strip = Rect.fromLTWH(0, h - stripH, w, stripH);
+            final r = m.down
+                ? Rect.lerp(full, strip, t)!
+                : Rect.lerp(strip, full, t)!;
+            // docking fades at the very end into the strip; coming back
+            // fades at the end into the real chat underneath
+            final fade = m.down
+                ? 1 - ((t - 0.85) / 0.15).clamp(0.0, 1.0)
+                : 1 - ((t - 0.75) / 0.25).clamp(0.0, 1.0);
+            final room = widget.client.getRoomById(m.roomId);
+            final name = room?.getLocalizedDisplayname(
+                  MatrixLocals(L10n.of(context)),
+                ) ??
+                '';
+            final Widget face = m.down && m.shot != null
+                ? RawImage(
+                    image: m.shot,
+                    fit: BoxFit.cover,
+                    alignment: Alignment.topCenter,
+                  )
+                : Container(
+                    color: cs.surface,
+                    alignment: Alignment.topLeft,
+                    padding: EdgeInsets.fromLTRB(16, mq.padding.top + 12, 16, 0),
+                    child: Row(
+                      children: [
+                        if (room != null)
+                          Avatar(
+                            mxContent: room.avatar,
+                            name: name,
+                            size: 36,
+                            client: room.client,
+                          ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+            return Stack(
+              children: [
+                Positioned.fromRect(
+                  rect: r,
+                  child: Opacity(
+                    opacity: fade,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(m.down ? 20 * t : 20 * (1 - t)),
+                      ),
+                      child: DecoratedBox(
+                        position: DecorationPosition.foreground,
+                        decoration: BoxDecoration(
+                          boxShadow: const [
+                            BoxShadow(color: Colors.black38, blurRadius: 16),
+                          ],
+                          color: cs.surface.withValues(
+                            alpha: m.down ? 0.35 * t : 0,
+                          ),
+                        ),
+                        child: face,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
