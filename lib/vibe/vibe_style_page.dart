@@ -321,8 +321,9 @@ class _VibeStylePageState extends State<VibeStylePage> {
             SettingsSwitchListTile.adaptive(
               title: 'Start-up animation',
               subtitle:
-                  'The home screen builds itself when Keepr opens, or comes '
-                  'back after a few minutes away',
+                  'A swarm of cursors builds the screen when Keepr opens or '
+                  'comes back after a few minutes, and when you open or '
+                  'leave a chat',
               setting: AppSettings.vibeBootIntro,
             ),
             ListTile(
