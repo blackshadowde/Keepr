@@ -790,106 +790,115 @@ class _ScenePainter extends CustomPainter {
 
   /// bye: the hand waves in the middle and floats up and away;
   /// hi: it rises from the bottom, waves, ripples and a "Hi!" bubble pops.
-  /// Hi: a person walks in, stops and waves with a "Hi!" bubble. Bye: they
-  /// wave with a "Bye!" bubble, then turn and walk away.
+  // Handwritten "hi" and "bye" (one continuous line each, like a pen),
+  // drawn in a 520 x 400 box with the baseline at y = 300.
+  static final Path _hiPath = Path()
+      ..moveTo(40, 300)
+      ..cubicTo(90, 300, 150, 250, 170, 170)
+      ..cubicTo(190, 90, 170, 30, 140, 40)
+      ..cubicTo(110, 50, 115, 150, 125, 300)
+      ..cubicTo(140, 230, 180, 190, 215, 195)
+      ..cubicTo(255, 200, 250, 260, 255, 295)
+      ..cubicTo(262, 320, 300, 300, 330, 250)
+      ..cubicTo(345, 225, 350, 215, 355, 215)
+      ..cubicTo(360, 250, 355, 290, 375, 300)
+      ..cubicTo(400, 310, 440, 290, 470, 260);
+  static final Path _byePath = Path()
+      ..moveTo(40, 300)
+      ..cubicTo(80, 300, 130, 250, 150, 170)
+      ..cubicTo(170, 90, 150, 30, 122, 40)
+      ..cubicTo(95, 52, 100, 170, 110, 295)
+      ..cubicTo(120, 230, 170, 200, 195, 230)
+      ..cubicTo(215, 260, 185, 305, 150, 290)
+      ..cubicTo(175, 285, 205, 250, 235, 215)
+      ..cubicTo(240, 260, 255, 300, 285, 295)
+      ..cubicTo(310, 285, 315, 240, 320, 215)
+      ..cubicTo(325, 300, 320, 390, 290, 395)
+      ..cubicTo(260, 398, 270, 340, 330, 300)
+      ..cubicTo(360, 280, 380, 240, 410, 250)
+      ..cubicTo(440, 260, 420, 215, 395, 225)
+      ..cubicTo(365, 240, 370, 300, 410, 300)
+      ..cubicTo(440, 300, 470, 280, 500, 255);
+
+  /// Hi / bye: the word writes itself in one flowing stroke, with a soft
+  /// gradient glow and a bright pen tip. "hi" then floats up and fades;
+  /// "bye" lifts away in tiny sparks.
   void _wave(Canvas c, double t, math.Random r, double w, double h, {required bool bye}) {
-    final k = (math.min(w, h * 0.6) / 360).clamp(0.7, 1.4); // person's scale
-    final stand = Offset(w * 0.42, h * 0.62);
-    double x;
-    double walk; // 0 standing, 1 walking (legs swing)
-    if (!bye) {
-      final inU = _smooth(_seg(t, 0, 0.28));
-      x = -90 * k + (stand.dx + 90 * k) * inU;
-      walk = t < 0.28 ? 1 : 0;
-    } else {
-      final outU = _smooth(_seg(t, 0.62, 0.98));
-      x = stand.dx + (w - stand.dx + 120 * k) * outU;
-      walk = t > 0.62 ? 1 : 0;
+    final src = bye ? _byePath : _hiPath;
+    final scale = math.min(w * 0.78, 460.0) / 520;
+    final lift = bye ? 0.0 : -40 * _smooth(_seg(t, 0.72, 1));
+    final origin = Offset(w / 2 - 260 * scale, h * 0.42 - 220 * scale + lift);
+    final m = Matrix4.diagonal3Values(scale, scale, 1)
+      ..setTranslationRaw(origin.dx, origin.dy, 0);
+    final path = src.transform(m.storage);
+    final metric = path.computeMetrics().first;
+    final write = Curves.easeInOutCubic.transform(_seg(t, 0.06, bye ? 0.52 : 0.6));
+    final fade = bye ? 1 - _seg(t, 0.62, 0.86) : 1 - _seg(t, 0.78, 1);
+    final bounds = path.getBounds();
+    final colors = bye
+        ? const [Color(0xFF8C96F6), Color(0xFFEB459E), Color(0xFFFFA45B)]
+        : const [Color(0xFF5BC0FF), Color(0xFF8C96F6), Color(0xFFEB459E)];
+    // a soft colour bloom behind the word
+    final bloom = _fadeInOut(t, 0.2, 0.75);
+    if (bg && bloom > 0) {
+      final cc = bounds.center;
+      c.drawCircle(cc, bounds.width * 0.9, Paint()
+        ..shader = RadialGradient(colors: [_a(colors[1], 0.22 * bloom), Colors.transparent])
+            .createShader(Rect.fromCircle(center: cc, radius: bounds.width * 0.9)));
     }
-    final alpha = bye ? 1.0 : 1 - _seg(t, 0.9, 1);
-    final step = math.sin(t * math.pi * 14) * walk;
-    final bob = -(step.abs()) * 6 * k;
-    final waving = bye ? _seg(t, 0.06, 0.58) : _seg(t, 0.3, 0.86);
-    final waveOn = waving > 0 && waving < 1;
-    final waveAng = math.sin(waving * math.pi * 6) * 0.45;
-    final feet = Offset(x, stand.dy + bob);
-    _person(c, feet, k, alpha, step: step, wave: waveOn ? waveAng : null);
-    // speech bubble above them
-    final pop = bye ? _seg(t, 0.1, 0.22) : _seg(t, 0.34, 0.46);
-    final gone = bye ? _seg(t, 0.56, 0.66) : _seg(t, 0.86, 0.96);
-    final s = _backOut(pop) * (1 - gone);
-    if (s > 0.02) {
-      final bc = Offset(feet.dx + 92 * k, feet.dy - 250 * k);
-      c.save();
-      c.translate(bc.dx, bc.dy);
-      c.scale(s * k);
-      final rect = Rect.fromCenter(center: Offset.zero, width: 128, height: 70);
-      final bubble = Path()
-        ..addRRect(RRect.fromRectAndRadius(rect, const Radius.circular(35)))
-        ..moveTo(-36, 26)
-        ..lineTo(-58, 54)
-        ..lineTo(-10, 32)
-        ..close();
-      c.drawPath(bubble, _fill(const Color(0xFF5865F2)));
-      c.restore();
-      _glyph(c, bye ? 'Bye!' : 'Hi!', 34 * k, bc, scale: s, bold: true);
-    }
-    if (bye) {
-      // little sparkles where they stood
-      for (var i = 0; i < 8; i++) {
-        final u = _seg(t, 0.62 + i * 0.02, 1);
-        if (u <= 0 || u >= 1) continue;
-        c.drawPath(_sparkle(Offset(stand.dx + (r.nextDouble() - 0.5) * 140 * k, stand.dy - 40 * k - u * 120 * k), (4 + r.nextDouble() * 5) * k), _fill(_a(Colors.white, 1 - u)));
+    if (write <= 0 || fade <= 0) return;
+    final part = metric.extractPath(0, metric.length * write);
+    final shader = LinearGradient(colors: colors).createShader(bounds.inflate(20));
+    final width = 13 * scale;
+    // glow, then the ink
+    c.drawPath(part, Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..strokeWidth = width * 2.6
+      ..shader = shader
+      ..color = Colors.white.withValues(alpha: 0.35 * fade)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10));
+    c.drawPath(part, Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..strokeWidth = width
+      ..shader = shader
+      ..color = Colors.white.withValues(alpha: fade));
+    // the pen tip while writing
+    if (write < 1) {
+      final tip = metric.getTangentForOffset(metric.length * write)?.position;
+      if (tip != null) {
+        c.drawCircle(tip, width * 1.6, Paint()
+          ..color = Colors.white.withValues(alpha: 0.6 * fade)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6));
+        c.drawCircle(tip, width * 0.55, _fill(Colors.white.withValues(alpha: fade)));
       }
     }
-  }
-
-  /// A friendly person drawn with shapes, standing on [feet]. [step] swings
-  /// the legs (walking), [wave] lifts the right arm and swings it.
-  void _person(Canvas c, Offset feet, double k, double alpha, {double step = 0, double? wave, bool faceRight = true}) {
-    if (alpha <= 0) return;
-    const skin = Color(0xFFF2C29B), hair = Color(0xFF3E2723), shirt = Color(0xFF5865F2), pants = Color(0xFF2B2D42), shoe = Color(0xFF1B1B1F);
-    c.save();
-    c.translate(feet.dx, feet.dy);
-    c.scale(faceRight ? k : -k, k);
-    // shadow
-    c.drawOval(Rect.fromCenter(center: const Offset(0, 4), width: 90, height: 16), _fill(_a(Colors.black, 0.18 * alpha)));
-    const hip = Offset(0, -92);
-    // legs
-    for (final side in [-1.0, 1.0]) {
-      final a = side * step * 0.45;
-      final foot = hip + Offset(math.sin(a) * 92 + side * 8, math.cos(a) * 92);
-      c.drawLine(hip + Offset(side * 10, 0), foot, _stroke(_a(pants, alpha), 18)..strokeCap = StrokeCap.round);
-      c.drawOval(Rect.fromCenter(center: foot + const Offset(8, 2), width: 30, height: 14), _fill(_a(shoe, alpha)));
+    // the dot on the i pops in once the word is written
+    if (!bye) {
+      final dot = _backOut(_seg(t, 0.58, 0.68));
+      if (dot > 0) {
+        final p = origin + Offset(348 * scale, 150 * scale);
+        c.drawCircle(p, width * 0.95 * dot, Paint()..shader = shader..color = Colors.white.withValues(alpha: fade));
+      }
     }
-    // body
-    final body = RRect.fromRectAndRadius(Rect.fromCenter(center: const Offset(0, -140), width: 74, height: 104), const Radius.circular(30));
-    c.drawRRect(body, _fill(_a(shirt, alpha)));
-    const shoulderL = Offset(-30, -176), shoulderR = Offset(30, -176);
-    // left arm: hangs, swings a little while walking
-    final la = 0.15 - step * 0.4;
-    final handL = shoulderL + Offset(-math.sin(la) * 70, math.cos(la) * 70);
-    c.drawLine(shoulderL, handL, _stroke(_a(shirt, alpha), 18)..strokeCap = StrokeCap.round);
-    c.drawCircle(handL, 10, _fill(_a(skin, alpha)));
-    // right arm: up and waving, or hanging
-    final ra = wave == null ? (-0.15 + step * 0.4) : (math.pi * 0.74 + wave * 0.5);
-    final elbow = shoulderR + Offset(math.sin(ra) * 38, math.cos(ra) * 38);
-    final ra2 = wave == null ? ra : ra - 0.15 + wave * 1.2;
-    final handR = elbow + Offset(math.sin(ra2) * 36, math.cos(ra2) * 36);
-    c.drawLine(shoulderR, elbow, _stroke(_a(shirt, alpha), 18)..strokeCap = StrokeCap.round);
-    c.drawLine(elbow, handR, _stroke(_a(shirt, alpha), 16)..strokeCap = StrokeCap.round);
-    c.drawCircle(handR, wave == null ? 10 : 13, _fill(_a(skin, alpha)));
-    // head
-    const head = Offset(0, -222);
-    c.drawCircle(head + const Offset(0, 30), 9, _fill(_a(skin, alpha))); // neck
-    c.drawCircle(head, 34, _fill(_a(skin, alpha)));
-    c.drawArc(Rect.fromCircle(center: head + const Offset(0, -4), radius: 36), math.pi * 1.02, math.pi * 0.96, false, _stroke(_a(hair, alpha), 16));
-    c.drawCircle(head + const Offset(-11, -2), 4, _fill(_a(hair, alpha)));
-    c.drawCircle(head + const Offset(13, -2), 4, _fill(_a(hair, alpha)));
-    c.drawArc(Rect.fromCircle(center: head + const Offset(1, 8), radius: 13), 0.25, math.pi - 0.5, false, _stroke(_a(hair, alpha), 3.5)..strokeCap = StrokeCap.round);
-    c.drawCircle(head + const Offset(-20, 10), 6, _fill(_a(const Color(0xFFFF8A80), 0.5 * alpha)));
-    c.drawCircle(head + const Offset(22, 10), 6, _fill(_a(const Color(0xFFFF8A80), 0.5 * alpha)));
-    c.restore();
+    // bye: sparks lift off the word as it fades
+    if (bye) {
+      final u0 = _seg(t, 0.58, 1);
+      if (u0 > 0) {
+        for (var i = 0; i < 26; i++) {
+          final at = metric.getTangentForOffset(metric.length * r.nextDouble())?.position;
+          if (at == null) continue;
+          final delay = r.nextDouble() * 0.3;
+          final u = _seg(u0, delay, delay + 0.7);
+          if (u <= 0 || u >= 1) continue;
+          final p = at + Offset((r.nextDouble() - 0.5) * 30 * u, -90 * scale * u);
+          c.drawCircle(p, (2 + r.nextDouble() * 3) * (1 - u) + 1, _fill(_a(colors[i % 3], 1 - u)));
+        }
+      }
+    }
   }
 
   void _love(Canvas c, double t, math.Random r, double w, double h) {
