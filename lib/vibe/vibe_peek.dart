@@ -5,11 +5,11 @@ import 'dart:async';
 import 'package:vibe/vibe/vibe_palette.dart';
 import 'package:vibe/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:vibe/l10n/l10n.dart';
+import 'package:vibe/vibe/vibe_chat_dock.dart';
 import 'package:vibe/vibe/vibe_haptics.dart';
 import 'package:vibe/vibe/vibe_lock.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
 import 'package:vibe/widgets/avatar.dart';
-import 'package:vibe/widgets/vibe_app.dart';
 import 'package:flutter/material.dart';
 import 'package:matrix/matrix.dart';
 
@@ -69,8 +69,13 @@ class VibePeek extends ChangeNotifier {
 
   /// A message arrived in another chat while you're in one (instead of a
   /// notification).
+  final Set<String> _seenEvents = {};
+
   void message(Event event) {
     if (VibeLock.isLocked(event.room.id)) return;
+    // the same message can come from the sync and from the push helper
+    if (!_seenEvents.add(event.eventId)) return;
+    if (_seenEvents.length > 200) _seenEvents.remove(_seenEvents.first);
     _dismissed.remove(event.room.id);
     _put(
       VibePeekItem(
@@ -108,7 +113,8 @@ class VibePeek extends ChangeNotifier {
   void open(String roomId) {
     dismiss(roomId);
     _dismissed.remove(roomId);
-    VibeApp.router.go('/rooms/$roomId');
+    // the chat you're in docks under the text box
+    VibeChatDock.openKeeping(roomId);
   }
 }
 

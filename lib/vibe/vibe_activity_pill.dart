@@ -8,6 +8,7 @@ import 'package:vibe/l10n/l10n.dart';
 import 'package:vibe/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:vibe/vibe/vibe_chat_dock.dart';
 import 'package:vibe/vibe/vibe_haptics.dart';
+import 'package:vibe/vibe/vibe_peek.dart';
 import 'package:vibe/vibe/vibe_lock.dart';
 import 'package:vibe/vibe/vibe_disappearing.dart';
 import 'package:vibe/vibe/vibe_media_saver.dart';
@@ -85,6 +86,9 @@ class _VibeActivityHostState extends State<VibeActivityHost> {
               false,
         )
         .listen(_onTyping);
+    // other chats' typing peeks in above the typing bar (this call was lost
+    // when calls were taken out, so the side pictures never showed)
+    VibePeek.instance.attach(c);
     // Keep my time zone + status present in every direct chat.
     VibeStatus.watch(c);
     // my group tag in groups joined since it was picked
@@ -110,6 +114,8 @@ class _VibeActivityHostState extends State<VibeActivityHost> {
 
   void _onTyping(SyncUpdate u) {
     if (!mounted || _onHome) return;
+    // inside a chat the side picture shows it (VibePeek), not this pill
+    if (_currentRoomId() != null) return;
     final c = _client!;
     final current = _currentRoomId();
     final l10n = L10n.of(context);
@@ -149,6 +155,11 @@ class _VibeActivityHostState extends State<VibeActivityHost> {
     if (VibeLock.isLocked(e.room.id)) return;
     if (e.type != EventTypes.Message && e.type != EventTypes.Encrypted) return;
     if (!e.status.isSynced) return;
+    // inside a chat: the sender's picture peeks in from the side instead
+    if (_currentRoomId() != null) {
+      VibePeek.instance.message(e);
+      return;
+    }
     final body = e.vibeBodyFallback(
       MatrixLocals(L10n.of(context)),
       plaintextBody: true,
@@ -198,7 +209,8 @@ class _VibeActivityHostState extends State<VibeActivityHost> {
     final client = _client;
     return Stack(
       children: [
-        widget.child,
+        // pictured when a chat slides down into the dock
+        RepaintBoundary(key: VibeChatDock.shotKey, child: widget.child),
         if (client != null)
           Positioned(
             left: 0,
@@ -206,6 +218,8 @@ class _VibeActivityHostState extends State<VibeActivityHost> {
             bottom: 0,
             child: VibeDockStrip(client: client),
           ),
+        if (client != null)
+          Positioned.fill(child: VibeDockTransition(client: client)),
         if (item != null)
           Positioned(
             top: top + 8,
