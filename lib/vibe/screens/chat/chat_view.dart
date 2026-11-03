@@ -83,9 +83,6 @@ class ChatView extends StatelessWidget {
           builder: (BuildContext context, snapshot) {
             var appbarBottomHeight = 0.0;
             final activeThreadId = controller.activeThreadId;
-            if (activeThreadId != null) {
-              appbarBottomHeight += ChatAppBarListTile.fixedHeight;
-            }
             if (controller.room.pinnedEventIds.isNotEmpty &&
                 activeThreadId == null) {
               appbarBottomHeight += ChatAppBarListTile.fixedHeight;
@@ -114,9 +111,7 @@ class ChatView extends StatelessWidget {
                       : theme.colorScheme.onTertiaryContainer,
                 ),
                 backgroundColor: controller.selectedEvents.isEmpty
-                    ? controller.activeThreadId != null
-                          ? theme.colorScheme.secondaryContainer
-                          : accountConfig.wallpaperUrl != null
+                    ? accountConfig.wallpaperUrl != null
                           ? Colors.transparent
                           : theme.colorScheme.surface
                     : theme.colorScheme.tertiaryContainer,
@@ -130,10 +125,9 @@ class ChatView extends StatelessWidget {
                       )
                     : activeThreadId != null
                     ? IconButton(
-                        icon: const Icon(Icons.close),
+                        icon: const Icon(Icons.arrow_back),
                         onPressed: controller.closeThread,
                         tooltip: L10n.of(context).backToMainChat,
-                        color: theme.colorScheme.onSecondaryContainer,
                       )
                     : VibeThemes.isColumnMode(context)
                     ? null
@@ -150,11 +144,7 @@ class ChatView extends StatelessWidget {
                           border: InputBorder.none,
                         ),
                       )
-                    : controller.activeThreadId != null &&
-                          VibeThreads.isPinned(
-                            controller.room.id,
-                            controller.activeThreadId!,
-                          )
+                    : controller.activeThreadId != null
                     ? _ThreadTitle(controller)
                     : ChatAppBarTitle(controller),
                 actions: controller.searching
@@ -200,29 +190,17 @@ class ChatView extends StatelessWidget {
                       tooltip: 'Search this chat',
                       onPressed: controller.startSearch,
                     ),
-                  // a pinned thread: close it for good (asks first)
+                  // in a thread: rename / close it, in one menu
                   if (!controller.selectMode &&
-                      controller.activeThreadId != null &&
-                      VibeThreads.isPinned(
-                        controller.room.id,
-                        controller.activeThreadId!,
-                      ))
-                    IconButton(
-                      icon: const Icon(Icons.speaker_notes_off_outlined),
-                      tooltip: 'Close thread',
-                      onPressed: controller.closeThreadForGood,
-                    ),
-                  if (!controller.selectMode &&
-                      controller.activeThreadId != null &&
-                      VibeThreads.isPinned(
-                        controller.room.id,
-                        controller.activeThreadId!,
-                      ))
-                    IconButton(
-                      icon: const Icon(Icons.edit_outlined),
-                      tooltip: 'Rename thread',
-                      onPressed: () async {
+                      controller.activeThreadId != null)
+                    PopupMenuButton<String>(
+                      tooltip: 'Thread options',
+                      onSelected: (v) async {
                         final id = controller.activeThreadId!;
+                        if (v == 'close') {
+                          controller.closeThreadForGood();
+                          return;
+                        }
                         final root = await controller.room.getEventById(id);
                         if (!context.mounted) return;
                         await VibeThreads.rename(
@@ -232,6 +210,32 @@ class ChatView extends StatelessWidget {
                           root,
                         );
                       },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'rename',
+                          child: Row(
+                            children: [
+                              Icon(Icons.edit_outlined),
+                              SizedBox(width: 12),
+                              Text('Rename thread'),
+                            ],
+                          ),
+                        ),
+                        if (VibeThreads.isPinned(
+                          controller.room.id,
+                          controller.activeThreadId!,
+                        ))
+                          const PopupMenuItem(
+                            value: 'close',
+                            child: Row(
+                              children: [
+                                Icon(Icons.close),
+                                SizedBox(width: 12),
+                                Text('Close thread'),
+                              ],
+                            ),
+                          ),
+                      ],
                     ),
                   if (controller.selectMode) ...[
                     if (controller.canEditSelectedEvents)
@@ -350,7 +354,8 @@ class ChatView extends StatelessWidget {
                             ),
                         ],
                       ),
-                  ] else if (!controller.room.isArchived) ...[
+                  ] else if (!controller.room.isArchived &&
+                      controller.activeThreadId == null) ...[
                     VibeLockButton(room: controller.room),
                     ChatSettingsPopupMenu(controller.room, true),
                   ],
@@ -361,25 +366,6 @@ class ChatView extends StatelessWidget {
                     mainAxisSize: .min,
                     children: [
                       PinnedEvents(controller),
-                      if (activeThreadId != null)
-                        SizedBox(
-                          height: ChatAppBarListTile.fixedHeight,
-                          child: Center(
-                            child: TextButton.icon(
-                              onPressed: () =>
-                                  controller.scrollToEventId(activeThreadId),
-                              icon: const Icon(Icons.message),
-                              label: Text(L10n.of(context).replyInThread),
-                              style: TextButton.styleFrom(
-                                foregroundColor:
-                                    theme.colorScheme.onSecondaryContainer,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
                       if (scrollUpBannerEventId != null &&
                           activeThreadId == null)
                         ChatAppBarListTile(
@@ -715,13 +701,14 @@ class _BackUnread extends StatelessWidget {
   );
 }
 
-/// A pinned thread's name in the bar; tap to rename it.
+/// A thread's name in the bar, with the chat's name below; tap to rename.
 class _ThreadTitle extends StatelessWidget {
   final ChatController controller;
   const _ThreadTitle(this.controller);
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final id = controller.activeThreadId!;
     final roomId = controller.room.id;
     return FutureBuilder<Event?>(
@@ -729,20 +716,39 @@ class _ThreadTitle extends StatelessWidget {
       builder: (context, snap) => ValueListenableBuilder<int>(
         valueListenable: VibeThreads.revision,
         builder: (context, _, _) => InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
           onTap: () => VibeThreads.rename(context, roomId, id, snap.data),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
+            padding: const EdgeInsets.symmetric(vertical: 4),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.forum_outlined, size: 20),
-                const SizedBox(width: 8),
+                VibeThreads.badge(context),
+                const SizedBox(width: 10),
                 Flexible(
-                  child: Text(
-                    VibeThreads.nameOf(roomId, id, snap.data),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        VibeThreads.nameOf(roomId, id, snap.data),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        'Thread in ${controller.room.getLocalizedDisplayname()}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

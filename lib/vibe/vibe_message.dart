@@ -33,6 +33,7 @@ import 'package:vibe/vibe/vibe_name_style.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:matrix/matrix.dart';
+import 'package:vibe/vibe/vibe_threads.dart';
 import 'package:vibe/vibe/vibe_swipe_reply.dart';
 import 'package:vibe/vibe/vibe_chunks.dart';
 import 'package:vibe/vibe/vibe_link_preview.dart';
@@ -955,15 +956,16 @@ class VibeMessage extends StatelessWidget {
                             child: TextButton.icon(
                               style: TextButton.styleFrom(
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(4),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                foregroundColor:
-                                    theme.colorScheme.onSecondaryContainer,
-                                backgroundColor:
-                                    theme.colorScheme.secondaryContainer,
+                                foregroundColor: theme.colorScheme.primary,
+                                backgroundColor: theme
+                                    .colorScheme
+                                    .primaryContainer
+                                    .withValues(alpha: 0.4),
                               ),
                               onPressed: () => enterThread(event.eventId),
-                              icon: const Icon(Icons.message),
+                              icon: const Icon(VibeThreads.icon, size: 18),
                               label: Text(
                                 '${L10n.of(context).countReplies(threadChildren.length)} | ${threadChildren.first.vibeBodyFallback(MatrixLocals(L10n.of(context)), withSenderNamePrefix: true)}',
                                 maxLines: 1,

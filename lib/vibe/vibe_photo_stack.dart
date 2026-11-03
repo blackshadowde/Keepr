@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:matrix/matrix.dart';
 import 'package:vibe/utils/date_time_extension.dart';
 import 'package:vibe/vibe/vibe_media_viewer.dart';
+import 'package:vibe/widgets/avatar.dart';
 import 'package:vibe/widgets/mxc_image.dart';
 
 /// Many photos sent at once (4 or more from one person, close together) show
@@ -13,15 +14,11 @@ class VibePhotoStack extends StatelessWidget {
   /// Oldest first.
   final List<Event> events;
 
-  /// Sent by me: on the right, without my name.
-  final bool mine;
-
   /// Long-press on a photo: the message menu for that photo.
   final void Function(Event)? onLongPress;
   const VibePhotoStack(
     this.events, {
     super.key,
-    this.mine = false,
     this.onLongPress,
   });
 
@@ -41,20 +38,31 @@ class VibePhotoStack extends StatelessWidget {
     final name = last.senderFromMemoryOrFallback.calcDisplayname();
     final shown = events.take(4).toList();
     final more = events.length - shown.length;
+    final sender = last.senderFromMemoryOrFallback;
+    // laid out like a message: avatar on the left, name and time on top
     return Padding(
-      padding: const EdgeInsets.fromLTRB(64, 8, 16, 6),
-      child: Column(
-        crossAxisAlignment:
-            mine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Avatar(
+            mxContent: sender.avatarUrl,
+            name: name,
+            size: 40,
+            client: last.room.client,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text.rich(
             TextSpan(
               children: [
-                if (!mine)
-                  TextSpan(
-                    text: '$name  ',
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
+                TextSpan(
+                  text: '$name  ',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
                 TextSpan(
                   text: '${events.length} photos · '
                       '${last.originServerTs.localizedTimeShort(context)}',
@@ -71,6 +79,8 @@ class VibePhotoStack extends StatelessWidget {
               mainAxisSpacing: 4,
               crossAxisSpacing: 4,
               shrinkWrap: true,
+              // no automatic safe-area padding (it left a gap above the grid)
+              padding: EdgeInsets.zero,
               physics: const NeverScrollableScrollPhysics(),
               children: [
                 for (var i = 0; i < shown.length; i++)
@@ -108,6 +118,9 @@ class VibePhotoStack extends StatelessWidget {
                     ),
                   ),
               ],
+            ),
+          ),
+        ],
             ),
           ),
         ],

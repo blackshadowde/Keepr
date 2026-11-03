@@ -252,8 +252,6 @@ class ChatEventList extends StatelessWidget {
                     if (stack != null)
                       VibePhotoStack(
                         stack,
-                        mine: event.senderId ==
-                            controller.room.client.userID,
                         onLongPress: (e) =>
                             VibeMessageMenu.show(context, controller, e),
                       )

@@ -322,7 +322,7 @@ class _Menu extends StatelessWidget {
               VibeNewHint(
                 id: 'create_thread',
                 child: item(
-                  Icons.forum_outlined,
+                  VibeThreads.icon,
                   VibeThreads.isPinned(event.room.id, event.eventId)
                       ? 'Open thread'
                       : 'Create thread',
