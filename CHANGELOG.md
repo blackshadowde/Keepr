@@ -28,7 +28,7 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 - New filled thread icon in the theme's colour (middle pane, message menu, replies button)
 - Photo stacks are laid out like messages: avatar, name and time on the left, for your photos too
 - Docked chat: open another chat from the top pill, or pull a chat's name down, and the chat you were in waits in a slim strip under the text box. It shows the picture and typing while they type, the newest unread message (+N for more) when there's something new, and otherwise their name. Swipe it up or tap it to go back; the back button does the same; swipe it down or tap X to close it. Settings > Customisation > "Keep the chat you leave docked"
-- After a big update, a short tour shows what's new: one page per area, and each feature has a small looping animation showing where it is and what it does (the animations play one after another; tap a card to see its own)
+- After a big update, What's new opens as a small server with a channel per area (#welcome, #threads, #chatting, #make-it-yours, #notifications). Keepr types and posts each feature as a message with a live mockup of where it is and what it does; quick replies at the bottom move on, and Start chatting ends with a little party
 - Matrix SDK 15.0: older encrypted messages unlock right after you enter your security key, "Verified devices only" now really shares keys with verified devices only, and group notification rules use the right member count
 - Pasting images uses pasteboard 0.6
 - New hot words: rain, thunder or storm darkens the screen with rain and lightning; sunny, summer, yenda or full hot brings a blazing sun and heat waves; winter, chali, so cold or cool weather brings frost and snowflakes
