@@ -19,6 +19,18 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
+      # The runner comes with tools Keepr never uses (.NET, Haskell, Swift,
+      # CodeQL...). Removing them frees about 20 GB; the build needs room.
+      - name: Free disk space
+        run: |
+          df -h / | tail -1
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup \
+            /usr/local/share/boost /opt/hostedtoolcache/CodeQL \
+            /usr/share/swift /usr/local/share/powershell \
+            /usr/local/share/chromium \
+            /opt/microsoft /opt/google/chrome || true
+          sudo docker image prune --all --force >/dev/null 2>&1 || true
+          df -h / | tail -1
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # the earlier release tags, for the automatic notes
