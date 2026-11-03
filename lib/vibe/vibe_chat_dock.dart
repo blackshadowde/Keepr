@@ -71,6 +71,11 @@ abstract class VibeChatDock {
 
   static void close() => docked.value = null;
 
+  /// Is the keyboard up? (Read from the window: screens inside a Scaffold
+  /// don't see the keyboard in their MediaQuery.)
+  static bool keyboardOpen(BuildContext context) =>
+      View.of(context).viewInsets.bottom > 0;
+
   /// A chat was opened some other way: if it was the docked one, it's no
   /// longer docked.
   static void opened(String roomId) {
@@ -79,17 +84,41 @@ abstract class VibeChatDock {
 }
 
 /// Room under the text box for the docked strip (nothing while typing).
-class VibeDockSpace extends StatelessWidget {
+/// The chat screen's own MediaQuery has the keyboard taken out, so this
+/// listens to the window itself.
+class VibeDockSpace extends StatefulWidget {
   const VibeDockSpace({super.key});
+
+  @override
+  State<VibeDockSpace> createState() => _VibeDockSpaceState();
+}
+
+class _VibeDockSpaceState extends State<VibeDockSpace>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeMetrics() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) => ValueListenableBuilder<String?>(
     valueListenable: VibeChatDock.docked,
     builder: (context, _, _) {
-      final show =
-          VibeChatDock.showing && MediaQuery.viewInsetsOf(context).bottom == 0;
+      final show = VibeChatDock.showing && !VibeChatDock.keyboardOpen(context);
       return AnimatedContainer(
-        duration: const Duration(milliseconds: 260),
+        duration: const Duration(milliseconds: 200),
         curve: Curves.easeOutCubic,
         height: show ? VibeChatDock.height : 0,
       );
