@@ -44,14 +44,14 @@ jobs:
               crop.resize((px, px), Image.LANCZOS).save(f"{RES}/mipmap-{d}/ic_launcher.png")
 
           os.makedirs(f"{RES}/drawable-nodpi", exist_ok=True)
-          fg = Image.new("RGBA", (432, 432), (255, 255, 255, 255))
-          s398 = src.resize((398, 398), Image.LANCZOS)
-          fg.alpha_composite(s398, (17, 17))
-          fg.save(f"{RES}/drawable-nodpi/vibe_icon_fg.png")
+          # adaptive icon: separate background and foreground layers, so the
+          # launcher's shape (circle, squircle) cuts a smooth background
+          Image.open("vibe-icon-fg.png").convert("RGBA").save(f"{RES}/drawable-nodpi/vibe_icon_fg.png")
+          Image.open("vibe-icon-bg.png").convert("RGB").save(f"{RES}/drawable-nodpi/vibe_icon_bg.png")
           open(f"{RES}/mipmap-anydpi-v26/ic_launcher.xml", "w").write(
           '''<?xml version="1.0" encoding="utf-8"?>
           <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-              <background android:drawable="@color/ic_launcher_background"/>
+              <background android:drawable="@drawable/vibe_icon_bg"/>
               <foreground android:drawable="@drawable/vibe_icon_fg"/>
           </adaptive-icon>
           ''')
