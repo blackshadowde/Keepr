@@ -223,20 +223,44 @@ class VibeDmDetail extends StatelessWidget {
                         FutureBuilder<Event?>(
                           future: room.getEventById(id),
                           builder: (context, snap) => VibeHashRow(
-                            label: VibeThreads.title(snap.data),
+                            label: VibeThreads.nameOf(room.id, id, snap.data),
                             icon: Icons.forum_outlined,
                             onTap: () {
                               VibeThreads.openNext(room.id, id);
                               onOpenChat();
                             },
-                            trailing: IconButton(
-                              tooltip: 'Close thread',
-                              icon: const Icon(Icons.close, size: 18),
-                              onPressed: () => VibeThreads.confirmClose(
-                                context,
-                                room.id,
-                                id,
-                              ),
+                            onLongPress: () => VibeThreads.rename(
+                              context,
+                              room.id,
+                              id,
+                              snap.data,
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  tooltip: 'Rename thread',
+                                  icon: const Icon(
+                                    Icons.edit_outlined,
+                                    size: 18,
+                                  ),
+                                  onPressed: () => VibeThreads.rename(
+                                    context,
+                                    room.id,
+                                    id,
+                                    snap.data,
+                                  ),
+                                ),
+                                IconButton(
+                                  tooltip: 'Close thread',
+                                  icon: const Icon(Icons.close, size: 18),
+                                  onPressed: () => VibeThreads.confirmClose(
+                                    context,
+                                    room.id,
+                                    id,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),

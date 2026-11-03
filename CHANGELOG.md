@@ -24,6 +24,7 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 - New app icon: a white chat bubble with a lock on a dark blue background. On Android the background is its own layer, so the launcher's round or rounded-square shape shows a smooth background
 - The welcome screen shows the Keepr name instead of the old one
 - A thread slides in when opened and slides back out when closed
+- Threads can be renamed: tap the thread's name at the top, the pencil in the chat, or the pencil (or long-press) in the middle pane. Without a name, a thread is named after its first message
 - Photo stacks: your own photos sit on the right, the date line goes by the first photo, and long-press on a photo opens its menu (react, reply, delete)
 - Downloaded builds are named Keepr (keepr-apk, keepr-play, keepr-ios-unsigned)
 - Voice messages recorded on Android now play on every phone (the file is repackaged; the sound is unchanged). From FluffyChat 31f7fff

@@ -29,6 +29,69 @@ abstract class VibeThreads {
   static Future<void> remove(String roomId, String eventId) async {
     final list = List<String>.of(ids(roomId))..remove(eventId);
     await AppSettings.store.setStringList(_key(roomId), list);
+    await AppSettings.store.remove(_titleKey(roomId, eventId));
+    revision.value++;
+  }
+
+  static String _titleKey(String roomId, String eventId) =>
+      'keepr.thread_title.$roomId.$eventId';
+
+  /// The name the user gave the thread, if any.
+  static String? customTitle(String roomId, String eventId) {
+    final t = AppSettings.store.getString(_titleKey(roomId, eventId))?.trim();
+    return t == null || t.isEmpty ? null : t;
+  }
+
+  /// The thread's name: the one the user gave it, or else the start of its
+  /// first message.
+  static String nameOf(String roomId, String eventId, Event? root) =>
+      customTitle(roomId, eventId) ?? title(root);
+
+  /// Rename the thread. Left empty, it goes back to its first message.
+  static Future<void> rename(
+    BuildContext context,
+    String roomId,
+    String eventId,
+    Event? root,
+  ) async {
+    final controller = TextEditingController(
+      text: customTitle(roomId, eventId) ?? '',
+    );
+    final result = await showDialog<String>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Thread name'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLength: 60,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(
+            hintText: title(root),
+            helperText: 'Leave empty to use the first message',
+          ),
+          onSubmitted: (v) => Navigator.of(c).pop(v),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(c).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(c).pop(controller.text),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (result == null) return;
+    final t = result.trim();
+    if (t.isEmpty) {
+      await AppSettings.store.remove(_titleKey(roomId, eventId));
+    } else {
+      await AppSettings.store.setString(_titleKey(roomId, eventId), t);
+    }
     revision.value++;
   }
 
