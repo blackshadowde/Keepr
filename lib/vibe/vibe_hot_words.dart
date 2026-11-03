@@ -395,7 +395,8 @@ class _ScenePainter extends CustomPainter {
     if (alpha <= 0 || scale <= 0) return;
     // only words ("HA", "WOW!", "Hi!", "Zz"...): no emojis over the scenes,
     // the full-screen animation is the effect
-    if (!_hasWord.hasMatch(s)) return;
+    // (the kiss keeps its lips)
+    if (!_hasWord.hasMatch(s) && s != '💋') return;
     final key = '$s|$size|$bold|${color.toARGB32()}';
     final tp = _text.putIfAbsent(key, () => TextPainter(
           text: TextSpan(
@@ -789,52 +790,106 @@ class _ScenePainter extends CustomPainter {
 
   /// bye: the hand waves in the middle and floats up and away;
   /// hi: it rises from the bottom, waves, ripples and a "Hi!" bubble pops.
+  /// Hi: a person walks in, stops and waves with a "Hi!" bubble. Bye: they
+  /// wave with a "Bye!" bubble, then turn and walk away.
   void _wave(Canvas c, double t, math.Random r, double w, double h, {required bool bye}) {
-    final inU = _seg(t, 0, 0.18);
-    final outU = _seg(t, 0.72, 0.95);
-    final base = bye ? Offset(w / 2, h * 0.45) : Offset(w * 0.38, h * 0.52);
-    final rise = bye ? -h * 0.35 * _smooth(outU) : h * 0.4 * (1 - _smooth(inU));
-    final at = Offset(base.dx, base.dy + rise);
-    final waving = _seg(t, 0.12, 0.72);
-    final deg = math.sin(waving * math.pi * 6) * 22 * (1 - _seg(t, 0.62, 0.72));
-    final alpha = (bye ? 1 - outU : 1 - _seg(t, 0.82, 0.97)) * _seg(t, 0, 0.1);
-    // ripples from the hand
-    for (var i = 0; i < 3; i++) {
-      final u = _seg(t, 0.16 + i * 0.14, 0.56 + i * 0.14);
-      if (u <= 0 || u >= 1) continue;
-      c.drawCircle(at, 50 + u * 130, _stroke(_a(bye ? const Color(0xFFB39DDB) : const Color(0xFF8C96F6), 0.6 * (1 - u)), 4 * (1 - u) + 1));
-    }
-    c.drawCircle(at, 110, Paint()..shader = RadialGradient(colors: [_a(const Color(0x55FFD54F), alpha), Colors.transparent]).createShader(Rect.fromCircle(center: at, radius: 110)));
-    _glyph(c, '👋', 110, at, alpha: alpha, scale: _backOut(inU), deg: deg);
-    if (bye) {
-      final tx = _seg(t, 0.2, 0.36);
-      if (tx > 0) _glyph(c, 'Bye!', 40, Offset(w / 2, h * 0.45 + 110 + rise * 0.6), alpha: tx * (1 - outU), scale: _backOut(tx), bold: true);
-      // little sparkles trail behind as it floats away
-      for (var i = 0; i < 10; i++) {
-        final u = _seg(t, 0.7 + i * 0.015, 1);
-        if (u <= 0 || u >= 1) continue;
-        c.drawPath(_sparkle(Offset(at.dx + (r.nextDouble() - 0.5) * 120, at.dy + 60 + u * 90), 5 + r.nextDouble() * 5), _fill(_a(Colors.white, 1 - u)));
-      }
+    final k = (math.min(w, h * 0.6) / 360).clamp(0.7, 1.4); // person's scale
+    final stand = Offset(w * 0.42, h * 0.62);
+    double x;
+    double walk; // 0 standing, 1 walking (legs swing)
+    if (!bye) {
+      final inU = _smooth(_seg(t, 0, 0.28));
+      x = -90 * k + (stand.dx + 90 * k) * inU;
+      walk = t < 0.28 ? 1 : 0;
     } else {
-      final pop = _seg(t, 0.26, 0.4);
-      if (pop > 0) {
-        final s = _backOut(pop) * (1 - _seg(t, 0.84, 0.97));
-        final bc = Offset(at.dx + 110, at.dy - 90);
-        c.save();
-        c.translate(bc.dx, bc.dy);
-        c.scale(s);
-        final rect = Rect.fromCenter(center: Offset.zero, width: 120, height: 70);
-        final bubble = Path()
-          ..addRRect(RRect.fromRectAndRadius(rect, const Radius.circular(35)))
-          ..moveTo(-40, 26)
-          ..lineTo(-62, 52)
-          ..lineTo(-14, 32)
-          ..close();
-        c.drawPath(bubble, _fill(const Color(0xFF5865F2)));
-        c.restore();
-        if (s > 0.05) _glyph(c, 'Hi!', 34, bc, scale: s, bold: true);
+      final outU = _smooth(_seg(t, 0.62, 0.98));
+      x = stand.dx + (w - stand.dx + 120 * k) * outU;
+      walk = t > 0.62 ? 1 : 0;
+    }
+    final alpha = bye ? 1.0 : 1 - _seg(t, 0.9, 1);
+    final step = math.sin(t * math.pi * 14) * walk;
+    final bob = -(step.abs()) * 6 * k;
+    final waving = bye ? _seg(t, 0.06, 0.58) : _seg(t, 0.3, 0.86);
+    final waveOn = waving > 0 && waving < 1;
+    final waveAng = math.sin(waving * math.pi * 6) * 0.45;
+    final feet = Offset(x, stand.dy + bob);
+    _person(c, feet, k, alpha, step: step, wave: waveOn ? waveAng : null);
+    // speech bubble above them
+    final pop = bye ? _seg(t, 0.1, 0.22) : _seg(t, 0.34, 0.46);
+    final gone = bye ? _seg(t, 0.56, 0.66) : _seg(t, 0.86, 0.96);
+    final s = _backOut(pop) * (1 - gone);
+    if (s > 0.02) {
+      final bc = Offset(feet.dx + 92 * k, feet.dy - 250 * k);
+      c.save();
+      c.translate(bc.dx, bc.dy);
+      c.scale(s * k);
+      final rect = Rect.fromCenter(center: Offset.zero, width: 128, height: 70);
+      final bubble = Path()
+        ..addRRect(RRect.fromRectAndRadius(rect, const Radius.circular(35)))
+        ..moveTo(-36, 26)
+        ..lineTo(-58, 54)
+        ..lineTo(-10, 32)
+        ..close();
+      c.drawPath(bubble, _fill(const Color(0xFF5865F2)));
+      c.restore();
+      _glyph(c, bye ? 'Bye!' : 'Hi!', 34 * k, bc, scale: s, bold: true);
+    }
+    if (bye) {
+      // little sparkles where they stood
+      for (var i = 0; i < 8; i++) {
+        final u = _seg(t, 0.62 + i * 0.02, 1);
+        if (u <= 0 || u >= 1) continue;
+        c.drawPath(_sparkle(Offset(stand.dx + (r.nextDouble() - 0.5) * 140 * k, stand.dy - 40 * k - u * 120 * k), (4 + r.nextDouble() * 5) * k), _fill(_a(Colors.white, 1 - u)));
       }
     }
+  }
+
+  /// A friendly person drawn with shapes, standing on [feet]. [step] swings
+  /// the legs (walking), [wave] lifts the right arm and swings it.
+  void _person(Canvas c, Offset feet, double k, double alpha, {double step = 0, double? wave, bool faceRight = true}) {
+    if (alpha <= 0) return;
+    const skin = Color(0xFFF2C29B), hair = Color(0xFF3E2723), shirt = Color(0xFF5865F2), pants = Color(0xFF2B2D42), shoe = Color(0xFF1B1B1F);
+    c.save();
+    c.translate(feet.dx, feet.dy);
+    c.scale(faceRight ? k : -k, k);
+    // shadow
+    c.drawOval(Rect.fromCenter(center: const Offset(0, 4), width: 90, height: 16), _fill(_a(Colors.black, 0.18 * alpha)));
+    const hip = Offset(0, -92);
+    // legs
+    for (final side in [-1.0, 1.0]) {
+      final a = side * step * 0.45;
+      final foot = hip + Offset(math.sin(a) * 92 + side * 8, math.cos(a) * 92);
+      c.drawLine(hip + Offset(side * 10, 0), foot, _stroke(_a(pants, alpha), 18)..strokeCap = StrokeCap.round);
+      c.drawOval(Rect.fromCenter(center: foot + const Offset(8, 2), width: 30, height: 14), _fill(_a(shoe, alpha)));
+    }
+    // body
+    final body = RRect.fromRectAndRadius(Rect.fromCenter(center: const Offset(0, -140), width: 74, height: 104), const Radius.circular(30));
+    c.drawRRect(body, _fill(_a(shirt, alpha)));
+    const shoulderL = Offset(-30, -176), shoulderR = Offset(30, -176);
+    // left arm: hangs, swings a little while walking
+    final la = 0.15 - step * 0.4;
+    final handL = shoulderL + Offset(-math.sin(la) * 70, math.cos(la) * 70);
+    c.drawLine(shoulderL, handL, _stroke(_a(shirt, alpha), 18)..strokeCap = StrokeCap.round);
+    c.drawCircle(handL, 10, _fill(_a(skin, alpha)));
+    // right arm: up and waving, or hanging
+    final ra = wave == null ? (-0.15 + step * 0.4) : (math.pi * 0.74 + wave * 0.5);
+    final elbow = shoulderR + Offset(math.sin(ra) * 38, math.cos(ra) * 38);
+    final ra2 = wave == null ? ra : ra - 0.15 + wave * 1.2;
+    final handR = elbow + Offset(math.sin(ra2) * 36, math.cos(ra2) * 36);
+    c.drawLine(shoulderR, elbow, _stroke(_a(shirt, alpha), 18)..strokeCap = StrokeCap.round);
+    c.drawLine(elbow, handR, _stroke(_a(shirt, alpha), 16)..strokeCap = StrokeCap.round);
+    c.drawCircle(handR, wave == null ? 10 : 13, _fill(_a(skin, alpha)));
+    // head
+    const head = Offset(0, -222);
+    c.drawCircle(head + const Offset(0, 30), 9, _fill(_a(skin, alpha))); // neck
+    c.drawCircle(head, 34, _fill(_a(skin, alpha)));
+    c.drawArc(Rect.fromCircle(center: head + const Offset(0, -4), radius: 36), math.pi * 1.02, math.pi * 0.96, false, _stroke(_a(hair, alpha), 16));
+    c.drawCircle(head + const Offset(-11, -2), 4, _fill(_a(hair, alpha)));
+    c.drawCircle(head + const Offset(13, -2), 4, _fill(_a(hair, alpha)));
+    c.drawArc(Rect.fromCircle(center: head + const Offset(1, 8), radius: 13), 0.25, math.pi - 0.5, false, _stroke(_a(hair, alpha), 3.5)..strokeCap = StrokeCap.round);
+    c.drawCircle(head + const Offset(-20, 10), 6, _fill(_a(const Color(0xFFFF8A80), 0.5 * alpha)));
+    c.drawCircle(head + const Offset(22, 10), 6, _fill(_a(const Color(0xFFFF8A80), 0.5 * alpha)));
+    c.restore();
   }
 
   void _love(Canvas c, double t, math.Random r, double w, double h) {
