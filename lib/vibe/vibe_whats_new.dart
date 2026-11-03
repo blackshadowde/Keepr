@@ -10,8 +10,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:vibe/vibe/vibe_threads.dart';
 import 'dart:async';
-import 'dart:math' as math;
 import 'package:vibe/vibe/vibe_tour_demos.dart';
+import 'package:vibe/vibe/vibe_hot_words.dart';
+import 'package:vibe/widgets/typing_animation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 /// Release notes. NEWEST FIRST. Add a new entry at the top for every
@@ -341,6 +342,8 @@ class VibeTourPage {
 const vibeTour = (
   id: '3.1-keepr',
   version: '3.1',
+  // one channel per page, like a server in Keepr
+  channels: <String>['welcome', 'threads', 'chatting', 'make-it-yours', 'notifications'],
   pages: <VibeTourPage>[
     VibeTourPage(
       Icons.lock_rounded,
@@ -418,8 +421,10 @@ const vibeTour = (
   ],
 );
 
-/// Full-screen tour: dots, back, "Skip for now", a big icon in a soft
-/// shape, the title, cards, and Continue (last page: Start chatting).
+/// The update tour, told the Keepr way: a little server called "What's new"
+/// with a channel per area. In each channel Keepr posts the news as
+/// messages (typing first, like a person), each with a live mockup. Quick
+/// replies sit where the text box would be.
 class VibeTour extends StatefulWidget {
   const VibeTour({super.key});
 
@@ -444,134 +449,231 @@ class VibeTour extends StatefulWidget {
 }
 
 class _VibeTourState extends State<VibeTour> {
-  final _pages = PageController();
-  int _i = 0;
+  int _ch = 0;
 
-  int get _count => vibeTour.pages.length + 1;
+  /// How many of each channel's messages are posted so far (the first one
+  /// is the channel's intro line).
+  late final List<int> _shown = List.filled(vibeTour.pages.length, 0);
+  bool _typing = false;
+  Timer? _timer;
+  final _scroll = ScrollController();
 
-  void _go(int i) => _pages.animateToPage(
-    i,
-    duration: const Duration(milliseconds: 420),
-    curve: Curves.easeOutCubic,
-  );
+  VibeTourPage get _page => vibeTour.pages[_ch];
+  int get _total => _page.items.length + 1;
+  bool get _allShown => _shown[_ch] >= _total;
+  bool get _lastChannel => _ch == vibeTour.pages.length - 1;
 
-  void _next() {
-    VibeHaptics.light();
-    if (_i >= _count - 1) {
-      Navigator.of(context).pop();
-    } else {
-      _go(_i + 1);
-    }
+  @override
+  void initState() {
+    super.initState();
+    _postNext(first: true);
   }
 
   @override
   void dispose() {
-    _pages.dispose();
+    _timer?.cancel();
+    _scroll.dispose();
     super.dispose();
+  }
+
+  /// "Keepr is typing…", then the next message lands; then the one after,
+  /// on its own, until the channel is done.
+  void _postNext({bool first = false, bool now = false}) {
+    _timer?.cancel();
+    if (_allShown) return;
+    setState(() => _typing = true);
+    _timer = Timer(Duration(milliseconds: now ? 250 : (first ? 500 : 900)), () {
+      if (!mounted) return;
+      VibeHaptics.light();
+      setState(() {
+        _typing = false;
+        _shown[_ch]++;
+      });
+      _toBottom();
+      if (!_allShown) {
+        _timer = Timer(const Duration(milliseconds: 2600), _postNext);
+      }
+    });
+  }
+
+  void _toBottom() => WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (!_scroll.hasClients) return;
+    _scroll.animateTo(
+      _scroll.position.maxScrollExtent,
+      duration: const Duration(milliseconds: 420),
+      curve: Curves.easeOutCubic,
+    );
+  });
+
+  void _open(int ch) {
+    if (ch == _ch) return;
+    VibeHaptics.selection();
+    _timer?.cancel();
+    setState(() {
+      _ch = ch;
+      _typing = false;
+    });
+    if (_scroll.hasClients) _scroll.jumpTo(0);
+    if (_shown[ch] == 0) _postNext(first: true);
+  }
+
+  void _finish() {
+    Navigator.of(context).pop();
+    final ctx = VibeApp.router.routerDelegate.navigatorKey.currentContext;
+    if (ctx != null && ctx.mounted) VibeHotWords.play(ctx, VibeScene.party);
   }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final last = _i == _count - 1;
+    final shown = _shown[_ch];
     return PopScope(
-      canPop: _i == 0,
+      canPop: _ch == 0,
       onPopInvokedWithResult: (pop, _) {
-        if (!pop) _go(_i - 1);
+        if (!pop) _open(_ch - 1);
       },
       child: Scaffold(
         backgroundColor: cs.surface,
         body: SafeArea(
           child: Column(
             children: [
-              SizedBox(
-                height: 52,
+              // the "server": its icon, name and version
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 8, 6),
                 child: Row(
                   children: [
-                    SizedBox(
-                      width: 56,
-                      child: _i == 0
-                          ? null
-                          : IconButton(
-                              tooltip: 'Back',
-                              icon: const Icon(Icons.arrow_back),
-                              onPressed: () => _go(_i - 1),
-                            ),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.asset(
+                        'assets/logo/mini/logo_mini.png',
+                        width: 36,
+                        height: 36,
+                        errorBuilder: (_, _, _) =>
+                            Container(width: 36, height: 36, color: _blurple),
+                      ),
                     ),
+                    const SizedBox(width: 10),
                     Expanded(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          for (var k = 0; k < _count; k++)
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 260),
-                              margin: const EdgeInsets.symmetric(horizontal: 3),
-                              width: k == _i ? 22 : 7,
-                              height: 7,
-                              decoration: BoxDecoration(
-                                color: k == _i ? cs.onSurface : cs.outlineVariant,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                            ),
+                          const Text(
+                            "What's new",
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                          ),
+                          Text(
+                            'Keepr ${vibeTour.version}',
+                            style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+                          ),
                         ],
                       ),
                     ),
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(),
+                      child: Text('Skip', style: TextStyle(color: cs.onSurfaceVariant)),
+                    ),
+                  ],
+                ),
+              ),
+              // the channels
+              SizedBox(
+                height: 40,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  children: [
+                    for (final (k, name) in vibeTour.channels.indexed)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: _ChannelChip(
+                          name: name,
+                          active: k == _ch,
+                          done: _shown[k] >= vibeTour.pages[k].items.length + 1,
+                          onTap: () => _open(k),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Divider(height: 12, color: cs.outlineVariant.withValues(alpha: 0.5)),
+              // the channel's messages
+              Expanded(
+                child: ListView(
+                  controller: _scroll,
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+                  children: [
+                    _ChannelHeader(
+                      name: vibeTour.channels[_ch],
+                      title: _page.title,
+                      icon: _page.icon,
+                    ),
+                    for (var k = 0; k < shown; k++)
+                      _TourMessage(
+                        key: ValueKey('$_ch-$k'),
+                        first: k == 0,
+                        title: k == 0 ? null : _page.items[k - 1].title,
+                        body: k == 0 ? _page.subtitle : _page.items[k - 1].body,
+                        demo: k == 0 ? null : _page.items[k - 1].demo,
+                      ),
+                    if (_typing)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(52, 6, 0, 6),
+                        child: Row(
+                          children: [
+                            const TypingAnimation(size: 6),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Keepr is typing…',
+                              style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              // quick replies, where the text box would be
+              Container(
+                margin: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: cs.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(28),
+                ),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 10),
+                    Expanded(
                       child: Text(
-                        last ? 'Close' : 'Skip for now',
+                        _allShown
+                            ? (_lastChannel ? "That's everything" : 'Reply to keep going')
+                            : '# ${vibeTour.channels[_ch]}',
                         style: TextStyle(color: cs.onSurfaceVariant),
+                      ),
+                    ),
+                    FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: _blurple,
+                        foregroundColor: Colors.white,
+                        shape: const StadiumBorder(),
+                      ),
+                      onPressed: !_allShown
+                          ? () => _postNext(now: true)
+                          : _lastChannel
+                          ? _finish
+                          : () => _open(_ch + 1),
+                      child: Text(
+                        !_allShown
+                            ? 'Show more'
+                            : _lastChannel
+                            ? 'Start chatting'
+                            : '# ${vibeTour.channels[_ch + 1]}',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
                     ),
                   ],
                 ),
               ),
-              Expanded(
-                child: PageView.builder(
-                  controller: _pages,
-                  itemCount: _count,
-                  onPageChanged: (i) => setState(() => _i = i),
-                  itemBuilder: (context, i) => i == 0
-                      ? _TourPageView(
-                          page: VibeTourPage(
-                            Icons.auto_awesome_rounded,
-                            'Keepr ${vibeTour.version} is here',
-                            'Our biggest update yet. Here\'s a quick look at what\'s new.',
-                            [
-                              for (final p in vibeTour.pages)
-                                VibeTourItem(p.icon, p.title, ''),
-                            ],
-                          ),
-                          onItem: (k) => _go(k + 1),
-                        )
-                      : _TourPageView(page: vibeTour.pages[i - 1]),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 54,
-                  child: FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: _blurple,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(27),
-                      ),
-                    ),
-                    onPressed: _next,
-                    icon: Icon(last ? Icons.chat_rounded : Icons.arrow_forward),
-                    label: Text(
-                      last ? 'Start chatting' : 'Continue',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
             ],
           ),
         ),
@@ -580,248 +682,225 @@ class _VibeTourState extends State<VibeTour> {
   }
 }
 
-class _TourPageView extends StatefulWidget {
-  final VibeTourPage page;
-  final void Function(int)? onItem;
-  const _TourPageView({required this.page, this.onItem});
+class _ChannelChip extends StatelessWidget {
+  final String name;
+  final bool active;
+  final bool done;
+  final VoidCallback onTap;
+  const _ChannelChip({
+    required this.name,
+    required this.active,
+    required this.done,
+    required this.onTap,
+  });
 
   @override
-  State<_TourPageView> createState() => _TourPageViewState();
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Material(
+      color: active ? _blurple : cs.surfaceContainerHigh,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '#',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: active ? Colors.white70 : cs.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                name,
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: active ? Colors.white : cs.onSurface,
+                ),
+              ),
+              if (done && !active) ...[
+                const SizedBox(width: 4),
+                Icon(Icons.check, size: 14, color: cs.primary),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _TourPageViewState extends State<_TourPageView> {
-  int _sel = 0;
-  Timer? _next;
-
-  List<VibeTourItem> get _items => widget.page.items;
-  bool get _hasDemos => _items.any((i) => i.demo != null);
+/// The top of a channel: "Welcome to #threads!", like a new channel.
+class _ChannelHeader extends StatelessWidget {
+  final String name;
+  final String title;
+  final IconData icon;
+  const _ChannelHeader({required this.name, required this.title, required this.icon});
 
   @override
-  void initState() {
-    super.initState();
-    _schedule();
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 8, 4, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: cs.surfaceContainerHigh,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 28, color: _blurple),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, height: 1.15),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'This is the start of #$name.',
+            style: TextStyle(color: cs.onSurfaceVariant),
+          ),
+        ],
+      ),
+    );
   }
+}
 
-  // each card's animation plays once, then the next card's
-  void _schedule() {
-    _next?.cancel();
-    if (!_hasDemos) return;
-    _next = Timer(const Duration(milliseconds: 4600), () {
-      if (!mounted) return;
-      setState(() => _sel = (_sel + 1) % _items.length);
-      _schedule();
-    });
-  }
+/// One message from Keepr: the picture, "Keepr  NEW  now", the text and,
+/// for a feature, its live mockup. Slides in like a new message.
+class _TourMessage extends StatefulWidget {
+  final bool first;
+  final String? title;
+  final String body;
+  final VibeDemo? demo;
+  const _TourMessage({
+    required this.first,
+    required this.title,
+    required this.body,
+    required this.demo,
+    super.key,
+  });
+
+  @override
+  State<_TourMessage> createState() => _TourMessageState();
+}
+
+class _TourMessageState extends State<_TourMessage>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _in = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 420),
+  )..forward();
 
   @override
   void dispose() {
-    _next?.cancel();
+    _in.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final page = widget.page;
-    final demo = _items[_sel].demo;
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-      children: [
-        if (_hasDemos && demo != null)
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            child: VibeDemoView(demo, key: ValueKey(demo)),
-          )
-        else
-          Center(child: _TourBlob(icon: page.icon)),
-        const SizedBox(height: 16),
-        Text(
-          page.title,
-          style: TextStyle(
-            fontSize: 30,
-            height: 1.15,
-            fontWeight: FontWeight.w800,
-            color: cs.onSurface,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          page.subtitle,
-          style: TextStyle(fontSize: 16, height: 1.4, color: cs.onSurfaceVariant),
-        ),
-        const SizedBox(height: 20),
-        for (final (k, item) in page.items.indexed)
-          _PopIn(
-            index: k + 3,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    width: 2,
-                    color: _hasDemos && k == _sel
-                        ? cs.primary
-                        : Colors.transparent,
-                  ),
-                ),
-                child: Material(
-                  color: cs.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(18),
-                  clipBehavior: Clip.antiAlias,
-                  child: InkWell(
-                    onTap: widget.onItem != null
-                        ? () => widget.onItem!(k)
-                        : item.demo == null
-                        ? null
-                        : () {
-                            setState(() => _sel = k);
-                            _schedule();
-                          },
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 14, 16, 14),
-                      child: Row(
-                        crossAxisAlignment: item.body.isEmpty
-                            ? CrossAxisAlignment.center
-                            : CrossAxisAlignment.start,
+    final a = CurvedAnimation(parent: _in, curve: Curves.easeOutCubic);
+    return FadeTransition(
+      opacity: a,
+      child: SlideTransition(
+        position: Tween(begin: const Offset(0, 0.25), end: Offset.zero).animate(a),
+        child: Padding(
+          padding: EdgeInsets.only(top: widget.first ? 4 : 2, bottom: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 40,
+                child: widget.first
+                    ? ClipOval(
+                        child: Image.asset(
+                          'assets/logo/mini/logo_mini.png',
+                          width: 40,
+                          height: 40,
+                          errorBuilder: (_, _, _) => CircleAvatar(
+                            radius: 20,
+                            backgroundColor: _blurple,
+                          ),
+                        ),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (widget.first)
+                      Row(
                         children: [
+                          const Text('Keepr', style: TextStyle(fontWeight: FontWeight.w800)),
+                          const SizedBox(width: 6),
                           Container(
-                            width: 40,
-                            height: 40,
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                             decoration: BoxDecoration(
-                              color: cs.surfaceContainerHighest,
-                              shape: BoxShape.circle,
+                              color: _blurple,
+                              borderRadius: BorderRadius.circular(4),
                             ),
-                            child: Icon(item.icon, size: 21, color: cs.onSurface),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  item.title,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                if (item.body.isNotEmpty) ...[
-                                  const SizedBox(height: 3),
-                                  Text(
-                                    item.body,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      height: 1.35,
-                                      color: cs.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
-                              ],
+                            child: const Text(
+                              'NEW',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                           ),
-                          if (widget.onItem != null)
-                            Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
+                          const SizedBox(width: 6),
+                          Text('now', style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
                         ],
                       ),
+                    if (widget.title != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          widget.title!,
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        widget.body,
+                        style: TextStyle(fontSize: 15, height: 1.4, color: cs.onSurface),
+                      ),
                     ),
-                  ),
+                    if (widget.demo != null)
+                      Container(
+                        margin: const EdgeInsets.only(top: 8),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        decoration: BoxDecoration(
+                          color: cs.surfaceContainer,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
+                        ),
+                        child: SizedBox(
+                          height: 220,
+                          child: FittedBox(child: SizedBox(width: 300, child: VibeDemoView(widget.demo!))),
+                        ),
+                      ),
+                  ],
                 ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-/// The big icon in a slowly turning soft scalloped shape, with two small
-/// dots floating beside it.
-class _TourBlob extends StatefulWidget {
-  final IconData icon;
-  const _TourBlob({required this.icon});
-
-  @override
-  State<_TourBlob> createState() => _TourBlobState();
-}
-
-class _TourBlobState extends State<_TourBlob>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(
-    vsync: this,
-    duration: const Duration(seconds: 14),
-  )..repeat();
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return SizedBox(
-      width: 190,
-      height: 150,
-      child: AnimatedBuilder(
-        animation: _c,
-        builder: (context, _) {
-          final t = _c.value * 2 * math.pi;
-          return Stack(
-            alignment: Alignment.center,
-            children: [
-              Transform.rotate(
-                angle: t,
-                child: CustomPaint(
-                  size: const Size(128, 128),
-                  painter: _Scallop(cs.secondaryContainer),
-                ),
-              ),
-              Icon(widget.icon, size: 54, color: cs.onSecondaryContainer),
-              Positioned(
-                right: 18 + math.sin(t) * 4,
-                top: 4 + math.cos(t) * 4,
-                child: _dot(22, cs.secondaryContainer),
-              ),
-              Positioned(
-                left: 20 + math.cos(t) * 3,
-                bottom: 10 + math.sin(t) * 3,
-                child: _dot(12, cs.secondaryContainer),
               ),
             ],
-          );
-        },
+          ),
+        ),
       ),
     );
   }
-
-  Widget _dot(double s, Color c) => Container(
-    width: s,
-    height: s,
-    decoration: BoxDecoration(color: c, shape: BoxShape.circle),
-  );
-}
-
-class _Scallop extends CustomPainter {
-  final Color color;
-  _Scallop(this.color);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final c = size.center(Offset.zero);
-    final r = size.shortestSide / 2;
-    final path = Path();
-    for (var k = 0; k <= 180; k++) {
-      final a = k / 180 * 2 * math.pi;
-      final rr = r * (0.9 + 0.1 * math.cos(9 * a));
-      final p = c + Offset(math.cos(a), math.sin(a)) * rr;
-      k == 0 ? path.moveTo(p.dx, p.dy) : path.lineTo(p.dx, p.dy);
-    }
-    canvas.drawPath(path..close(), Paint()..color = color);
-  }
-
-  @override
-  bool shouldRepaint(covariant _Scallop old) => old.color != color;
 }
