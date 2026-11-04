@@ -76,11 +76,15 @@ abstract class VibeChatDock {
 
   /// Bring the docked chat back. With [swap], the chat you're in docks in
   /// its place, so you can go back and forth.
-  static void restore({bool swap = true}) {
+  static void restore({bool swap = true}) => _restore(swap);
+
+  static Future<void> _restore(bool swap) async {
     final id = docked.value;
     if (id == null) return;
     final cur = currentRoomId();
-    move.value = VibeDockMove(down: false, roomId: id);
+    // the chat you're leaving sinks down (into the dock when swapping)
+    final shot = await _shot();
+    move.value = VibeDockMove(down: false, roomId: cur ?? id, shot: shot);
     docked.value = swap && enabled && cur != null && cur != id ? cur : null;
     VibeHaptics.light();
     VibeApp.router.go('/rooms/$id');
@@ -438,7 +442,7 @@ class _VibeDockTransitionState extends State<VibeDockTransition>
     with SingleTickerProviderStateMixin {
   late final AnimationController _c = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 440),
+    duration: const Duration(milliseconds: 620),
   );
   VibeDockMove? _m;
 
@@ -451,7 +455,7 @@ class _VibeDockTransitionState extends State<VibeDockTransition>
   void _play() {
     final m = VibeChatDock.move.value;
     if (m == null) return;
-    _m?.shot?.dispose();
+    if (_m != null && _m != m) _m!.shot?.dispose();
     setState(() => _m = m);
     _c.forward(from: 0).whenComplete(() {
       if (!mounted || _m != m) return;
@@ -469,90 +473,84 @@ class _VibeDockTransitionState extends State<VibeDockTransition>
     super.dispose();
   }
 
+  /// The chat you're leaving, calmly: it lifts a touch, then sinks down to
+  /// the strip, getting a little smaller with rounded corners, and fades at
+  /// the end. The next chat is already underneath it.
   @override
   Widget build(BuildContext context) {
     final m = _m;
     if (m == null) return const SizedBox.shrink();
     final cs = Theme.of(context).colorScheme;
     final mq = MediaQuery.of(context);
+    final room = widget.client.getRoomById(m.roomId);
+    final name = room?.getLocalizedDisplayname(MatrixLocals(L10n.of(context))) ?? '';
+    final Widget face = m.shot != null
+        ? RawImage(image: m.shot, fit: BoxFit.cover, alignment: Alignment.topCenter)
+        : Container(
+            color: cs.surface,
+            alignment: Alignment.topLeft,
+            padding: EdgeInsets.fromLTRB(16, mq.padding.top + 12, 16, 0),
+            child: Row(
+              children: [
+                if (room != null)
+                  Avatar(mxContent: room.avatar, name: name, size: 36, client: room.client),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            ),
+          );
     return IgnorePointer(
       child: LayoutBuilder(
         builder: (context, box) => AnimatedBuilder(
           animation: _c,
-          builder: (context, _) {
-            final t = Curves.easeInOutCubic.transform(_c.value);
-            final w = box.maxWidth, h = box.maxHeight;
-            final stripH = VibeChatDock.height + mq.padding.bottom;
-            final full = Rect.fromLTWH(0, 0, w, h);
-            final strip = Rect.fromLTWH(0, h - stripH, w, stripH);
-            final r = m.down
-                ? Rect.lerp(full, strip, t)!
-                : Rect.lerp(strip, full, t)!;
-            // docking fades at the very end into the strip; coming back
-            // fades at the end into the real chat underneath
-            final fade = m.down
-                ? 1 - ((t - 0.85) / 0.15).clamp(0.0, 1.0)
-                : 1 - ((t - 0.75) / 0.25).clamp(0.0, 1.0);
-            final room = widget.client.getRoomById(m.roomId);
-            final name = room?.getLocalizedDisplayname(
-                  MatrixLocals(L10n.of(context)),
-                ) ??
-                '';
-            final Widget face = m.down && m.shot != null
-                ? RawImage(
-                    image: m.shot,
-                    fit: BoxFit.cover,
-                    alignment: Alignment.topCenter,
-                  )
-                : Container(
-                    color: cs.surface,
-                    alignment: Alignment.topLeft,
-                    padding: EdgeInsets.fromLTRB(16, mq.padding.top + 12, 16, 0),
-                    child: Row(
-                      children: [
-                        if (room != null)
-                          Avatar(
-                            mxContent: room.avatar,
-                            name: name,
-                            size: 36,
-                            client: room.client,
-                          ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
+          child: face,
+          builder: (context, child) {
+            final v = _c.value;
+            final h = box.maxHeight;
+            // a small lift first, then the slide down
+            final lift = Curves.easeOut.transform((v / 0.18).clamp(0.0, 1.0));
+            final sink = Curves.easeInOutCubic.transform(((v - 0.12) / 0.88).clamp(0.0, 1.0));
+            final dy = -10 * lift * (1 - sink) + sink * (h - VibeChatDock.height - mq.padding.bottom);
+            final scale = 1 - 0.1 * sink;
+            final fade = 1 - ((v - 0.7) / 0.3).clamp(0.0, 1.0);
             return Stack(
               children: [
-                Positioned.fromRect(
-                  rect: r,
-                  child: Opacity(
-                    opacity: fade,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(m.down ? 20 * t : 20 * (1 - t)),
-                      ),
-                      child: DecoratedBox(
-                        position: DecorationPosition.foreground,
-                        decoration: BoxDecoration(
-                          boxShadow: const [
-                            BoxShadow(color: Colors.black38, blurRadius: 16),
-                          ],
-                          color: cs.surface.withValues(
-                            alpha: m.down ? 0.35 * t : 0,
+                // the screen underneath dims a little while the card moves
+                Positioned.fill(
+                  child: ColoredBox(
+                    color: Colors.black.withValues(alpha: 0.18 * (1 - sink)),
+                  ),
+                ),
+                Positioned.fill(
+                  child: Transform.translate(
+                    offset: Offset(0, dy),
+                    child: Transform.scale(
+                      scale: scale,
+                      alignment: Alignment.topCenter,
+                      child: Opacity(
+                        opacity: fade,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(28 * sink),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.35 * fade),
+                                blurRadius: 24,
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(28 * sink),
+                            child: child,
                           ),
                         ),
-                        child: face,
                       ),
                     ),
                   ),
