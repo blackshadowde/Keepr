@@ -10,6 +10,7 @@ import 'package:vibe/vibe/vibe_haptics.dart';
 import 'package:vibe/vibe/vibe_lock.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
 import 'package:vibe/widgets/avatar.dart';
+import 'package:vibe/vibe/vibe_mute.dart';
 import 'package:flutter/material.dart';
 import 'package:matrix/matrix.dart';
 
@@ -47,7 +48,11 @@ class VibePeek extends ChangeNotifier {
     final me = client.userID;
     var changed = false;
     for (final r in client.rooms) {
-      if (r.membership != Membership.join || VibeLock.isLocked(r.id)) continue;
+      if (r.membership != Membership.join ||
+          VibeLock.isLocked(r.id) ||
+          VibeMute.quiet(r)) {
+        continue;
+      }
       final typing = r.typingUsers.where((u) => u.id != me).toList();
       final item = _items[r.id];
       if (typing.isNotEmpty) {
@@ -73,6 +78,7 @@ class VibePeek extends ChangeNotifier {
 
   void message(Event event) {
     if (VibeLock.isLocked(event.room.id)) return;
+    if (VibeMute.quiet(event.room)) return;
     // the same message can come from the sync and from the push helper
     if (!_seenEvents.add(event.eventId)) return;
     if (_seenEvents.length > 200) _seenEvents.remove(_seenEvents.first);

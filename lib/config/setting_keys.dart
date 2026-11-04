@@ -98,6 +98,8 @@ enum AppSettings<T> {
   vibeChatDock<bool>('chat.keepr.chat_dock', true),
   // The home screen builds itself when Keepr starts or comes back after a while
   vibeBootIntro<bool>('chat.keepr.boot_intro', true),
+  // Muted chats still pop up (notifications, the top pill, side pictures)
+  vibeMutedPopups<bool>('chat.keepr.muted_popups', false),
   // Notifications show only the app name and "New message" (no names, text or pictures)
   vibeHideNotificationContent<bool>('chat.keepr.notification_privacy', false),
   // Glass look: palette ('wallbash' = from the wallpaper), the processed

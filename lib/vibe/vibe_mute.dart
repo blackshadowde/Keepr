@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'package:vibe/config/setting_keys.dart';
 import 'package:flutter/material.dart';
 import 'package:matrix/matrix.dart';
 
@@ -10,6 +11,11 @@ import 'package:matrix/matrix.dart';
 /// "Mute notifications"). Vibe remembers the choice until the server
 /// agrees, and tells every badge and menu to update.
 abstract class VibeMute {
+  /// A muted chat stays quiet: no notification, top pill or side picture
+  /// (unless "Pop-ups for muted chats" is on in Settings > Notifications).
+  static bool quiet(Room room) =>
+      isMuted(room) && !AppSettings.vibeMutedPopups.value;
+
   static final changes = ValueNotifier<int>(0);
   static final Map<String, bool> _pending = {};
   static final Map<String, DateTime> _pendingAt = {};

@@ -232,6 +232,12 @@ class _VibeNotificationsPageState extends State<VibeNotificationsPage> {
                   if (PlatformInfos.isAndroid) const VibeSoundTile(),
                   if (PlatformInfos.isAndroid) const Divider(),
                   SettingsSwitchListTile.adaptive(
+                    title: 'Pop-ups for muted chats',
+                    subtitle:
+                        'Off: muted chats show no notifications, top pill or side pictures',
+                    setting: AppSettings.vibeMutedPopups,
+                  ),
+                  SettingsSwitchListTile.adaptive(
                     title: 'Notification privacy',
                     subtitle:
                         'Hide names, messages and pictures: notifications only say "New message"',

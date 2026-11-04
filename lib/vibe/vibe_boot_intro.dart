@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:vibe/config/setting_keys.dart';
+import 'package:vibe/vibe/vibe_launch.dart';
 
 /// When Keepr opens (after being closed or removed from recents) or comes
 /// back after a while away, the home screen's rows slide in one after
@@ -53,8 +54,7 @@ class _VibeBootIntroState extends State<VibeBootIntro>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // a cold start: the rows built now slide in
-    VibeHomeIntro.start();
+
   }
 
   @override
@@ -64,8 +64,11 @@ class _VibeBootIntroState extends State<VibeBootIntro>
     } else if (state == AppLifecycleState.resumed) {
       final left = _leftAt;
       _leftAt = null;
-      if (left != null && DateTime.now().difference(left) >= VibeBootIntro.away) {
-        VibeHomeIntro.start();
+      if (left != null &&
+          DateTime.now().difference(left) >= VibeBootIntro.away &&
+          AppSettings.vibeBootIntro.value) {
+        // the dots hop again, then the rows slide in
+        VibeLaunch.replayRequest.value++;
       }
     }
   }

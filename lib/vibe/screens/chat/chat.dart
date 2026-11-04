@@ -530,6 +530,14 @@ class ChatController extends State<ChatPageWithRoom>
     // opened from a pinned thread in the middle pane
     activeThreadId = VibeThreads.takeOpen(widget.room.id);
     VibeChatDock.opened(widget.room.id);
+    // measure the text box (with the docked strip's room under it) once the
+    // chat is laid out, and again whenever the dock changes: the room under
+    // it doesn't always change size by itself, so the list could sit under
+    // the text box
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) updateInputBarHeight();
+    });
+    VibeChatDock.docked.addListener(_onDockChanged);
     // the chat sliding in gets a light tap (closing has none)
     VibeHaptics.light();
     // photos and videos dragged in from other apps (Android)
@@ -829,6 +837,7 @@ class ChatController extends State<ChatPageWithRoom>
     scrollController.dispose();
     inputFocus.removeListener(_inputFocusListener);
     inputFocus.dispose();
+    VibeChatDock.docked.removeListener(_onDockChanged);
     inputBarHeightNotifier.dispose();
     _displayChatDetailsColumn.dispose();
     web.window.removeEventListener('paste', _handleClipboardFilePasteWeb);
@@ -1765,6 +1774,13 @@ class ChatController extends State<ChatPageWithRoom>
   /// rebuilding the whole chat screen on every animation frame.
   final ValueNotifier<double?> inputBarHeightNotifier = ValueNotifier(null);
   double? get inputBarHeight => inputBarHeightNotifier.value;
+
+  void _onDockChanged() {
+    // after the room under the text box has grown or shrunk
+    Future<void>.delayed(const Duration(milliseconds: 320), () {
+      if (mounted) updateInputBarHeight();
+    });
+  }
 
   void updateInputBarHeight() {
     RenderBox? renderBox;

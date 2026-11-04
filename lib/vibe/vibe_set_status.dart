@@ -183,6 +183,15 @@ class _VibeSetStatusPageState extends State<VibeSetStatusPage> {
   final _name = TextEditingController();
   String _origName = '';
   VibeNameStyle? _style, _origStyle;
+
+  /// The name in a highlighted pill (Customisation > profile).
+  bool _pill = false, _origPill = false;
+
+  /// What gets saved: the colours, plus the pill if it's on (a pill
+  /// without colours uses Keepr blue).
+  VibeNameStyle? get _composed => _pill
+      ? (_style ?? const VibeNameStyle(0x5865F2)).withPill(true)
+      : _style;
   final _focus = FocusNode();
   String _emoji = '';
   late DateTime? _clearAt; // null = don't clear
@@ -204,7 +213,8 @@ class _VibeSetStatusPageState extends State<VibeSetStatusPage> {
       if (!mounted) return;
       final (plainName, nameStyle) = VibeNameStyle.split(p.displayName ?? '');
       _origName = plainName;
-      _origStyle = _style = nameStyle;
+      _origStyle = _style = nameStyle?.withPill(false);
+      _origPill = _pill = nameStyle?.pill ?? false;
       if (_name.text.isEmpty) setState(() => _name.text = _origName);
     });
     final s = VibeStatus.mine(widget.client);
@@ -386,13 +396,15 @@ class _VibeSetStatusPageState extends State<VibeSetStatusPage> {
     final messenger = ScaffoldMessenger.of(context);
     // the display name (this page is also "Edit profile")
     final newName = _name.text.trim();
-    if (newName.isNotEmpty && (newName != _origName || _style != _origStyle)) {
+    if (newName.isNotEmpty &&
+        (newName != _origName || _style != _origStyle || _pill != _origPill)) {
       try {
         await widget.client.setProfileField(widget.client.userID!, 'displayname', {
-          'displayname': VibeNameStyle.compose(newName, _style),
+          'displayname': VibeNameStyle.compose(newName, _composed),
         });
         _origName = newName;
         _origStyle = _style;
+        _origPill = _pill;
         VibeProfileCache.refresh();
       } catch (_) {
         messenger.showSnackBar(const SnackBar(content: Text('Could not change your name')));
@@ -442,7 +454,9 @@ class _VibeSetStatusPageState extends State<VibeSetStatusPage> {
     final canSave = _text.text.trim().isNotEmpty ||
         _hadStatus ||
         (_name.text.trim().isNotEmpty &&
-            (_name.text.trim() != _origName || _style != _origStyle));
+            (_name.text.trim() != _origName ||
+                _style != _origStyle ||
+                _pill != _origPill));
     final userId = widget.client.userID ?? '';
     final preview = _text.text.trim().isEmpty
         ? null
@@ -597,7 +611,7 @@ class _VibeSetStatusPageState extends State<VibeSetStatusPage> {
                       child: VibeNameText(
                         VibeNameStyle.compose(
                           _name.text.trim().isEmpty ? 'Your name' : _name.text.trim(),
-                          _style,
+                          _composed,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -615,6 +629,20 @@ class _VibeSetStatusPageState extends State<VibeSetStatusPage> {
                     _swatch(null),
                     for (final p in VibeNameStyle.presets) _swatch(p),
                   ],
+                ),
+              ),
+              // the name in a highlighted pill, like a group tag
+              SwitchListTile.adaptive(
+                contentPadding: const EdgeInsets.only(left: 4),
+                value: _pill,
+                onChanged: (v) {
+                  VibeHaptics.selection();
+                  setState(() => _pill = v);
+                },
+                title: const Text('Show my name in a pill'),
+                subtitle: const Text(
+                  'A highlighted tag around your name, in your name colours. '
+                  'Older Keepr versions show the plain name',
                 ),
               ),
               const SizedBox(height: 14),
