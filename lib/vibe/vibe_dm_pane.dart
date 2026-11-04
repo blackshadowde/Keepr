@@ -17,6 +17,7 @@ import 'package:vibe/vibe/vibe_status.dart';
 import 'package:vibe/vibe/vibe_typing_pen.dart';
 import 'package:vibe/widgets/avatar.dart';
 import 'package:vibe/widgets/matrix.dart';
+import 'package:vibe/vibe/vibe_boot_intro.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:matrix/matrix.dart';
@@ -177,7 +178,9 @@ class _VibeDmPaneState extends State<VibeDmPane> {
                     padding: const EdgeInsets.only(bottom: 110),
                     cacheExtent: 600,
                     itemCount: rows.length,
-                    itemBuilder: (context, i) => rows[i](),
+                    // on start-up the rows slide in one after another
+                    itemBuilder: (context, i) =>
+                        VibeStagger(index: i, child: rows[i]()),
                   );
                 },
               ),
