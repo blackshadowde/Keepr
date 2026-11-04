@@ -5,6 +5,7 @@ import 'package:vibe/vibe/vibe_sheet_drag.dart';
 import 'dart:async';
 
 import 'package:vibe/vibe/vibe_haptics.dart';
+import 'package:vibe/vibe/vibe_boot_intro.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 
@@ -128,10 +129,25 @@ class _VibeStaggerState extends State<VibeStagger>
         if (mounted) _c.forward();
       });
     }
+    // Keepr back after a while: the rows slide in once more
+    VibeHomeIntro.run.addListener(_replay);
+  }
+
+  void _replay() {
+    if (!mounted || widget.index > widget.maxIndex) return;
+    if (WidgetsBinding
+        .instance.platformDispatcher.accessibilityFeatures.disableAnimations) {
+      return;
+    }
+    _c.value = 0;
+    Future<void>.delayed(Duration(milliseconds: 32 * widget.index), () {
+      if (mounted) _c.forward();
+    });
   }
 
   @override
   void dispose() {
+    VibeHomeIntro.run.removeListener(_replay);
     _c.dispose();
     super.dispose();
   }
