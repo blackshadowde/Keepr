@@ -5,7 +5,8 @@ import 'package:vibe/vibe/vibe_sheet_drag.dart';
 import 'dart:async';
 
 import 'package:vibe/vibe/vibe_haptics.dart';
-import 'package:vibe/vibe/vibe_boot_intro.dart';
+import 'package:vibe/config/setting_keys.dart';
+import 'package:vibe/vibe/vibe_launch.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 
@@ -124,30 +125,37 @@ class _VibeStaggerState extends State<VibeStagger>
   @override
   void initState() {
     super.initState();
-    if (_play) {
-      Future<void>.delayed(Duration(milliseconds: 32 * widget.index), () {
-        if (mounted) _c.forward();
-      });
+    // while the opening (the dots hop) still covers the screen, wait for it
+    // to finish, so the rows are seen sliding in one after another
+    if (_play && (VibeLaunch.isOver || !AppSettings.vibeBootIntro.value)) {
+      _start();
     }
-    // Keepr back after a while: the rows slide in once more
-    VibeHomeIntro.run.addListener(_replay);
+    VibeLaunch.finished.addListener(_replay);
   }
 
-  void _replay() {
-    if (!mounted || widget.index > widget.maxIndex) return;
-    if (WidgetsBinding
-        .instance.platformDispatcher.accessibilityFeatures.disableAnimations) {
-      return;
-    }
-    _c.value = 0;
-    Future<void>.delayed(Duration(milliseconds: 32 * widget.index), () {
+  void _start() {
+    Future<void>.delayed(Duration(milliseconds: 55 * widget.index), () {
       if (mounted) _c.forward();
     });
   }
 
+  /// The opening just finished (start-up, or Keepr back after a while):
+  /// the rows slide in, one after another.
+  void _replay() {
+    if (!mounted || widget.index > widget.maxIndex) return;
+    if (!AppSettings.vibeBootIntro.value ||
+        WidgetsBinding
+            .instance.platformDispatcher.accessibilityFeatures.disableAnimations) {
+      _c.value = 1;
+      return;
+    }
+    _c.value = 0;
+    _start();
+  }
+
   @override
   void dispose() {
-    VibeHomeIntro.run.removeListener(_replay);
+    VibeLaunch.finished.removeListener(_replay);
     _c.dispose();
     super.dispose();
   }

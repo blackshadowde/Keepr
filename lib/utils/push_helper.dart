@@ -22,6 +22,7 @@ import 'package:vibe/utils/start_push_foreground_service.dart';
 import 'package:vibe/vibe/vibe_lock.dart';
 import 'package:vibe/vibe/vibe_peek.dart';
 import 'package:flutter/foundation.dart';
+import 'package:vibe/vibe/vibe_mute.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:vibe/vibe/vibe_sound.dart';
@@ -251,6 +252,12 @@ Future<void> _tryPushHelper(
 
   if (!client.pushruleEvaluator.match(event).notify) {
     Logs().i('Push helper: filtered by client-side push rules.');
+    return;
+  }
+
+  // a muted chat stays quiet (calls still ring)
+  if (!event.type.startsWith('m.call') && VibeMute.quiet(event.room)) {
+    Logs().i('Push helper: muted chat, no notification.');
     return;
   }
 

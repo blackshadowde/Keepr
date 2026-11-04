@@ -22,6 +22,7 @@ import 'package:vibe/vibe/vibe_updater.dart';
 import 'package:vibe/widgets/avatar.dart';
 import 'package:vibe/widgets/vibe_app.dart';
 import 'package:vibe/widgets/matrix.dart';
+import 'package:vibe/vibe/vibe_mute.dart';
 import 'package:flutter/material.dart';
 import 'package:matrix/matrix.dart';
 
@@ -122,7 +123,10 @@ class _VibeActivityHostState extends State<VibeActivityHost> {
     final l10n = L10n.of(context);
     for (final id in u.rooms?.join?.keys ?? const <String>[]) {
       final room = c.getRoomById(id);
-      if (room == null || room.id == current || VibeLock.isLocked(id)) {
+      if (room == null ||
+          room.id == current ||
+          VibeLock.isLocked(id) ||
+          VibeMute.quiet(room)) {
         continue;
       }
       final typers = room.typingUsers.where((x) => x.id != c.userID);
@@ -154,6 +158,7 @@ class _VibeActivityHostState extends State<VibeActivityHost> {
     if (e.senderId == c.userID) return;
     if (e.room.id == _currentRoomId()) return;
     if (VibeLock.isLocked(e.room.id)) return;
+    if (VibeMute.quiet(e.room)) return;
     if (e.type != EventTypes.Message && e.type != EventTypes.Encrypted) return;
     if (!e.status.isSynced) return;
     // inside a chat: the sender's picture peeks in from the side instead

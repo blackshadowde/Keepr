@@ -14,6 +14,14 @@ class VibeLaunch extends StatefulWidget {
   final Widget child;
   const VibeLaunch({required this.child, super.key});
 
+  /// Goes up each time the opening (the dots hop) has finished, so the home
+  /// screen's rows can slide in right after it.
+  static final ValueNotifier<int> finished = ValueNotifier(0);
+  static bool get isOver => _Launch.over;
+
+  /// Play the opening again (Keepr back after a while away).
+  static final ValueNotifier<int> replayRequest = ValueNotifier(0);
+
 
   @override
   State<VibeLaunch> createState() => _VibeLaunchState();
@@ -68,6 +76,14 @@ class _VibeLaunchState extends State<VibeLaunch>
       _Launch.schedule();
       _ticker.start();
     }
+    VibeLaunch.replayRequest.addListener(_replay);
+  }
+
+  void _replay() {
+    if (!mounted) return;
+    _Launch.replay();
+    if (!_ticker.isActive) _ticker.start();
+    setState(() {});
   }
 
   void _tick(Duration _) {
@@ -75,6 +91,7 @@ class _VibeLaunchState extends State<VibeLaunch>
     if (_Launch.t >= 1) {
       _Launch.over = true;
       _ticker.stop();
+      VibeLaunch.finished.value++;
     }
     setState(() {});
   }
@@ -98,6 +115,7 @@ class _VibeLaunchState extends State<VibeLaunch>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    VibeLaunch.replayRequest.removeListener(_replay);
     _ticker.dispose();
     super.dispose();
   }
