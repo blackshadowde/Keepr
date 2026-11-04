@@ -114,13 +114,23 @@ class _VibeStaggerState extends State<VibeStagger>
       (widget.key == null || _seen.add(widget.key!));
   late final AnimationController _c = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 460),
+    duration: const Duration(milliseconds: 620),
     value: _play ? 0 : 1,
   );
+  // fades in quickly, while it springs up a little past its place and
+  // settles back (a bounce, like a card dropping into place)
   late final Animation<double> _curve = CurvedAnimation(
     parent: _c,
-    curve: Curves.easeOutCubic,
+    curve: const Interval(0, 0.45, curve: Curves.easeOut),
   );
+  late final Animation<double> _spring = CurvedAnimation(
+    parent: _c,
+    curve: Curves.easeOutBack,
+  );
+  late final Animation<double> _scale = Tween<double>(
+    begin: 0.9,
+    end: 1,
+  ).animate(_spring);
 
   @override
   void initState() {
@@ -134,7 +144,7 @@ class _VibeStaggerState extends State<VibeStagger>
   }
 
   void _start() {
-    Future<void>.delayed(Duration(milliseconds: 55 * widget.index), () {
+    Future<void>.delayed(Duration(milliseconds: 60 * widget.index), () {
       if (mounted) _c.forward();
     });
   }
@@ -161,14 +171,17 @@ class _VibeStaggerState extends State<VibeStagger>
   }
 
   late final Animation<Offset> _rise = Tween<Offset>(
-    begin: Offset(0, widget.dy),
+    begin: Offset(0, widget.dy * 1.6),
     end: Offset.zero,
-  ).animate(_curve);
+  ).animate(_spring);
 
   @override
   Widget build(BuildContext context) => FadeTransition(
     opacity: _curve,
-    child: _PixelSlide(offset: _rise, child: widget.child),
+    child: ScaleTransition(
+      scale: _scale,
+      child: _PixelSlide(offset: _rise, child: widget.child),
+    ),
   );
 }
 
