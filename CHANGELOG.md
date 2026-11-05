@@ -6,6 +6,7 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 ## 2026-11-05 ([a97fb90](https://github.com/blackshadowde/keepr/commit/a97fb90e4))
 
 - Your own typing indicator now also reaches direct chats started after you set it, and chats where sharing it failed before: it's shared when you open the chat ([a97fb90](https://github.com/blackshadowde/keepr/commit/a97fb90e4))
+- Animated profile pictures (GIF, WebP) now stay animated when changed from the profile sheet's Photo button too, and play in the big round picture there ([63f6d2a](https://github.com/blackshadowde/keepr/commit/63f6d2abd))
 
 ## 2026-11-03 ([3a27365](https://github.com/blackshadowde/keepr/commit/3a27365a5))
 
