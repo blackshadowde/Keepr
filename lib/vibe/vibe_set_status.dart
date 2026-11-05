@@ -137,7 +137,14 @@ class VibeRingAvatar extends StatelessWidget {
           Container(
             padding: EdgeInsets.all(ringW),
             decoration: BoxDecoration(color: ring, shape: BoxShape.circle),
-            child: Avatar(mxContent: mxc, name: name, size: size, client: client),
+            // big picture: an animated one plays
+            child: Avatar(
+              mxContent: mxc,
+              name: name,
+              size: size,
+              client: client,
+              animated: true,
+            ),
           ),
           Positioned(
             right: ringW * 0.6,
