@@ -17,7 +17,9 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:vibe/utils/file_selector.dart';
 import 'package:matrix/matrix.dart';
 
 /// Your own profile: bleed header with the photo, camera / pencil / gear
@@ -127,14 +129,21 @@ class _OwnSheetState extends State<_OwnSheet> {
       if (r.error == null) _reload();
       return;
     }
-    final picked = await ImagePicker().pickImage(
-      source: action == 'camera' ? ImageSource.camera : ImageSource.gallery,
-      imageQuality: 60,
-    );
+    // Gallery goes through the file picker as it is, so animated pictures
+    // (GIF, WebP) stay animated instead of being saved as a still photo.
+    final XFile? picked;
+    if (action == 'camera') {
+      picked = await ImagePicker().pickImage(
+        source: ImageSource.camera,
+        imageQuality: 60,
+      );
+    } else {
+      picked = (await selectFiles(context, type: FileType.image)).firstOrNull;
+    }
     if (picked == null || !mounted) return;
     final file = MatrixFile(
       bytes: await picked.readAsBytes(),
-      name: picked.path,
+      name: picked.name,
     );
     if (!mounted) return;
     final r = await showFutureLoadingDialog(
