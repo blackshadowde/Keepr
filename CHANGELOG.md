@@ -3,6 +3,10 @@
 Vibe's changes are listed on each release:
 https://github.com/blackshadowde/Vibe-flutter/releases
 
+## 2026-11-05 ([a97fb90](https://github.com/blackshadowde/keepr/commit/a97fb90e4))
+
+- Your own typing indicator now also reaches direct chats started after you set it, and chats where sharing it failed before: it's shared when you open the chat ([a97fb90](https://github.com/blackshadowde/keepr/commit/a97fb90e4))
+
 ## 2026-11-03 ([3a27365](https://github.com/blackshadowde/keepr/commit/3a27365a5))
 
 - Security update: Keepr now uses Flutter 3.47.9, which no longer trusts a set of leaked eMudhra security certificates. Before, someone holding them could have faked a secure connection on Android ([3a27365](https://github.com/blackshadowde/keepr/commit/3a27365a5))
