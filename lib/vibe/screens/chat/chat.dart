@@ -9,6 +9,7 @@ import 'package:vibe/vibe/vibe_pending_files.dart';
 import 'package:vibe/vibe/vibe_quote.dart';
 import 'package:vibe/vibe/vibe_threads.dart';
 import 'package:vibe/vibe/vibe_chat_dock.dart';
+import 'package:vibe/vibe/vibe_typing_style.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart'
     hide Priority;
 import 'package:vibe/vibe/vibe_mention_controller.dart';
@@ -530,6 +531,8 @@ class ChatController extends State<ChatPageWithRoom>
     // opened from a pinned thread in the middle pane
     activeThreadId = VibeThreads.takeOpen(widget.room.id);
     VibeChatDock.opened(widget.room.id);
+    // my own typing indicator, for direct chats that don't have it yet
+    VibeTypingStyle.shareIn(widget.room);
     // measure the text box (with the docked strip's room under it) once the
     // chat is laid out, and again whenever the dock changes: the room under
     // it doesn't always change size by itself, so the list could sit under

@@ -105,6 +105,25 @@ class VibeTypingStyle {
     }
   }
 
+  /// Chats already checked this session.
+  static final _checked = <String>{};
+
+  /// When a direct chat opens: share my style there if it isn't yet (chats
+  /// started after I saved it, or where saving failed before).
+  static Future<void> shareIn(Room r) async {
+    final me = r.client.userID;
+    if (me == null || !_checked.add(r.id)) return;
+    if (!r.isDirectChat || r.membership != Membership.join) return;
+    if (!VibeStatus.visibleIn(r)) return;
+    final s = mine();
+    final want = s.isCustom ? s.toContent() : <String, Object?>{};
+    final have = r.getState(type, me)?.content ?? const <String, Object?>{};
+    if (jsonEncode(have) == jsonEncode(want)) return;
+    try {
+      await r.client.setRoomStateWithKey(r.id, type, me, want);
+    } catch (_) {}
+  }
+
   static VibeTypingStyle random() {
     final r = Random();
     final e = List.of(emojiChoices)..shuffle(r);
