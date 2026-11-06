@@ -240,13 +240,8 @@ class _VibeHomeViewState extends State<VibeHomeView> {
                         removeTop: selectedId == null,
                       // glossy glass: a floating, frosted pane with edges
                       child: VibeGlassPane(
-                        // the chat list draws its own rounded panel
-                        frame: selectedId != null,
-                        plainRadius: selectedId == null
-                            ? BorderRadius.zero
-                            : const BorderRadius.vertical(
-                                top: Radius.circular(24),
-                              ),
+                        // full screen: no window frame or rounded edge
+                        frame: false,
                         child: selectedId == _startId
                             ? VibeStartPane(
                                 onBack: () => setState(() => selectedId = null),
