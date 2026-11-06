@@ -14,7 +14,7 @@ import 'package:vibe/vibe/vibe_communities.dart';
 import 'package:vibe/vibe/vibe_lock.dart';
 import 'package:vibe/vibe/vibe_dm_detail.dart';
 import 'package:vibe/vibe/vibe_dm_pane.dart';
-import 'package:vibe/vibe/vibe_dm_rail.dart';
+import 'package:vibe/widgets/avatar.dart';
 import 'package:vibe/vibe/vibe_groups.dart';
 import 'package:vibe/vibe/vibe_start_pane.dart';
 import 'package:vibe/vibe/vibe_swipe.dart';
@@ -37,6 +37,7 @@ class VibeHomeView extends StatefulWidget {
 class _VibeHomeViewState extends State<VibeHomeView> {
   /// The rail's "+" pane (Start something).
   static const _startId = '+start';
+  bool _search = false;
   String? selectedId;
   String? _lastOpenedId;
 
@@ -217,45 +218,26 @@ class _VibeHomeViewState extends State<VibeHomeView> {
                 // under it
                 Column(
                   children: [
-                    VibeDmRail(
-                      horizontal: true,
-                      rooms: railRooms,
-                      selectedId: selected?.id,
-                      activeRoomId: controller.activeChat,
-                      onSelect: (room) => setState(() => selectedId = room.id),
-                      onHome: () => setState(() => selectedId = null),
-                      onAdd: () => setState(() => selectedId = _startId),
-                      addSelected: selectedId == _startId,
-                      // long-press your picture: the locked chats
-                      onOwnLongPress: () => VibeLock.openFolder(
-                        context,
-                        client,
-                        (room) {
-                          _lastOpenedId = room.id;
-                          controller.onChatTap(room);
-                        },
+                    // home: the title, search and new chat, then the
+                    // communities as tiles (hidden while one is open)
+                    if (selectedId == null)
+                      _HomeTop(
+                        spaces: railRooms.where((r) => r.isSpace).toList(),
+                        onSearch: () => setState(() => _search = !_search),
+                        onCompose: () => VibeGroups.showNew(context),
+                        onSelect: (room) => setState(() => selectedId = room.id),
+                        onAdd: () => setState(() => selectedId = _startId),
+                        onLongPress: (room) => VibeChatActions.show(
+                          context,
+                          room,
+                          onOpen: () => setState(() => selectedId = room.id),
+                        ),
                       ),
-                      onLongPress: (room) => room.isSpace
-                          ? VibeChatActions.show(
-                              context,
-                              room,
-                              onOpen: () =>
-                                  setState(() => selectedId = room.id),
-                            )
-                          : VibeChatActions.show(
-                        context,
-                        room,
-                        onOpen: () {
-                          _lastOpenedId = room.id;
-                          controller.onChatTap(room);
-                        },
-                      ),
-                    ),
                     Expanded(
                       // the row above already keeps clear of the status bar
                       child: MediaQuery.removePadding(
                         context: context,
-                        removeTop: true,
+                        removeTop: selectedId == null,
                       // glossy glass: a floating, frosted pane with edges
                       child: VibeGlassPane(
                         plainRadius: const BorderRadius.vertical(
@@ -267,6 +249,7 @@ class _VibeHomeViewState extends State<VibeHomeView> {
                               )
                             : selected == null
                             ? VibeDmPane(
+                                showSearch: _search,
                                 rooms: rooms,
                                 activeRoomId: controller.activeChat,
                                 onTap: (room) =>
@@ -383,4 +366,146 @@ class _RoomListBuilderState extends State<_RoomListBuilder> {
 
   @override
   Widget build(BuildContext context) => widget.builder(context);
+}
+
+
+/// The top of the home screen: "Chats" with search and new chat, then the
+/// communities as tiles (Direct first, + last).
+class _HomeTop extends StatelessWidget {
+  final List<Room> spaces;
+  final VoidCallback onSearch;
+  final VoidCallback onCompose;
+  final VoidCallback onAdd;
+  final void Function(Room room) onSelect;
+  final void Function(Room room) onLongPress;
+  const _HomeTop({
+    required this.spaces,
+    required this.onSearch,
+    required this.onCompose,
+    required this.onAdd,
+    required this.onSelect,
+    required this.onLongPress,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    Widget tile({required Widget child, Color? color, VoidCallback? onTap, VoidCallback? onHold, bool dot = false, String? label}) =>
+        Padding(
+          padding: const EdgeInsets.only(right: 10),
+          child: Semantics(
+            label: label,
+            button: true,
+            child: GestureDetector(
+              onTap: onTap,
+              onLongPress: onHold,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      color: color ?? cs.surfaceContainerHigh,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    alignment: Alignment.center,
+                    child: child,
+                  ),
+                  if (dot)
+                    Positioned(
+                      top: -2,
+                      right: -2,
+                      child: Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: cs.primary,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: cs.surfaceContainerLowest, width: 2),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+    return SafeArea(
+      bottom: false,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 8, 6),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Chats',
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: -0.4),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Search',
+                  icon: const Icon(Icons.search),
+                  onPressed: onSearch,
+                ),
+                IconButton(
+                  tooltip: 'New chat or group',
+                  icon: const Icon(Icons.edit_outlined),
+                  onPressed: onCompose,
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            height: 56,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(20, 4, 10, 4),
+              children: [
+                tile(
+                  label: 'Chats',
+                  color: cs.primary,
+                  child: Icon(Icons.chat_bubble_outline_rounded, color: cs.onPrimary),
+                ),
+                for (final s in spaces)
+                  tile(
+                    label: s.getLocalizedDisplayname(),
+                    onTap: () => onSelect(s),
+                    onHold: () => onLongPress(s),
+                    dot: VibeCommunities.unread(s) > 0 ||
+                        s.membership == Membership.invite,
+                    child: Avatar(
+                      mxContent: s.avatar,
+                      name: s.getLocalizedDisplayname(),
+                      size: 48,
+                      client: s.client,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                tile(
+                  label: 'Join or create a community',
+                  onTap: onAdd,
+                  color: Colors.transparent,
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: cs.outline),
+                    ),
+                    child: Icon(Icons.add, color: cs.onSurfaceVariant),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 6),
+        ],
+      ),
+    );
+  }
 }

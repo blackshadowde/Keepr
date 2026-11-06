@@ -3,6 +3,8 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'package:vibe/utils/date_time_extension.dart';
+import 'package:vibe/vibe/vibe_event_body.dart';
 import 'package:vibe/vibe/vibe_mute.dart';
 import 'package:vibe/l10n/l10n.dart';
 import 'package:vibe/vibe/vibe_activity_pill.dart';
@@ -13,7 +15,6 @@ import 'package:vibe/vibe/vibe_groups.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
 import 'package:vibe/vibe/vibe_archive.dart';
 import 'package:vibe/vibe/vibe_lock.dart';
-import 'package:vibe/vibe/vibe_status.dart';
 import 'package:vibe/vibe/vibe_typing_pen.dart';
 import 'package:vibe/widgets/avatar.dart';
 import 'package:vibe/widgets/matrix.dart';
@@ -28,11 +29,15 @@ class VibeDmPane extends StatefulWidget {
   final void Function(Room room) onTap;
   final void Function(Room room) onOpen;
 
+  /// The search field (the home screen's search button shows it).
+  final bool showSearch;
+
   const VibeDmPane({
     required this.rooms,
     required this.activeRoomId,
     required this.onTap,
     required this.onOpen,
+    this.showSearch = true,
     super.key,
   });
 
@@ -85,7 +90,9 @@ class _VibeDmPaneState extends State<VibeDmPane> {
           room: r,
           name: nameOf(r),
           active: r.id == widget.activeRoomId,
-          onTap: () => widget.onTap(r),
+          // the row opens the chat; the picture opens the person's page
+          onTap: () => widget.onOpen(r),
+          onAvatarTap: () => widget.onTap(r),
           onLongPress: () => VibeChatActions.show(
             context,
             r,
@@ -96,18 +103,19 @@ class _VibeDmPaneState extends State<VibeDmPane> {
     );
 
     return Material(
-      color: theme.colorScheme.surface,
+      color: Colors.transparent,
       child: SafeArea(
         bottom: false,
         child: Column(
           children: [
+            if (widget.showSearch)
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
               child: TextField(
                 controller: _filter,
                 onChanged: (_) => setState(() {}),
                 decoration: InputDecoration(
-                  hintText: 'Find or start a conversation',
+                  hintText: 'Find a chat',
                   prefixIcon: const Icon(Icons.search),
                   filled: true,
                   fillColor: theme.colorScheme.surfaceContainerLowest,
@@ -123,21 +131,19 @@ class _VibeDmPaneState extends State<VibeDmPane> {
             Expanded(
               // Built lazily: only rows on (or near) the screen exist, so a
               // long chat list scrolls and animates as lightly as a short one.
+              // the list sits in one rounded panel
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.88),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                ),
               child: Builder(
                 builder: (context) {
                   final rows = <Widget Function()>[
-                    if (VibeArchive.archived(client).isNotEmpty)
-                      () => _NavTile(
-                        icon: Icons.archive_outlined,
-                        label: 'Archived chats',
-                        onTap: () => VibeArchive.open(
-                          context,
-                          client,
-                          onOpen: widget.onOpen,
-                        ),
-                      ),
                     if (invites.isNotEmpty) ...[
-                      () => _SectionLabel('INVITES — ${invites.length}'),
+                      () => _SectionLabel('Invites'),
                       for (var i = 0; i < invites.length; i++)
                         () => VibeStagger(
                           key: ValueKey('inv_${invites[i].id}'),
@@ -150,12 +156,12 @@ class _VibeDmPaneState extends State<VibeDmPane> {
                         ),
                     ],
                     if (pinned.isNotEmpty) ...[
-                      () => _SectionLabel('PINNED — ${pinned.length}'),
+                      () => _SectionLabel('Pinned'),
                       for (var i = 0; i < pinned.length; i++)
                         () => dmTile(pinned[i], i + invites.length + 1),
                     ],
                     () => _SectionLabel(
-                      'DIRECT MESSAGES — ${others.length}',
+                      'Direct messages',
                       onAdd: () => VibeAddContact.show(context),
                     ),
                     for (var i = 0; i < others.length; i++)
@@ -164,7 +170,7 @@ class _VibeDmPaneState extends State<VibeDmPane> {
                         i + invites.length + pinned.length + 1,
                       ),
                     () => _SectionLabel(
-                      'GROUPS — ${groups.length}',
+                      'Groups',
                       onAdd: () => VibeCreateGroupPage.open(context),
                     ),
                     for (var i = 0; i < groups.length; i++)
@@ -172,6 +178,33 @@ class _VibeDmPaneState extends State<VibeDmPane> {
                         groups[i],
                         i + invites.length + pinned.length + others.length + 2,
                       ),
+                    // locked chats and the archive, at the end of the list
+                    () => Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+                      child: Row(
+                        children: [
+                          TextButton.icon(
+                            onPressed: () => VibeLock.openFolder(
+                              context,
+                              client,
+                              widget.onOpen,
+                            ),
+                            icon: const Icon(Icons.lock_outline, size: 18),
+                            label: const Text('Locked chats'),
+                          ),
+                          if (VibeArchive.archived(client).isNotEmpty)
+                            TextButton.icon(
+                              onPressed: () => VibeArchive.open(
+                                context,
+                                client,
+                                onOpen: widget.onOpen,
+                              ),
+                              icon: const Icon(Icons.archive_outlined, size: 18),
+                              label: const Text('Archive'),
+                            ),
+                        ],
+                      ),
+                    ),
                   ];
                   return ListView.builder(
                     padding: const EdgeInsets.only(bottom: 110),
@@ -180,6 +213,7 @@ class _VibeDmPaneState extends State<VibeDmPane> {
                     itemBuilder: (context, i) => rows[i](),
                   );
                 },
+              ),
               ),
             ),
           ],
@@ -198,16 +232,15 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 8, 2),
+      padding: const EdgeInsets.fromLTRB(16, 12, 4, 0),
       child: Row(
         children: [
           Expanded(
             child: Text(
               text,
               style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.6,
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
                 color: cs.onSurfaceVariant,
               ),
             ),
@@ -224,30 +257,12 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-class _NavTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  const _NavTile({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) => ListTile(
-    dense: true,
-    leading: Icon(icon),
-    title: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-    onTap: onTap,
-  );
-}
-
 class _DmTile extends StatelessWidget {
   final Room room;
   final String name;
   final bool active;
   final VoidCallback onTap;
+  final VoidCallback onAvatarTap;
   final VoidCallback onLongPress;
 
   const _DmTile({
@@ -255,90 +270,104 @@ class _DmTile extends StatelessWidget {
     required this.name,
     required this.active,
     required this.onTap,
+    required this.onAvatarTap,
     required this.onLongPress,
   });
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
-      child: Material(
-        color: active ? theme.colorScheme.secondaryContainer : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        clipBehavior: Clip.hardEdge,
-        child: ListTile(
-          onTap: onTap,
-          onLongPress: onLongPress,
-          contentPadding: const EdgeInsets.only(left: 10, right: 0),
-          leading: VibeTypingOverlay(
-            room: room,
-            child: VibeMuteBadge(
-              room: room,
-              child: Avatar(
-                mxContent: room.avatar,
-                name: name,
-                size: 42,
-                client: room.client,
-                presenceUserId: room.directChatMatrixID,
-              ),
-            ),
-          ),
-          title: Row(
+    final cs = Theme.of(context).colorScheme;
+    final unread = room.isUnread;
+    final last = room.lastEvent;
+    // the last message, or what kind of chat it is
+    final preview = last?.vibeBodyFallback(
+          MatrixLocals(L10n.of(context)),
+          hideReply: true,
+          withSenderNamePrefix: VibeGroups.isGroup(room),
+        ) ??
+        (VibeGroups.isGroup(room)
+            ? '${VibeGroups.memberCount(room)} members'
+            : 'Encrypted chat');
+    return Material(
+      color: active ? cs.secondaryContainer.withValues(alpha: 0.6) : Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        onLongPress: onLongPress,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 9, 16, 9),
+          child: Row(
             children: [
-              Flexible(
-                child: Text(
-                  name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  // bold like Discord's list: brightest and heaviest when unread
-                  style: TextStyle(
-                    fontWeight: room.isUnread
-                        ? FontWeight.w800
-                        : FontWeight.w700,
-                    color: room.isUnread
-                        ? Theme.of(context).colorScheme.onSurface
-                        : Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-              if (room.isFavourite) ...[
-                const SizedBox(width: 4),
-                Icon(
-                  Icons.push_pin,
-                  size: 13,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ],
-            ],
-          ),
-          subtitle: Row(
-            children: [
-              Icon(
-                room.encrypted ? Icons.lock : Icons.lock_open,
-                size: 12,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 4),
-              Expanded(
-                child: VibeStatusLine(
+              GestureDetector(
+                onTap: onAvatarTap,
+                child: VibeTypingOverlay(
                   room: room,
-                  userId: room.directChatMatrixID,
-                  showTime: false,
-                  fallback: VibeGroups.isGroup(room)
-                      ? '${VibeGroups.memberCount(room)} members'
-                      : room.encrypted
-                      ? 'Encrypted Direct Message'
-                      : 'Direct Message',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: theme.colorScheme.onSurfaceVariant,
+                  child: VibeMuteBadge(
+                    room: room,
+                    child: Avatar(
+                      mxContent: room.avatar,
+                      name: name,
+                      size: 48,
+                      client: room.client,
+                      presenceUserId: room.directChatMatrixID,
+                    ),
                   ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: unread ? FontWeight.w700 : FontWeight.w600,
+                              color: cs.onSurface,
+                            ),
+                          ),
+                        ),
+                        if (room.isFavourite) ...[
+                          const SizedBox(width: 4),
+                          Icon(Icons.push_pin, size: 13, color: cs.onSurfaceVariant),
+                        ],
+                        const Spacer(),
+                        Text(
+                          room.latestEventReceivedTime.localizedTimeShort(context),
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            color: unread ? cs.primary : cs.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            preview,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 14.5,
+                              color: cs.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                        VibeUnreadBadge(room: room),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          trailing: VibeUnreadBadge(room: room),
         ),
       ),
     );

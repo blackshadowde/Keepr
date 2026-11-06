@@ -339,6 +339,8 @@ class VibeCommunityPane extends StatefulWidget {
 }
 
 class _VibeCommunityPaneState extends State<VibeCommunityPane> {
+  /// 0: rooms, 1: the community (members, invite, settings).
+  int _tab = 0;
   List<_Channel>? _remote;
   String? _joining;
   StreamSubscription? _sub;
@@ -634,77 +636,74 @@ class _VibeCommunityPaneState extends State<VibeCommunityPane> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 120),
           children: [
-            GestureDetector(
-              onTap: widget.onBack,
-              child: Container(
-                height: 46,
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                decoration: BoxDecoration(
-                  color: cs.surfaceContainerLowest,
-                  borderRadius: BorderRadius.circular(16),
+            Row(
+              children: [
+                IconButton(
+                  tooltip: 'Back',
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+                  onPressed: widget.onBack,
                 ),
-                child: Row(
-                  children: [
-                    Icon(Icons.search, size: 22, color: cs.onSurfaceVariant),
-                    const SizedBox(width: 10),
-                    Text(
-                      'Find or start a conversation',
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: cs.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),
-            Padding(
-              padding: const EdgeInsets.only(left: 6),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: GestureDetector(
-                  onLongPress: space.canChangeStateEvent(EventTypes.RoomAvatar)
-                      ? () => VibeGroupEdit.changePicture(context, space)
-                      : null,
-                  child: Avatar(
-                    mxContent: space.avatar,
-                    name: name,
-                    size: 62,
-                    client: space.client,
-                    borderRadius: BorderRadius.circular(18),
+                const Spacer(),
+                if (space.canInvite && !invited)
+                  FilledButton.tonal(
+                    onPressed: () => VibeGroups.showInvite(context, space),
+                    child: const Text('Invite'),
                   ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Padding(
-              padding: const EdgeInsets.only(left: 6),
-              child: Text(
-                name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 21,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+                if (!invited)
+                  IconButton(
+                    tooltip: 'Community',
+                    icon: const Icon(Icons.more_horiz),
+                    onPressed: () => setState(() => _tab = 1),
+                  ),
+              ],
             ),
             Padding(
-              padding: const EdgeInsets.only(left: 6, top: 2),
-              child: Text(
-                '${VibeGroups.memberCount(space)} members · '
-                '${isPublic ? 'Public community' : 'Private community'}',
-                style: TextStyle(
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w600,
-                  color: cs.onSurfaceVariant,
-                ),
+              padding: const EdgeInsets.fromLTRB(6, 8, 6, 12),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onLongPress: space.canChangeStateEvent(EventTypes.RoomAvatar)
+                        ? () => VibeGroupEdit.changePicture(context, space)
+                        : null,
+                    child: Avatar(
+                      mxContent: space.avatar,
+                      name: name,
+                      size: 56,
+                      client: space.client,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          '${VibeGroups.memberCount(space)} members · '
+                          '${isPublic ? 'Public' : 'Private'}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: cs.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
             if (topic.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.only(left: 6, top: 6),
+                padding: const EdgeInsets.fromLTRB(6, 0, 6, 10),
                 child: Text(
                   topic,
                   maxLines: 3,
@@ -712,10 +711,46 @@ class _VibeCommunityPaneState extends State<VibeCommunityPane> {
                   style: TextStyle(fontSize: 13.5, color: cs.onSurfaceVariant),
                 ),
               ),
+            if (!invited)
+              // Rooms | Community
+              Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  color: cs.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    for (final (i, label) in const ['Rooms', 'Community'].indexed)
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => _tab = i),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            height: 38,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: _tab == i ? cs.surfaceContainerHighest : Colors.transparent,
+                              borderRadius: BorderRadius.circular(9),
+                            ),
+                            child: Text(
+                              label,
+                              style: TextStyle(
+                                fontSize: 14.5,
+                                fontWeight: _tab == i ? FontWeight.w700 : FontWeight.w500,
+                                color: _tab == i ? cs.onSurface : cs.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             const SizedBox(height: 8),
             if (invited)
               _InviteBanner(name: name, onAnswer: _accept)
-            else ...[
+            else if (_tab == 0) ...[
               VibePaneHeader(
                 'CHANNELS',
                 onAdd: canAdd ? () => VibeCommunities.newChannel(context, space) : null,
@@ -741,6 +776,7 @@ class _VibeCommunityPaneState extends State<VibeCommunityPane> {
                   label: 'add-existing-group',
                   onTap: () => VibeCommunities.addExisting(context, space),
                 ),
+            ] else ...[
               const VibePaneHeader('COMMUNITY'),
               VibeHashRow(
                 label: 'members',
