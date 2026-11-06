@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import 'package:vibe/vibe/vibe_event_body.dart';
 import 'package:vibe/vibe/vibe_palette.dart';
 import 'package:vibe/vibe/vibe_dialog.dart';
 import 'dart:async';
@@ -9,6 +8,9 @@ import 'package:vibe/l10n/l10n.dart';
 import 'package:vibe/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:vibe/vibe/vibe_dm_detail.dart';
 import 'package:vibe/vibe/vibe_groups.dart';
+import 'package:vibe/vibe/vibe_threads.dart';
+import 'package:vibe/vibe/vibe_tree.dart';
+import 'package:vibe/vibe/vibe_user_sheet.dart';
 import 'package:vibe/vibe/vibe_haptics.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
 import 'package:vibe/vibe/vibe_settings_style.dart' hide VibeGroups;
@@ -327,10 +329,14 @@ class VibeCommunityPane extends StatefulWidget {
   final Room space;
   final VoidCallback onBack;
   final void Function(Room room) onOpenRoom;
+
+  /// The chat open beside this pane, shown tinted in the list.
+  final String? activeRoomId;
   const VibeCommunityPane({
     required this.space,
     required this.onBack,
     required this.onOpenRoom,
+    this.activeRoomId,
     super.key,
   });
 
@@ -339,7 +345,7 @@ class VibeCommunityPane extends StatefulWidget {
 }
 
 class _VibeCommunityPaneState extends State<VibeCommunityPane> {
-  /// 0: rooms, 1: the community (members, invite, settings).
+  /// 0: rooms, 1: threads, 2: people, 3: the community's settings (⋯).
   int _tab = 0;
   List<_Channel>? _remote;
   String? _joining;
@@ -347,9 +353,14 @@ class _VibeCommunityPaneState extends State<VibeCommunityPane> {
 
   Room get space => widget.space;
 
+  void _onThreads() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
+    VibeThreads.revision.addListener(_onThreads);
     _load();
     // channels added or removed elsewhere
     _sub = space.client.onSync.stream
@@ -365,6 +376,7 @@ class _VibeCommunityPaneState extends State<VibeCommunityPane> {
 
   @override
   void dispose() {
+    VibeThreads.revision.removeListener(_onThreads);
     _sub?.cancel();
     super.dispose();
   }
@@ -622,43 +634,30 @@ class _VibeCommunityPaneState extends State<VibeCommunityPane> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final sub = cs.onSurfaceVariant;
     final name = space.getLocalizedDisplayname(MatrixLocals(L10n.of(context)));
     final invited = space.membership == Membership.invite;
     final isPublic = VibeGroups.isPublic(space);
     final canAdd = space.canChangeStateEvent(EventTypes.SpaceChild);
     final channels = _channels(context);
+    final text = channels.where((c) => !c.voice).toList();
+    final voice = channels.where((c) => c.voice).toList();
     final topic = space.topic;
 
     return Material(
-      color: cs.surface,
+      type: MaterialType.transparency,
       child: SafeArea(
         bottom: false,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 120),
+          padding: const EdgeInsets.only(bottom: 120),
           children: [
-            Row(
-              children: [
-                IconButton(
-                  tooltip: 'Back',
-                  icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-                  onPressed: widget.onBack,
-                ),
-                const Spacer(),
-                if (space.canInvite && !invited)
-                  FilledButton.tonal(
-                    onPressed: () => VibeGroups.showInvite(context, space),
-                    child: const Text('Invite'),
-                  ),
-                if (!invited)
-                  IconButton(
-                    tooltip: 'Community',
-                    icon: const Icon(Icons.more_horiz),
-                    onPressed: () => setState(() => _tab = 1),
-                  ),
-              ],
+            VibeTreeTop(
+              onBack: widget.onBack,
+              // the community's own settings
+              onMore: invited ? null : () => setState(() => _tab = 3),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(6, 8, 6, 12),
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 6),
               child: Row(
                 children: [
                   GestureDetector(
@@ -685,15 +684,13 @@ class _VibeCommunityPaneState extends State<VibeCommunityPane> {
                           style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w700,
+                            letterSpacing: -0.24,
                           ),
                         ),
                         Text(
                           '${VibeGroups.memberCount(space)} members · '
                           '${isPublic ? 'Public' : 'Private'}',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: cs.onSurfaceVariant,
-                          ),
+                          style: TextStyle(fontSize: 14, color: sub),
                         ),
                       ],
                     ),
@@ -703,43 +700,62 @@ class _VibeCommunityPaneState extends State<VibeCommunityPane> {
             ),
             if (topic.isNotEmpty)
               Padding(
-                padding: const EdgeInsets.fromLTRB(6, 0, 6, 10),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
                 child: Text(
                   topic,
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 13.5, color: cs.onSurfaceVariant),
+                  style: TextStyle(fontSize: 13.5, color: sub),
                 ),
               ),
             if (!invited)
-              // Rooms | Community
-              Container(
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  color: cs.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(12),
-                ),
+              // Rooms  Threads  People ............ Invite
+              Padding(
+                padding: const EdgeInsets.fromLTRB(22, 6, 22, 2),
                 child: Row(
                   children: [
-                    for (final (i, label) in const ['Rooms', 'Community'].indexed)
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(() => _tab = i),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            height: 38,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: _tab == i ? cs.surfaceContainerHighest : Colors.transparent,
-                              borderRadius: BorderRadius.circular(9),
-                            ),
-                            child: Text(
-                              label,
-                              style: TextStyle(
-                                fontSize: 14.5,
-                                fontWeight: _tab == i ? FontWeight.w700 : FontWeight.w500,
-                                color: _tab == i ? cs.onSurface : cs.onSurfaceVariant,
+                    for (final (i, label)
+                        in const ['Rooms', 'Threads', 'People'].indexed)
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => setState(() => _tab = i),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          margin: const EdgeInsets.only(right: 22),
+                          padding: const EdgeInsets.only(bottom: 6),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                color: _tab == i
+                                    ? cs.primary
+                                    : Colors.transparent,
+                                width: 2,
                               ),
+                            ),
+                          ),
+                          child: Text(
+                            label,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: _tab == i ? cs.onSurface : sub,
+                            ),
+                          ),
+                        ),
+                      ),
+                    const Spacer(),
+                    if (space.canInvite)
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => VibeGroups.showInvite(context, space),
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Text(
+                            'Invite',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: cs.primary,
                             ),
                           ),
                         ),
@@ -747,156 +763,237 @@ class _VibeCommunityPaneState extends State<VibeCommunityPane> {
                   ],
                 ),
               ),
-            const SizedBox(height: 8),
             if (invited)
-              _InviteBanner(name: name, onAnswer: _accept)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: _InviteBanner(name: name, onAnswer: _accept),
+              )
             else if (_tab == 0) ...[
-              VibePaneHeader(
-                'CHANNELS',
-                onAdd: canAdd ? () => VibeCommunities.newChannel(context, space) : null,
+              VibeTreeSection(
+                title: 'Channels',
+                onAdd: canAdd
+                    ? () => VibeCommunities.newChannel(context, space)
+                    : null,
+                children: [
+                  if (_remote == null && channels.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Center(child: CircularProgressIndicator.adaptive()),
+                    )
+                  else if (channels.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+                      child: Text(
+                        canAdd
+                            ? 'No channels yet. Tap + to add one.'
+                            : 'No channels yet.',
+                        style: TextStyle(color: sub),
+                      ),
+                    ),
+                  for (final c in text) ..._rows(context, c),
+                  if (canAdd)
+                    VibeTreeRow(
+                      icon: Icons.add_rounded,
+                      label: 'Add existing group',
+                      onTap: () => VibeCommunities.addExisting(context, space),
+                    ),
+                ],
               ),
-              if (_remote == null && channels.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Center(child: CircularProgressIndicator.adaptive()),
-                )
-              else if (channels.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(6, 8, 6, 8),
-                  child: Text(
-                    canAdd
-                        ? 'No channels yet. Tap + to add one.'
-                        : 'No channels yet.',
-                    style: TextStyle(color: cs.onSurfaceVariant),
+              if (voice.isNotEmpty)
+                VibeTreeSection(
+                  title: 'Voice',
+                  children: [for (final c in voice) ..._rows(context, c)],
+                ),
+            ] else if (_tab == 1)
+              ..._threads(context, channels)
+            else if (_tab == 2)
+              _people(context)
+            else
+              VibeTreeSection(
+                title: 'Community',
+                children: [
+                  VibeTreeRow(
+                    icon: Icons.group_outlined,
+                    label: 'Members',
+                    meta: '${VibeGroups.memberCount(space)}',
+                    onTap: () => VibeGroups.showMembers(context, space),
                   ),
-                ),
-              for (final c in channels) _row(context, c),
-              if (canAdd)
-                VibeHashRow(
-                  label: 'add-existing-group',
-                  onTap: () => VibeCommunities.addExisting(context, space),
-                ),
-            ] else ...[
-              const VibePaneHeader('COMMUNITY'),
-              VibeHashRow(
-                label: 'members',
-                subtitle: '${VibeGroups.memberCount(space)} people',
-                onTap: () => VibeGroups.showMembers(context, space),
+                  if (space.canInvite)
+                    VibeTreeRow(
+                      icon: Icons.person_add_alt_rounded,
+                      label: 'Invite people',
+                      onTap: () => VibeGroups.showInvite(context, space),
+                    ),
+                  if (space.canChangeStateEvent(EventTypes.RoomAvatar))
+                    VibeTreeRow(
+                      icon: Icons.image_outlined,
+                      label: 'Community picture',
+                      onTap: () => VibeGroupEdit.changePicture(context, space),
+                    ),
+                  if (space.canChangeStateEvent(EventTypes.RoomName))
+                    VibeTreeRow(
+                      icon: Icons.edit_outlined,
+                      label: 'Rename community',
+                      onTap: () => VibeGroups.rename(context, space),
+                    ),
+                  VibeTreeRow(
+                    icon: isPublic ? Icons.public_rounded : Icons.lock_rounded,
+                    label: 'Privacy',
+                    meta: isPublic ? 'Public' : 'Private',
+                    onTap: () => VibeGroupEdit.privacy(context, space),
+                  ),
+                  VibeTreeRow(
+                    icon: Icons.logout_rounded,
+                    label: 'Leave community',
+                    onTap: _leave,
+                  ),
+                  if (VibeGroups.canDelete(space))
+                    VibeTreeRow(
+                      icon: Icons.delete_outline_rounded,
+                      label: 'Delete community',
+                      color: cs.error,
+                      iconColor: cs.error,
+                      onTap: () => VibeGroups.delete(context, space),
+                    ),
+                ],
               ),
-              if (space.canInvite)
-                VibeHashRow(
-                  label: 'invite-people',
-                  onTap: () => VibeGroups.showInvite(context, space),
-                ),
-              if (space.canChangeStateEvent(EventTypes.RoomAvatar))
-                VibeHashRow(
-                  label: 'community-picture',
-                  onTap: () => VibeGroupEdit.changePicture(context, space),
-                ),
-              if (space.canChangeStateEvent(EventTypes.RoomName))
-                VibeHashRow(
-                  label: 'rename-community',
-                  onTap: () => VibeGroups.rename(context, space),
-                ),
-              VibeHashRow(
-                label: 'privacy',
-                subtitle: isPublic
-                    ? 'Public · anyone can join'
-                    : 'Private · invite only',
-                subtitleIcon: isPublic ? Icons.public_rounded : Icons.lock_rounded,
-                onTap: () => VibeGroupEdit.privacy(context, space),
-              ),
-              VibeHashRow(label: 'leave-community', onTap: _leave),
-              if (VibeGroups.canDelete(space))
-                VibeHashRow(
-                  label: 'delete-community',
-                  iconColor: Theme.of(context).colorScheme.error,
-                  onTap: () => VibeGroups.delete(context, space),
-                ),
-            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _row(BuildContext context, _Channel c) {
-    final cs = Theme.of(context).colorScheme;
+  /// A channel's row, and its open threads hanging under it.
+  List<Widget> _rows(BuildContext context, _Channel c) {
     final found = space.client.getRoomById(c.id);
     final local = found != null && found.membership == Membership.join
         ? found
         : null;
-    final unread = local?.notificationCount ?? 0;
     final label = VibeGroups.slug(
       local != null ? VibeGroups.nameOf(context, local) : c.name,
     );
-    String? subtitle;
-    if (local != null) {
-      subtitle = local.lastEvent?.vibeBodyFallback(
-        MatrixLocals(L10n.of(context)),
-        hideReply: true,
-        withSenderNamePrefix: true,
-      );
-    } else {
-      subtitle = [
-        if (c.members > 0) '${c.members} members',
-        if (c.topic != null && c.topic!.isNotEmpty) c.topic!,
-      ].join(' · ');
-      if (subtitle.isEmpty) subtitle = null;
-    }
+    final threads = local == null ? const <String>[] : VibeThreads.ids(local.id);
+    String? meta;
     Widget? trailing;
     if (_joining == c.id) {
       trailing = const SizedBox(
-        width: 18,
-        height: 18,
+        width: 16,
+        height: 16,
         child: CircularProgressIndicator(strokeWidth: 2),
       );
     } else if (local == null) {
-      trailing = Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: cs.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Text(
-          'Join',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-            color: cs.onSurface,
+      meta = 'Join';
+    } else if (c.voice) {
+      meta = 'Voice';
+    } else if (threads.isNotEmpty) {
+      meta = threads.length == 1 ? '1 thread' : '${threads.length} threads';
+    }
+    return [
+      VibeTreeRow(
+        key: ValueKey(c.id),
+        icon: c.voice ? Icons.music_note_rounded : Icons.tag_rounded,
+        label: label.isEmpty ? 'channel' : label,
+        meta: meta,
+        unread: local?.notificationCount ?? 0,
+        bold: local?.isUnread ?? false,
+        selected: local != null && local.id == widget.activeRoomId,
+        trailing: trailing,
+        onTap: () => _open(c),
+        onLongPress: () => _channelMenu(c),
+      ),
+      if (local != null)
+        for (final id in threads)
+          FutureBuilder<Event?>(
+            key: ValueKey('${c.id}/$id'),
+            future: local.getEventById(id),
+            builder: (context, snap) => VibeTreeRow(
+              nested: true,
+              icon: Icons.subdirectory_arrow_right_rounded,
+              label: VibeThreads.nameOf(local.id, id, snap.data),
+              onTap: () {
+                VibeThreads.openNext(local.id, id);
+                widget.onOpenRoom(local);
+              },
+            ),
           ),
+    ];
+  }
+
+  /// Threads tab: every open thread, under its channel.
+  List<Widget> _threads(BuildContext context, List<_Channel> channels) {
+    final out = <Widget>[];
+    for (final c in channels) {
+      final r = space.client.getRoomById(c.id);
+      if (r == null || r.membership != Membership.join) continue;
+      final ids = VibeThreads.ids(r.id);
+      if (ids.isEmpty) continue;
+      out.add(
+        VibeTreeSection(
+          key: ValueKey('threads/${r.id}'),
+          title: VibeGroups.slug(VibeGroups.nameOf(context, r)),
+          children: [
+            for (final id in ids)
+              FutureBuilder<Event?>(
+                future: r.getEventById(id),
+                builder: (context, snap) => VibeTreeRow(
+                  icon: VibeThreads.icon,
+                  label: VibeThreads.nameOf(r.id, id, snap.data),
+                  onTap: () {
+                    VibeThreads.openNext(r.id, id);
+                    widget.onOpenRoom(r);
+                  },
+                ),
+              ),
+          ],
         ),
       );
-    } else if (unread > 0) {
-      trailing = Container(
-        constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
-        padding: const EdgeInsets.symmetric(horizontal: 6),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: cs.error,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Text(
-          '$unread',
-          style: TextStyle(
-            fontSize: 11.5,
-            fontWeight: FontWeight.bold,
-            color: cs.onError,
+    }
+    if (out.isEmpty) {
+      out.add(
+        Padding(
+          padding: const EdgeInsets.fromLTRB(22, 16, 22, 8),
+          child: Text(
+            'No open threads yet.',
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
       );
     }
-    return VibeHashRow(
-      key: ValueKey(c.id),
-      label: label.isEmpty ? 'channel' : label,
-      icon: c.voice ? Icons.volume_up : null,
-      subtitle: c.voice && local == null
-          ? (c.members > 0 ? '${c.members} members · voice' : 'Voice channel')
-          : subtitle,
-      bold: local?.isUnread ?? false,
-      trailing: trailing,
-      onTap: () => _open(c),
-      onLongPress: () => _channelMenu(c),
+    return out;
+  }
+
+  /// People tab: the members this device knows about, then everyone.
+  Widget _people(BuildContext context) {
+    final users = space.getParticipants();
+    return VibeTreeSection(
+      title: 'Members',
+      note: '${VibeGroups.memberCount(space)}',
+      children: [
+        for (final u in users.take(50))
+          VibeTreeRow(
+            leading: Avatar(
+              mxContent: u.avatarUrl,
+              name: u.calcDisplayname(),
+              size: 22,
+              client: space.client,
+            ),
+            label: u.calcDisplayname(),
+            onTap: () => VibeUserSheet.show(
+              context,
+              client: space.client,
+              userId: u.id,
+              displayName: u.calcDisplayname(),
+              avatarUrl: u.avatarUrl,
+            ),
+          ),
+        VibeTreeRow(
+          icon: Icons.group_outlined,
+          label: 'See everyone',
+          onTap: () => VibeGroups.showMembers(context, space),
+        ),
+      ],
     );
   }
 }

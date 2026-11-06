@@ -97,6 +97,10 @@ class _VibeHomeViewState extends State<VibeHomeView> {
   }
 
   void _dragUpdate(DragUpdateDetails d) {
+    if (!_dragging && selectedId != null && d.delta.dx > 0) {
+      _back += d.delta.dx;
+      return;
+    }
     if (!_dragging) {
       if (_busy || d.delta.dx >= 0) return;
       final id = _targetId();
@@ -119,8 +123,19 @@ class _VibeHomeViewState extends State<VibeHomeView> {
 
   bool _busy = false;
 
+  /// How far a right swipe has gone on a middle pane.
+  double _back = 0;
+
   void _dragEnd(DragEndDetails d) {
-    if (!_dragging) return;
+    final back = _back;
+    _back = 0;
+    if (!_dragging) {
+      if (selectedId != null &&
+          (back > 80 || (back > 20 && (d.primaryVelocity ?? 0) > 400))) {
+        setState(() => selectedId = null);
+      }
+      return;
+    }
     _dragging = false;
     _settle(d.primaryVelocity ?? 0);
   }
@@ -242,12 +257,39 @@ class _VibeHomeViewState extends State<VibeHomeView> {
                       child: VibeGlassPane(
                         // full screen: no window frame or rounded edge
                         frame: false,
+                        child: ClipRect(
+                        child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 280),
+                        reverseDuration: const Duration(milliseconds: 240),
+                        // the list moves right while a person or community
+                        // slides in from the left, and back again
+                        layoutBuilder: (current, previous) => Stack(
+                          fit: StackFit.expand,
+                          children: [...previous, ?current],
+                        ),
+                        transitionBuilder: (child, anim) {
+                          final curved = CurvedAnimation(
+                            parent: anim,
+                            curve: Curves.easeOutCubic,
+                            reverseCurve: Curves.easeInCubic,
+                          );
+                          final fromRight = child.key == const ValueKey('list');
+                          return SlideTransition(
+                            position: Tween<Offset>(
+                              begin: Offset(fromRight ? 1 : -1, 0),
+                              end: Offset.zero,
+                            ).animate(curved),
+                            child: child,
+                          );
+                        },
                         child: selectedId == _startId
                             ? VibeStartPane(
+                                key: const ValueKey(_startId),
                                 onBack: () => setState(() => selectedId = null),
                               )
                             : selected == null
                             ? VibeDmPane(
+                                key: const ValueKey('list'),
                                 showSearch: _search,
                                 rooms: rooms,
                                 activeRoomId: controller.activeChat,
@@ -262,6 +304,7 @@ class _VibeHomeViewState extends State<VibeHomeView> {
                             ? VibeCommunityPane(
                                 key: ValueKey(selected.id),
                                 space: selected,
+                                activeRoomId: controller.activeChat,
                                 onBack: () => setState(() => selectedId = null),
                                 onOpenRoom: (room) {
                                   _lastOpenedId = room.id;
@@ -277,6 +320,8 @@ class _VibeHomeViewState extends State<VibeHomeView> {
                                   controller.onChatTap(selected);
                                 },
                               ),
+                        ),
+                        ),
                       ),
                       ),
                     ),

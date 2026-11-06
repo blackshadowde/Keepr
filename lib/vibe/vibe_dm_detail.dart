@@ -26,6 +26,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:matrix/matrix.dart';
 import 'package:vibe/vibe/vibe_threads.dart';
+import 'package:vibe/vibe/vibe_tree.dart';
+import 'package:vibe/vibe/vibe_strict.dart';
+import 'package:vibe/vibe/vibe_communities.dart';
+import 'package:vibe/vibe/vibe_chat_actions.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 final RegExp _urlRegex = RegExp(r'https?://\S+');
@@ -60,174 +64,182 @@ class VibeDmDetail extends StatelessWidget {
 
     void open(_Kind kind) => _DmSheet.open(context, room, kind);
 
+    final sub = cs.onSurfaceVariant;
+    final unread = room.notificationCount > 0
+        ? room.notificationCount
+        : (room.markedUnread ? 1 : 0);
+    final strict = room.encrypted && VibeStrict.isOn(room);
+    // communities you both are in
+    final shared = other == null || group
+        ? const <String>[]
+        : [
+            for (final s in VibeCommunities.joined(room.client))
+              if (s.getParticipants().any((u) => u.id == other))
+                VibeGroups.nameOf(context, s),
+          ];
+
     return Material(
-      color: cs.surface,
+      type: MaterialType.transparency,
       child: SafeArea(
         bottom: false,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 120),
+          padding: const EdgeInsets.only(bottom: 120),
           children: [
-            // Same search bar as Home: tapping it goes back to Home.
-            GestureDetector(
-              onTap: onBack,
-              child: Container(
-                height: 46,
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                decoration: BoxDecoration(
-                  color: cs.surfaceContainerLowest,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.search, size: 22, color: cs.onSurfaceVariant),
-                    const SizedBox(width: 10),
-                    Text(
-                      'Find or start a conversation',
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: cs.onSurfaceVariant,
-                      ),
+            VibeTreeTop(
+              onBack: onBack,
+              onMore: invited
+                  ? null
+                  : () => VibeChatActions.show(
+                      context,
+                      room,
+                      onOpen: onOpenChat,
                     ),
-                  ],
-                ),
-              ),
             ),
-            const SizedBox(height: 18),
             Padding(
-              padding: const EdgeInsets.only(left: 6),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: GestureDetector(
-                  onTap: invited ? null : onOpenChat,
-                  onLongPress:
-                      group && room.canChangeStateEvent(EventTypes.RoomAvatar)
-                      ? () => VibeGroupEdit.changePicture(context, room)
-                      : null,
-                  child: VibeMuteBadge(
-                    room: room,
-                    size: 20,
-                    child: Avatar(
-                      mxContent: room.avatar,
-                      name: name,
-                      size: 62,
-                      animated: true,
-                      client: room.client,
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: invited ? null : onOpenChat,
+                    onLongPress:
+                        group && room.canChangeStateEvent(EventTypes.RoomAvatar)
+                        ? () => VibeGroupEdit.changePicture(context, room)
+                        : null,
+                    child: VibeMuteBadge(
+                      room: room,
+                      size: 20,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Avatar(
+                            mxContent: room.avatar,
+                            name: name,
+                            size: 64,
+                            animated: true,
+                            client: room.client,
+                          ),
+                          if (!group && other != null)
+                            Positioned(
+                              right: -1,
+                              bottom: -1,
+                              child: PresenceBuilder(
+                                client: room.client,
+                                userId: other,
+                                builder: (context, p) =>
+                                    p?.presence.isOnline == true
+                                    ? Container(
+                                        width: 20,
+                                        height: 20,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF23A55A),
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: cs.surface,
+                                            width: 3,
+                                          ),
+                                        ),
+                                      )
+                                    : const SizedBox.shrink(),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Padding(
-              padding: const EdgeInsets.only(left: 6),
-              child: Text(
-                name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(left: 6, top: 2),
-              child: group
-                  ? Text(
-                      '${VibeGroups.memberCount(room)} members',
-                      style: TextStyle(
-                        fontSize: 13.5,
-                        color: cs.onSurfaceVariant,
-                      ),
-                    )
-                  : PresenceBuilder(
-                client: room.client,
-                userId: other,
-                builder: (context, p) {
-                  final online = p?.presence.isOnline == true;
-                  final last = p?.lastActiveTimestamp;
-                  final text = online
-                      ? 'online'
-                      : last != null
-                      ? 'last seen ${last.localizedTimeShort(context)}'
-                      : '';
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (text.isNotEmpty)
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          text,
-                          style: TextStyle(
-                            fontSize: 13.5,
-                            color: cs.onSurfaceVariant,
+                          name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.24,
                           ),
                         ),
-                      VibeStatusLine(
-                        room: room,
-                        userId: other,
-                        maxLines: 2,
-                        alwaysTime: true,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: cs.onSurfaceVariant,
+                        Text(
+                          group
+                              ? '${VibeGroups.memberCount(room)} members'
+                              : (other ?? ''),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 14, color: sub),
                         ),
-                      ),
-                    ],
-                  );
-                },
+                        if (!group)
+                          VibeStatusLine(
+                            room: room,
+                            userId: other,
+                            alwaysTime: true,
+                            style: TextStyle(fontSize: 14, color: sub),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 8),
             if (invited)
-              _ApprovalBanner(room: room, name: name)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: _ApprovalBanner(room: room, name: name),
+              )
             else ...[
-              StreamBuilder<Object?>(
-                stream: room.client.onSync.stream.where(
-                  (u) =>
-                      (u.rooms?.join?.containsKey(room.id) ?? false) ||
-                      (u.accountData?.isNotEmpty ?? false),
-                ),
-                builder: (context, _) => VibeHashRow(
-                  label: 'chat',
-                  // a plain speech bubble instead of "#"
-                  icon: Icons.chat_bubble_rounded,
-                  subtitle: room.encrypted ? 'End-to-end encrypted' : null,
-                  subtitleIcon: Icons.lock_rounded,
-                  unread: room.notificationCount > 0
-                      ? room.notificationCount
-                      : (room.markedUnread ? 1 : 0),
-                  onTap: onOpenChat,
-                ),
+              VibeTreeSection(
+                title: 'Conversation',
+                children: [
+                  StreamBuilder<Object?>(
+                    stream: room.client.onSync.stream.where(
+                      (u) =>
+                          (u.rooms?.join?.containsKey(room.id) ?? false) ||
+                          (u.accountData?.isNotEmpty ?? false),
+                    ),
+                    builder: (context, _) => VibeTreeRow(
+                      icon: Icons.tag_rounded,
+                      label: 'Chat',
+                      bold: true,
+                      selected: true,
+                      meta: room.latestEventReceivedTime.localizedTimeShort(
+                        context,
+                      ),
+                      unread: unread,
+                      onTap: onOpenChat,
+                    ),
+                  ),
+                  if (room.canSendDefaultMessages) ...[
+                    VibeTreeRow(
+                      icon: Icons.call_rounded,
+                      label: 'Voice call',
+                      onTap: () =>
+                          VibeCall.startFrom(context, room, video: false),
+                    ),
+                    VibeTreeRow(
+                      icon: Icons.play_arrow_rounded,
+                      label: 'Video call',
+                      onTap: () =>
+                          VibeCall.startFrom(context, room, video: true),
+                    ),
+                  ],
+                ],
               ),
-              if (room.canSendDefaultMessages) ...[
-                VibeHashRow(
-                  label: 'voice-call',
-                  icon: Icons.call_outlined,
-                  onTap: () => VibeCall.startFrom(context, room, video: false),
-                ),
-                VibeHashRow(
-                  label: 'video-call',
-                  icon: Icons.videocam_outlined,
-                  onTap: () => VibeCall.startFrom(context, room, video: true),
-                ),
-              ],
               // threads made from messages, until they're closed
               ValueListenableBuilder<int>(
                 valueListenable: VibeThreads.revision,
                 builder: (context, _, _) {
                   final ids = VibeThreads.ids(room.id);
                   if (ids.isEmpty) return const SizedBox.shrink();
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                  return VibeTreeSection(
+                    title: 'Threads',
                     children: [
-                      const VibePaneHeader('THREADS'),
                       for (final id in ids)
                         FutureBuilder<Event?>(
                           future: room.getEventById(id),
-                          builder: (context, snap) => VibeHashRow(
-                            label: VibeThreads.nameOf(room.id, id, snap.data),
+                          builder: (context, snap) => VibeTreeRow(
                             icon: VibeThreads.icon,
-                            iconColor: Theme.of(context).colorScheme.primary,
+                            label: VibeThreads.nameOf(room.id, id, snap.data),
                             onTap: () {
                               VibeThreads.openNext(room.id, id);
                               onOpenChat();
@@ -238,32 +250,19 @@ class VibeDmDetail extends StatelessWidget {
                               id,
                               snap.data,
                             ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  tooltip: 'Rename thread',
-                                  icon: const Icon(
-                                    Icons.edit_outlined,
-                                    size: 18,
-                                  ),
-                                  onPressed: () => VibeThreads.rename(
-                                    context,
-                                    room.id,
-                                    id,
-                                    snap.data,
-                                  ),
+                            trailing: SizedBox(
+                              width: 32,
+                              height: 32,
+                              child: IconButton(
+                                padding: EdgeInsets.zero,
+                                tooltip: 'Close thread',
+                                icon: const Icon(Icons.close_rounded, size: 18),
+                                onPressed: () => VibeThreads.confirmClose(
+                                  context,
+                                  room.id,
+                                  id,
                                 ),
-                                IconButton(
-                                  tooltip: 'Close thread',
-                                  icon: const Icon(Icons.close, size: 18),
-                                  onPressed: () => VibeThreads.confirmClose(
-                                    context,
-                                    room.id,
-                                    id,
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
                           ),
                         ),
@@ -271,78 +270,129 @@ class VibeDmDetail extends StatelessWidget {
                   );
                 },
               ),
-              const VibePaneHeader('INFO'),
-              VibeHashRow(
-                label: 'media',
-                subtitle: 'Photos and videos',
-                onTap: () => open(_Kind.media),
-              ),
-              VibeHashRow(label: 'files', onTap: () => open(_Kind.files)),
-              VibeHashRow(label: 'links', onTap: () => open(_Kind.links)),
-              VibeHashRow(
-                label: 'voice-messages',
-                onTap: () => open(_Kind.voice),
-              ),
-              VibeHashRow(
-                label: 'starred-messages',
-                onTap: () => open(_Kind.starred),
+              VibeTreeSection(
+                title: 'Shared',
+                children: [
+                  VibeTreeRow(
+                    icon: Icons.grid_view_rounded,
+                    label: 'Media',
+                    onTap: () => open(_Kind.media),
+                  ),
+                  VibeTreeRow(
+                    icon: Icons.article_outlined,
+                    label: 'Files',
+                    onTap: () => open(_Kind.files),
+                  ),
+                  VibeTreeRow(
+                    icon: Icons.north_east_rounded,
+                    label: 'Links',
+                    onTap: () => open(_Kind.links),
+                  ),
+                  VibeTreeRow(
+                    icon: Icons.music_note_rounded,
+                    label: 'Voice messages',
+                    onTap: () => open(_Kind.voice),
+                  ),
+                  VibeTreeRow(
+                    icon: Icons.star_rounded,
+                    label: 'Starred',
+                    onTap: () => open(_Kind.starred),
+                  ),
+                ],
               ),
               if (group) ...[
-                const VibePaneHeader('MEMBERS'),
-                VibeHashRow(
-                  label: 'members',
-                  subtitle: '${VibeGroups.memberCount(room)} people',
-                  onTap: () => VibeGroups.showMembers(context, room),
+                VibeTreeSection(
+                  title: 'Members',
+                  children: [
+                    VibeTreeRow(
+                      icon: Icons.group_outlined,
+                      label: 'Members',
+                      meta: '${VibeGroups.memberCount(room)}',
+                      onTap: () => VibeGroups.showMembers(context, room),
+                    ),
+                    if (room.canInvite)
+                      VibeTreeRow(
+                        icon: Icons.person_add_alt_rounded,
+                        label: 'Invite people',
+                        onTap: () => VibeGroups.showInvite(context, room),
+                      ),
+                  ],
                 ),
-                if (room.canInvite)
-                  VibeHashRow(
-                    label: 'invite-people',
-                    onTap: () => VibeGroups.showInvite(context, room),
-                  ),
-                const VibePaneHeader('GROUP'),
-                if (room.canChangeStateEvent(EventTypes.RoomAvatar))
-                  VibeHashRow(
-                    label: 'group-picture',
-                    onTap: () => VibeGroupEdit.changePicture(context, room),
-                  ),
-                if (room.canChangeStateEvent(EventTypes.RoomName))
-                  VibeHashRow(
-                    label: 'rename-group',
-                    onTap: () => VibeGroups.rename(context, room),
-                  ),
-                VibeHashRow(
-                  label: 'privacy',
-                  subtitle: VibeGroups.isPublic(room)
-                      ? 'Public · anyone can join'
-                      : 'Private · invite only',
-                  subtitleIcon: VibeGroups.isPublic(room)
-                      ? Icons.public_rounded
-                      : Icons.lock_rounded,
-                  onTap: () => VibeGroupEdit.privacy(context, room),
+                VibeTreeSection(
+                  title: 'Group',
+                  children: [
+                    if (room.canChangeStateEvent(EventTypes.RoomAvatar))
+                      VibeTreeRow(
+                        icon: Icons.image_outlined,
+                        label: 'Group picture',
+                        onTap: () => VibeGroupEdit.changePicture(context, room),
+                      ),
+                    if (room.canChangeStateEvent(EventTypes.RoomName))
+                      VibeTreeRow(
+                        icon: Icons.edit_outlined,
+                        label: 'Rename group',
+                        onTap: () => VibeGroups.rename(context, room),
+                      ),
+                    VibeTreeRow(
+                      icon: VibeGroups.isPublic(room)
+                          ? Icons.public_rounded
+                          : Icons.lock_rounded,
+                      label: 'Privacy',
+                      meta: VibeGroups.isPublic(room) ? 'Public' : 'Private',
+                      onTap: () => VibeGroupEdit.privacy(context, room),
+                    ),
+                    VibeTreeRow(
+                      icon: Icons.logout_rounded,
+                      label: 'Leave group',
+                      onTap: () => VibeGroups.leave(context, room),
+                    ),
+                    if (VibeGroups.canDelete(room))
+                      VibeTreeRow(
+                        icon: Icons.delete_outline_rounded,
+                        label: 'Delete group',
+                        color: cs.error,
+                        iconColor: cs.error,
+                        onTap: () => VibeGroups.delete(context, room),
+                      ),
+                  ],
                 ),
-                VibeHashRow(
-                  label: 'leave-group',
-                  onTap: () => VibeGroups.leave(context, room),
-                ),
-                if (VibeGroups.canDelete(room))
-                  VibeHashRow(
-                    label: 'delete-group',
-                    iconColor: Theme.of(context).colorScheme.error,
-                    onTap: () => VibeGroups.delete(context, room),
-                  ),
               ],
-              if (other != null && !group)
-                VibeHashRow(
-                  label: 'profile',
-                  onTap: () => VibeUserSheet.show(
-                    context,
-                    client: room.client,
-                    userId: other,
-                    displayName: name,
-                    avatarUrl: room.avatar,
-                    currentRoomId: room.id,
+              VibeTreeSection(
+                title: 'About',
+                children: [
+                  if (other != null && !group)
+                    VibeTreeRow(
+                      icon: Icons.adjust_rounded,
+                      label: 'Profile',
+                      onTap: () => VibeUserSheet.show(
+                        context,
+                        client: room.client,
+                        userId: other,
+                        displayName: name,
+                        avatarUrl: room.avatar,
+                        currentRoomId: room.id,
+                      ),
+                    ),
+                  if (shared.isNotEmpty)
+                    VibeTreeRow(
+                      icon: Icons.diamond_outlined,
+                      label: 'In ${shared.join(', ')}',
+                    ),
+                  VibeTreeRow(
+                    icon: Icons.key_rounded,
+                    label: room.encrypted
+                        ? 'Strict encryption'
+                        : 'Not encrypted',
+                    meta: room.encrypted ? (strict ? 'on' : 'off') : null,
+                    iconColor: strict ? const Color(0xFF23A55A) : null,
+                    onTap: room.encrypted
+                        ? () => ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(VibeStrict.describe(room))),
+                          )
+                        : null,
                   ),
-                ),
+                ],
+              ),
             ],
           ],
         ),

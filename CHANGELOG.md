@@ -11,6 +11,8 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 - Chat: your longer messages line up to the right edge line by line, and the sent / read dots sit on the left of your text, so your side reads cleanly ([b1d2e4b](https://github.com/blackshadowde/keepr/commit/b1d2e4b))
 - Home fixes: the "Chats" title now uses the app's font and colours (it showed in red with a yellow underline), the chat list is one clean panel instead of a frame inside a frame, and every chat's time lines up on the right ([90b4edc](https://github.com/blackshadowde/keepr/commit/90b4edc))
 - Home: the chat list and community pane now fill the screen edge to edge, with no outer frame or rounded window corner ([6ceb04c](https://github.com/blackshadowde/keepr/commit/6ceb04c))
+- Person page and community pane redone as a folding tree: sections (Conversation, Threads, Shared, About for a person; Channels, Voice for a community) with a small arrow to fold them and rows hanging off one faint guide line, no boxes. A person's page shows the online dot on their picture, the last message time on Chat, the communities you share and whether strict encryption is on. A community has Rooms / Threads / People tabs with Invite beside them, threads sit under their channel, the open chat is tinted, and ⋯ shows its settings (PENDING)
+- Motion: a person page or community slides in from the left while the chat list moves out to the right, and back again; swipe right on it to close it (PENDING)
 
 ## 2026-11-06 ([ca7d315](https://github.com/blackshadowde/keepr/commit/ca7d31536))
 
