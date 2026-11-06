@@ -3,6 +3,8 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'dart:ui' as ui;
+
 import 'package:flutter/services.dart';
 import 'package:vibe/vibe/vibe_event_body.dart';
 import 'package:vibe/vibe/vibe_starred.dart';
@@ -393,7 +395,7 @@ class VibeMessage extends StatelessWidget {
     // (left in right-to-left languages).
     final dir = Directionality.of(context);
     final side = ownMessage
-        ? (dir == TextDirection.ltr ? TextDirection.rtl : TextDirection.ltr)
+        ? (dir == ui.TextDirection.ltr ? ui.TextDirection.rtl : ui.TextDirection.ltr)
         : dir;
 
     bool sameGroup(Event? e) =>
@@ -648,7 +650,7 @@ class VibeMessage extends StatelessWidget {
                     height: 22,
                     // the same curve, mirrored when the avatar is on the right
                     child: Transform.flip(
-                      flipX: side == TextDirection.rtl,
+                      flipX: side == ui.TextDirection.rtl,
                       child: CustomPaint(painter: _ReplyCurve(lineColor)),
                     ),
                   ),
