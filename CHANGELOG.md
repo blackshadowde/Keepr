@@ -15,7 +15,7 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 - Motion: a person page or community slides in from the left while the chat list moves out to the right, and back again; swipe right on it to close it ([49b7d8c](https://github.com/blackshadowde/keepr/commit/49b7d8c))
 - Chat text: messages now use Figtree Regular with more room between lines, so long messages read cleaner ([75547f5](https://github.com/blackshadowde/keepr/commit/75547f5))
 - Photos: two or more photos sent together now show as one stack, the first photo on top and tilted cards behind it, on the sender's side; tap to swipe through them (was a grid for 4 or more) ([75547f5](https://github.com/blackshadowde/keepr/commit/75547f5))
-- Read state: your messages show 1 dot when sent and 2 when delivered; once read, "Seen by" and the names show once under your newest read message instead of on every message ([75547f5](https://github.com/blackshadowde/keepr/commit/75547f5))
+- Read state: your messages show 1 dot when sent and 2 when delivered; once read, the dots go away and "Seen by" with the names shows once under your newest read message ([75547f5](https://github.com/blackshadowde/keepr/commit/75547f5))
 
 ## 2026-11-06 ([ca7d315](https://github.com/blackshadowde/keepr/commit/ca7d31536))
 

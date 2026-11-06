@@ -180,6 +180,16 @@ class VibeChatIntro extends StatelessWidget {
   }
 }
 
+/// Has anyone else read [event] (a receipt on it or anything newer)?
+bool _readByOther(Event event, Timeline timeline) {
+  final me = event.room.client.userID;
+  for (final e in timeline.events) {
+    if (e.receipts.any((r) => r.user.id != me)) return true;
+    if (e.eventId == event.eventId) break;
+  }
+  return false;
+}
+
 /// Who has read up to [event], but only for your newest read message, so
 /// "Seen by" shows once under a run of your messages, not under each one.
 List<String>? _seenBy(Event event, Timeline timeline) {
@@ -380,9 +390,11 @@ class _StatusBits extends StatelessWidget {
             false,
       ),
       builder: (context, _) {
-        // dots: 1 sent, 2 delivered (back from the server). Read shows as
-        // "Seen by …" under your newest read message instead. Grey turns
-        // black in light mode.
+        // dots: 1 sent, 2 delivered (back from the server). Once read the
+        // dots go away (seen means sent and delivered) and "Seen by …"
+        // shows under your newest read message. Grey turns black in light
+        // mode.
+        if (_readByOther(event, timeline)) return const SizedBox.shrink();
         final ink = theme.brightness == Brightness.dark ? dim : const Color(0xFF111214);
         return VibeStatusDots(count: status.isSynced ? 2 : 1, color: ink);
       },
