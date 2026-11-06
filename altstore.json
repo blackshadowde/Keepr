@@ -16,6 +16,14 @@
       "category": "social",
       "versions": [
         {
+          "version": "3.1.131",
+          "buildVersion": "131",
+          "date": "2026-11-06",
+          "size": 22285226,
+          "localizedDescription": "Vibe 3.1.131",
+          "downloadURL": "https://github.com/blackshadowde/Keepr/releases/download/ios-v3.1.131/Keepr.ipa"
+        },
+        {
           "version": "3.1.127",
           "buildVersion": "127",
           "date": "2026-11-04",
