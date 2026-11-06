@@ -9,6 +9,7 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 - Community pane: back, Invite and a menu at the top, the picture and name with members, and a Rooms / Community switch (Community has members, invite, picture, name, privacy and leave) ([f3d7469](https://github.com/blackshadowde/keepr/commit/f3d7469))
 - Chat screen: the + sits beside the message field, the mic and send buttons are round in the theme's colour, and groups and channels show their community and encryption under the name ([a5354d0](https://github.com/blackshadowde/keepr/commit/a5354d0))
 - Chat: your longer messages line up to the right edge line by line, and the sent / read dots sit on the left of your text, so your side reads cleanly ([b1d2e4b](https://github.com/blackshadowde/keepr/commit/b1d2e4b))
+- Home fixes: the "Chats" title now uses the app's font and colours (it showed in red with a yellow underline), the chat list is one clean panel instead of a frame inside a frame, and every chat's time lines up on the right ([90b4edc](https://github.com/blackshadowde/keepr/commit/90b4edc))
 
 ## 2026-11-06 ([ca7d315](https://github.com/blackshadowde/keepr/commit/ca7d31536))
 
