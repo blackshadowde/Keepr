@@ -696,7 +696,7 @@
         "type": "String",
         "placeholders": {}
     },
-    "newMessageInFluffyChat": "Nauja žinutė FluffyChat'e",
+    "newMessageInFluffyChat": "Nauja žinutė Keepr'e",
     "@newMessageInFluffyChat": {
         "type": "String",
         "placeholders": {}
@@ -1045,7 +1045,7 @@
         "type": "String",
         "placeholders": {}
     },
-    "noGoogleServicesWarning": "Atrodo, kad jūsų telefone nėra Google Services. Tai geras sprendimas jūsų privatumui! Norėdami gauti tiesioginius pranešimus FluffyChat, rekomenduojame naudoti https://microg.org/ arba https://unifiedpush.org/.",
+    "noGoogleServicesWarning": "Atrodo, kad jūsų telefone nėra Google Services. Tai geras sprendimas jūsų privatumui! Norėdami gauti tiesioginius pranešimus Keepr, rekomenduojame naudoti https://microg.org/ arba https://unifiedpush.org/.",
     "@noGoogleServicesWarning": {
         "type": "String",
         "placeholders": {}
@@ -1466,7 +1466,7 @@
             }
         }
     },
-    "inviteText": "{username} pakvietė jus prisijungti prie FluffyChat. \n1. Įdiekite FluffyChat: https://fluffychat.im \n2. Prisiregistruokite arba prisijunkite \n3. Atidarykite pakvietimo nuorodą: {link}",
+    "inviteText": "{username} pakvietė jus prisijungti prie Keepr. \n1. Įdiekite Keepr: https://get-keepr.github.io \n2. Prisiregistruokite arba prisijunkite \n3. Atidarykite pakvietimo nuorodą: {link}",
     "@inviteText": {
         "type": "String",
         "placeholders": {
@@ -2227,7 +2227,7 @@
         "type": "String",
         "placeholders": {}
     },
-    "newPassphraseDescription": "„FluffyChat“ naudoja visapusišką šifravimą. Kad neprarastumėte savo žinučių, pasirinkite saugią slaptafrazę, kuri apsaugos jūsų kriptografinę tapatybę ir užšifruotą žinučių atsarginę kopiją.",
+    "newPassphraseDescription": "„Keepr“ naudoja visapusišką šifravimą. Kad neprarastumėte savo žinučių, pasirinkite saugią slaptafrazę, kuri apsaugos jūsų kriptografinę tapatybę ir užšifruotą žinučių atsarginę kopiją.",
     "@newPassphraseDescription": {
         "type": "String",
         "placeholders": {}
