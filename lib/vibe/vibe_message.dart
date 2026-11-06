@@ -680,6 +680,8 @@ class VibeMessage extends StatelessWidget {
               // Vibe X's soft shadow under the text in light mode
               final Widget content = DefaultTextStyle.merge(
                 style: TextStyle(shadows: _nameShadows(theme)),
+                // your messages: every line lines up to the right edge
+                textAlign: ownMessage ? TextAlign.end : null,
                 // a long message is only as wide as its longest line, so the dots sit right after it
                 textWidthBasis: TextWidthBasis.longestLine,
                 child: VibeChunks.info(displayEvent) != null
@@ -712,9 +714,12 @@ class VibeMessage extends StatelessWidget {
               // failures and file uploads (with Retry / Cancel) go below.
               final ticks = ownMessage && !_statusBelow(event);
               if (!ticks && effect == null) return content;
+              // Sent/read ticks sit beside the text: after it, or before it
+              // on your side so the right edge stays clean.
               return Row(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.end,
+                textDirection: side,
                 children: [
                   Flexible(child: content),
                   if (effect != null)
@@ -722,10 +727,14 @@ class VibeMessage extends StatelessWidget {
                       padding: const EdgeInsets.only(bottom: 1),
                       child: VibeEffectBadge(effect),
                     ),
-                  // Sent/read ticks sit right after the text, like WhatsApp.
                   if (ticks)
                     Padding(
-                      padding: const EdgeInsets.only(left: 6, bottom: 3),
+                      // the gap always sits between the ticks and the text
+                      padding: EdgeInsets.only(
+                        left: side == ui.TextDirection.ltr ? 6 : 0,
+                        right: side == ui.TextDirection.rtl ? 6 : 0,
+                        bottom: 3,
+                      ),
                       child: _StatusBits(event, timeline),
                     ),
                 ],
