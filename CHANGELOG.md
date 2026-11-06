@@ -6,6 +6,8 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 ## 2026-11-06 ([ca7d315](https://github.com/blackshadowde/keepr/commit/ca7d31536))
 
 - The app's text now says Keepr in every language. 152 translated lines in 39 languages still said FluffyChat, and invites pointed to fluffychat.im instead of get-keepr.github.io ([ca7d315](https://github.com/blackshadowde/keepr/commit/ca7d31536))
+- Strict encryption in direct chats: a fresh key every 3 messages or every 5 minutes. Groups, servers and communities stay at every 10 messages or every hour. Direct chats that already had strict encryption move to the new rhythm the next time they're opened. It's the standard Matrix room setting, so other Matrix apps follow it too ([290e256](https://github.com/blackshadowde/keepr/commit/290e25651))
+- Plan for quantum-safe direct chats between Keepr users: docs/post-quantum.md (nothing built yet)
 
 ## 2026-11-05 ([a97fb90](https://github.com/blackshadowde/keepr/commit/a97fb90e4))
 
