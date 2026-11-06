@@ -55,7 +55,6 @@ List<Shadow>? _nameShadows(ThemeData theme) =>
         Shadow(color: Color(0x40000000), blurRadius: 4, offset: Offset(0, 1)),
       ]
     : null;
-Color get _readTickColor => VibePalette.accent;
 
 String vibeTime(DateTime ts) {
   final local = ts.toLocal();
@@ -181,13 +180,65 @@ class VibeChatIntro extends StatelessWidget {
   }
 }
 
-bool _readByOther(Event event, Timeline timeline) {
+/// Who has read up to [event], but only for your newest read message, so
+/// "Seen by" shows once under a run of your messages, not under each one.
+List<String>? _seenBy(Event event, Timeline timeline) {
   final me = event.room.client.userID;
+  final names = <String, String>{};
   for (final e in timeline.events) {
-    if (e.receipts.any((r) => r.user.id != me)) return true;
+    for (final r in e.receipts) {
+      if (r.user.id != me) names[r.user.id] = r.user.calcDisplayname();
+    }
     if (e.eventId == event.eventId) break;
+    // a newer message of yours is already read: it carries the line
+    if (names.isNotEmpty &&
+        e.senderId == me &&
+        e.status.isSynced &&
+        {EventTypes.Message, EventTypes.Sticker}.contains(e.type)) {
+      return null;
+    }
   }
-  return false;
+  return names.isEmpty ? null : names.values.toList();
+}
+
+/// "Seen by Leo and Maya" under your newest read message.
+class _SeenBy extends StatelessWidget {
+  final Event event;
+  final Timeline timeline;
+  const _SeenBy(this.event, this.timeline);
+
+  @override
+  Widget build(BuildContext context) => StreamBuilder(
+    stream: event.room.client.onSync.stream.where(
+      (u) =>
+          u.rooms?.join?[event.room.id]?.ephemeral?.any(
+            (e) => e.type == 'm.receipt',
+          ) ??
+          false,
+    ),
+    builder: (context, _) {
+      if (!event.status.isSynced) return const SizedBox.shrink();
+      final names = _seenBy(event, timeline);
+      if (names == null) return const SizedBox.shrink();
+      final who = switch (names.length) {
+        1 => names[0],
+        2 => '${names[0]} and ${names[1]}',
+        3 => '${names[0]}, ${names[1]} and ${names[2]}',
+        _ => '${names[0]}, ${names[1]} and ${names.length - 2} others',
+      };
+      return Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Text(
+          'Seen by $who',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w400,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+      );
+    },
+  );
 }
 
 class _MiniAction extends StatelessWidget {
@@ -329,12 +380,11 @@ class _StatusBits extends StatelessWidget {
             false,
       ),
       builder: (context, _) {
-        final read = _readByOther(event, timeline);
-        // dots instead of ticks: 1 grey sent, 2 grey delivered (back from
-        // the server), 3 blue read. Grey turns black in light mode.
+        // dots: 1 sent, 2 delivered (back from the server). Read shows as
+        // "Seen by …" under your newest read message instead. Grey turns
+        // black in light mode.
         final ink = theme.brightness == Brightness.dark ? dim : const Color(0xFF111214);
-        final count = read ? 3 : (status.isSynced ? 2 : 1);
-        return VibeStatusDots(count: count, color: read ? _readTickColor : ink);
+        return VibeStatusDots(count: status.isSynced ? 2 : 1, color: ink);
       },
     );
   }
@@ -679,7 +729,12 @@ class VibeMessage extends StatelessWidget {
             builder: (context) {
               // Vibe X's soft shadow under the text in light mode
               final Widget content = DefaultTextStyle.merge(
-                style: TextStyle(shadows: _nameShadows(theme)),
+                // message text like the mocks: Figtree Regular, airy lines
+                style: TextStyle(
+                  shadows: _nameShadows(theme),
+                  fontWeight: FontWeight.w400,
+                  height: 1.45,
+                ),
                 // your messages: every line lines up to the right edge
                 textAlign: ownMessage ? TextAlign.end : null,
                 // a long message is only as wide as its longest line, so the dots sit right after it
@@ -748,6 +803,7 @@ class VibeMessage extends StatelessWidget {
             padding: const EdgeInsets.only(top: 4),
             child: MessageReactions(event, timeline),
           ),
+        if (ownMessage) _SeenBy(event, timeline),
         // Sending / failed (with Retry and Cancel) stays under the message.
         if (ownMessage && _statusBelow(event))
           Padding(
