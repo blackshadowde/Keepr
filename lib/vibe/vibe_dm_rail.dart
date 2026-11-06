@@ -35,6 +35,9 @@ class VibeDmRail extends StatelessWidget {
   final VoidCallback? onAdd;
   final bool addSelected;
 
+  /// A row across the top of the home screen instead of a column on the left.
+  final bool horizontal;
+
   const VibeDmRail({
     required this.rooms,
     required this.selectedId,
@@ -45,6 +48,7 @@ class VibeDmRail extends StatelessWidget {
     this.onOwnLongPress,
     this.onAdd,
     this.addSelected = false,
+    this.horizontal = false,
     super.key,
   });
 
@@ -67,11 +71,14 @@ class VibeDmRail extends StatelessWidget {
       color: theme.colorScheme.surfaceContainerLowest,
       child: SafeArea(
         right: false,
+        bottom: !horizontal,
         child: SizedBox(
-          width: 72,
-          child: Column(
+          width: horizontal ? null : 72,
+          height: horizontal ? 76 : null,
+          child: Flex(
+            direction: horizontal ? Axis.horizontal : Axis.vertical,
             children: [
-              const SizedBox(height: 10),
+              const SizedBox.square(dimension: 10),
               VibeOwnProfileBuilder(
                 client: client,
                 builder: (context, profile) => GestureDetector(
@@ -90,21 +97,29 @@ class VibeDmRail extends StatelessWidget {
                 ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
-                child: Divider(height: 1, color: theme.dividerColor),
-              ),
+              horizontal
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 20),
+                      child: VerticalDivider(width: 1, color: theme.dividerColor),
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+                      child: Divider(height: 1, color: theme.dividerColor),
+                    ),
               Expanded(
                 child: ListView.builder(
+                  scrollDirection: horizontal ? Axis.horizontal : Axis.vertical,
                   // The profile bar (VibeUserBar, 6 + 76 + 10) floats over
                   // the bottom of the rail: leave room so the + scrolls
                   // above it when the rail is full.
-                  padding: const EdgeInsets.only(bottom: 100),
+                  padding: horizontal
+                      ? const EdgeInsets.only(right: 8)
+                      : const EdgeInsets.only(bottom: 100),
                   itemCount: list.length + 1,
                   itemBuilder: (context, i) {
                     if (i == list.length) {
                       return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        padding: const EdgeInsets.all(8),
                         child: Center(
                           child: Material(
                             color: addSelected
@@ -136,7 +151,9 @@ class VibeDmRail extends StatelessWidget {
                       MatrixLocals(L10n.of(context)),
                     );
                     final tile = Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      padding: horizontal
+                          ? const EdgeInsets.symmetric(horizontal: 4)
+                          : const EdgeInsets.symmetric(vertical: 4),
                       child: GestureDetector(
                         onLongPress: onLongPress == null
                             ? null
@@ -147,24 +164,33 @@ class VibeDmRail extends StatelessWidget {
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
+                            // the open / unread marker: on the left of the
+                            // column, under the picture in the top row
                             Positioned(
                               left: 0,
-                              top: 0,
+                              top: horizontal ? null : 0,
+                              right: horizontal ? 0 : null,
                               bottom: 0,
                               child: Center(
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 260),
                                   curve: Curves.easeOutCubic,
-                                  width: 4,
-                                  height: active
-                                      ? 30
-                                      : (unread > 0 ? 8 : 0),
+                                  width: horizontal
+                                      ? (active ? 30 : (unread > 0 ? 8 : 0))
+                                      : 4,
+                                  height: horizontal
+                                      ? 4
+                                      : (active ? 30 : (unread > 0 ? 8 : 0)),
                                   decoration: BoxDecoration(
                                     color: theme.colorScheme.onSurface,
-                                    borderRadius: const BorderRadius.only(
-                                      topRight: Radius.circular(4),
-                                      bottomRight: Radius.circular(4),
-                                    ),
+                                    borderRadius: horizontal
+                                        ? const BorderRadius.vertical(
+                                            top: Radius.circular(4),
+                                          )
+                                        : const BorderRadius.only(
+                                            topRight: Radius.circular(4),
+                                            bottomRight: Radius.circular(4),
+                                          ),
                                   ),
                                 ),
                               ),
@@ -278,19 +304,31 @@ class VibeDmRail extends StatelessWidget {
                         (i == firstSpace && spaces.isNotEmpty && firstSpace > 0);
                     if (groupLine ||
                         (i == pinnedCount && pinnedCount > 0 && i < firstGroup)) {
-                      return Column(
+                      return Flex(
+                        direction: horizontal ? Axis.horizontal : Axis.vertical,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 6,
-                              horizontal: 24,
-                            ),
-                            child: Divider(
-                              height: 1,
-                              color: theme.dividerColor,
-                            ),
-                          ),
+                          horizontal
+                              ? Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 22,
+                                  ),
+                                  child: VerticalDivider(
+                                    width: 1,
+                                    color: theme.dividerColor,
+                                  ),
+                                )
+                              : Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 6,
+                                    horizontal: 24,
+                                  ),
+                                  child: Divider(
+                                    height: 1,
+                                    color: theme.dividerColor,
+                                  ),
+                                ),
                           tile,
                         ],
                       );

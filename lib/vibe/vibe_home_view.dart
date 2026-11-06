@@ -213,9 +213,12 @@ class _VibeHomeViewState extends State<VibeHomeView> {
             color: theme.colorScheme.surfaceContainerLowest,
             child: Stack(
               children: [
-                Row(
+                // chats and communities in a row across the top, the pane
+                // under it
+                Column(
                   children: [
                     VibeDmRail(
+                      horizontal: true,
                       rooms: railRooms,
                       selectedId: selected?.id,
                       activeRoomId: controller.activeChat,
@@ -249,10 +252,14 @@ class _VibeHomeViewState extends State<VibeHomeView> {
                       ),
                     ),
                     Expanded(
+                      // the row above already keeps clear of the status bar
+                      child: MediaQuery.removePadding(
+                        context: context,
+                        removeTop: true,
                       // glossy glass: a floating, frosted pane with edges
                       child: VibeGlassPane(
-                        plainRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(24),
+                        plainRadius: const BorderRadius.vertical(
+                          top: Radius.circular(24),
                         ),
                         child: selectedId == _startId
                             ? VibeStartPane(
@@ -288,6 +295,7 @@ class _VibeHomeViewState extends State<VibeHomeView> {
                                   controller.onChatTap(selected);
                                 },
                               ),
+                      ),
                       ),
                     ),
                   ],
