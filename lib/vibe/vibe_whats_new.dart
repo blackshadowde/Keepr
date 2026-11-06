@@ -60,14 +60,14 @@ abstract class VibeWhatsNew {
       final ctx =
           VibeApp.router.routerDelegate.navigatorKey.currentContext;
       if (ctx == null || !ctx.mounted) return;
-      // a big update has its own tour, shown once; smaller ones get the card
+      // the tour plays its channels not seen yet (each channel once);
+      // when there's nothing new to show, the card
       final short = version.split('.').take(2).join('.');
-      final tourKey = 'chat.keepr.tour_seen.${vibeTour.id}';
-      if (vibeTour.version == short &&
-          AppSettings.store.getBool(tourKey) != true) {
-        await AppSettings.store.setBool(tourKey, true);
+      final unseen = VibeTour.unseen();
+      if (vibeTour.version == short && unseen.isNotEmpty) {
+        await VibeTour.markSeen(unseen);
         if (!ctx.mounted) return;
-        await VibeTour.open(ctx);
+        await VibeTour.open(ctx, only: unseen);
         return;
       }
       await show(ctx, version);
@@ -179,7 +179,18 @@ abstract class VibeWhatsNew {
                         ),
                       ),
                     ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 14),
+                  Center(
+                    child: TextButton.icon(
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        VibeTour.open(context);
+                      },
+                      icon: const Icon(Icons.play_circle_outline_rounded),
+                      label: const Text('Watch the tour'),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   Material(
                     color: _blurple,
                     borderRadius: BorderRadius.circular(25),
@@ -343,7 +354,10 @@ const vibeTour = (
   id: '3.1-keepr',
   version: '3.1',
   // one channel per page, like a server in Keepr
-  channels: <String>['welcome', 'threads', 'chatting', 'make-it-yours', 'notifications'],
+  channels: <String>[
+    'welcome', 'threads', 'chatting', 'make-it-yours', 'notifications',
+    'privacy', 'themes-and-text', 'home',
+  ],
   pages: <VibeTourPage>[
     VibeTourPage(
       Icons.lock_rounded,
@@ -418,6 +432,45 @@ const vibeTour = (
             'Voice messages recorded on Android now play on every phone.', VibeDemo.voice),
       ],
     ),
+    VibeTourPage(
+      Icons.key_rounded,
+      'Privacy',
+      'Direct chats change their key even more often.',
+      [
+        VibeTourItem(Icons.key_rounded, 'A fresh key every 3 messages',
+            'With strict encryption, direct chats get a new key every 3 messages or 5 minutes. Groups keep every 10 messages or an hour.', VibeDemo.dmKeys),
+        VibeTourItem(Icons.translate_rounded, 'Keepr in every language',
+            'Every translation now says Keepr, and invites point to Keepr\'s website.'),
+      ],
+    ),
+    VibeTourPage(
+      Icons.format_paint_rounded,
+      'Themes and text',
+      'More looks, and text that\'s easier to read.',
+      [
+        VibeTourItem(Icons.download_rounded, 'Import HyDE themes',
+            'In the Glass look, import any theme from HyDE\'s gallery or from a GitHub link, with its colours and wallpapers.', VibeDemo.hydeImport),
+        VibeTourItem(Icons.label_outline_rounded, 'Your name in a pill',
+            'Show your name in a coloured pill in chats, like a group tag. Set it in your status.', VibeDemo.namePill),
+        VibeTourItem(Icons.text_fields_rounded, 'Bigger, clearer text',
+            'Names, channels, titles and settings are bigger and bolder; names in chats match your text size.', VibeDemo.textScale),
+        VibeTourItem(Icons.gif_box_outlined, 'Animated pictures from your profile',
+            'GIFs picked from your profile\'s Photo button stay animated too.', VibeDemo.avatar),
+      ],
+    ),
+    VibeTourPage(
+      Icons.home_rounded,
+      'Home',
+      'Opening Keepr feels livelier, and muted chats stay quiet.',
+      [
+        VibeTourItem(Icons.animation_rounded, 'Chats bounce in',
+            'After the dots, your chats spring in one by one. Turn it off in Customisation, Start-up animation.', VibeDemo.homeBounce),
+        VibeTourItem(Icons.notifications_off_outlined, 'Muted means quiet',
+            'Muted chats no longer show pop-ups or side pictures. Want them anyway? Notifications, Pop-ups for muted chats.', VibeDemo.mutedQuiet),
+        VibeTourItem(Icons.more_horiz_rounded, 'Your typing indicator, everywhere',
+            'It now reaches direct chats started after you set it.', VibeDemo.typing),
+      ],
+    ),
   ],
 );
 
@@ -426,13 +479,33 @@ const vibeTour = (
 /// messages (typing first, like a person), each with a live mockup. Quick
 /// replies sit where the text box would be.
 class VibeTour extends StatefulWidget {
-  const VibeTour({super.key});
+  /// The channels to show (indexes into [vibeTour]); all when null.
+  final List<int>? only;
+  const VibeTour({this.only, super.key});
 
-  static Future<void> open(BuildContext context) =>
+  static String _seenKey(String channel) => 'chat.keepr.tour_ch.$channel';
+
+  /// Channels of this tour not seen yet. Someone who watched the first
+  /// version of the tour (one flag for all of it) has seen its 5 channels.
+  static List<int> unseen() {
+    final old = AppSettings.store.getBool('chat.keepr.tour_seen.3.1-keepr') == true;
+    return [
+      for (final (i, c) in vibeTour.channels.indexed)
+        if (AppSettings.store.getBool(_seenKey(c)) != true && !(old && i < 5)) i,
+    ];
+  }
+
+  static Future<void> markSeen(List<int> channels) async {
+    for (final i in channels) {
+      await AppSettings.store.setBool(_seenKey(vibeTour.channels[i]), true);
+    }
+  }
+
+  static Future<void> open(BuildContext context, {List<int>? only}) =>
       Navigator.of(context, rootNavigator: true).push(
         PageRouteBuilder<void>(
           transitionDuration: const Duration(milliseconds: 380),
-          pageBuilder: (_, _, _) => const VibeTour(),
+          pageBuilder: (_, _, _) => VibeTour(only: only),
           transitionsBuilder: (_, a, _, child) => FadeTransition(
             opacity: a,
             child: SlideTransition(
@@ -453,15 +526,21 @@ class _VibeTourState extends State<VibeTour> {
 
   /// How many of each channel's messages are posted so far (the first one
   /// is the channel's intro line).
-  late final List<int> _shown = List.filled(vibeTour.pages.length, 0);
+  /// The channels shown, in order (indexes into [vibeTour]).
+  late final List<int> _ids = widget.only == null || widget.only!.isEmpty
+      ? [for (var i = 0; i < vibeTour.pages.length; i++) i]
+      : widget.only!;
+  late final List<VibeTourPage> _pages = [for (final i in _ids) vibeTour.pages[i]];
+  late final List<String> _channels = [for (final i in _ids) vibeTour.channels[i]];
+  late final List<int> _shown = List.filled(_pages.length, 0);
   bool _typing = false;
   Timer? _timer;
   final _scroll = ScrollController();
 
-  VibeTourPage get _page => vibeTour.pages[_ch];
+  VibeTourPage get _page => _pages[_ch];
   int get _total => _page.items.length + 1;
   bool get _allShown => _shown[_ch] >= _total;
-  bool get _lastChannel => _ch == vibeTour.pages.length - 1;
+  bool get _lastChannel => _ch == _pages.length - 1;
 
   @override
   void initState() {
@@ -582,13 +661,13 @@ class _VibeTourState extends State<VibeTour> {
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   children: [
-                    for (final (k, name) in vibeTour.channels.indexed)
+                    for (final (k, name) in _channels.indexed)
                       Padding(
                         padding: const EdgeInsets.only(right: 6),
                         child: _ChannelChip(
                           name: name,
                           active: k == _ch,
-                          done: _shown[k] >= vibeTour.pages[k].items.length + 1,
+                          done: _shown[k] >= _pages[k].items.length + 1,
                           onTap: () => _open(k),
                         ),
                       ),
@@ -603,7 +682,7 @@ class _VibeTourState extends State<VibeTour> {
                   padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
                   children: [
                     _ChannelHeader(
-                      name: vibeTour.channels[_ch],
+                      name: _channels[_ch],
                       title: _page.title,
                       icon: _page.icon,
                     ),
@@ -647,7 +726,7 @@ class _VibeTourState extends State<VibeTour> {
                       child: Text(
                         _allShown
                             ? (_lastChannel ? "That's everything" : 'Reply to keep going')
-                            : '# ${vibeTour.channels[_ch]}',
+                            : '# ${_channels[_ch]}',
                         style: TextStyle(color: cs.onSurfaceVariant),
                       ),
                     ),
@@ -667,7 +746,7 @@ class _VibeTourState extends State<VibeTour> {
                             ? 'Show more'
                             : _lastChannel
                             ? 'Start chatting'
-                            : '# ${vibeTour.channels[_ch + 1]}',
+                            : '# ${_channels[_ch + 1]}',
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
                     ),

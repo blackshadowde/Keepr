@@ -23,6 +23,12 @@ enum VibeDemo {
   clearRead,
   failed,
   voice,
+  dmKeys,
+  hydeImport,
+  namePill,
+  textScale,
+  homeBounce,
+  mutedQuiet,
 }
 
 class VibeDemoView extends StatefulWidget {
@@ -1010,6 +1016,283 @@ class _Demo extends StatelessWidget {
           ),
           inputBar(),
         ]);
+
+      case VibeDemo.dmKeys:
+        // a fresh key every 3 messages: the key chip changes colour
+        const texts = ['hey!', 'lunch today?', 'sure', '12:30?', 'perfect', 'see you'];
+        final n = (t * 8).floor().clamp(0, 6);
+        final key = n == 0 ? 0 : (n - 1) ~/ 3;
+        final keyPop = _pop(_seg((t * 8) % 1, 0, 0.5));
+        return phone('Maya', [
+          for (var i = 0; i < n; i++)
+            Positioned(
+              left: i.isEven ? 10 : null,
+              right: i.isEven ? null : 10,
+              top: 48 + i * 25.0,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: i.isEven ? cs.surfaceContainerHigh : cs.primary.withValues(alpha: 0.85),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(texts[i],
+                    style: TextStyle(fontSize: 9, color: i.isEven ? cs.onSurface : cs.onPrimary)),
+              ),
+            ),
+          Positioned(
+            right: 8,
+            top: 8,
+            child: Transform.scale(
+              scale: n > 0 && (n - 1) % 3 == 0 ? 0.8 + 0.2 * keyPop : 1,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                decoration: BoxDecoration(
+                  color: (key.isEven ? cs.primary : cs.tertiary).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.key_rounded, size: 11, color: key.isEven ? cs.primary : cs.tertiary),
+                    const SizedBox(width: 3),
+                    Text('key ${key + 1}', style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w700)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          inputBar(),
+        ]);
+
+      case VibeDemo.hydeImport:
+        const themes = [
+          ('Bad Blood', Color(0xFF030000), Color(0xFFDF1010)),
+          ('Abyss Green', Color(0xFF0B1410), Color(0xFF3FD18B)),
+          ('Synth Wave', Color(0xFF1A1029), Color(0xFF03EDF9)),
+          ('Vanta Black', Color(0xFF000000), Color(0xFFFFFFFF)),
+        ];
+        final tap = t > 0.38 && t < 0.46;
+        final k = _ease(_seg(t, 0.48, 0.66)) * (1 - _seg(t, 0.92, 1));
+        final pick = themes[1];
+        return phone(
+          '',
+          [
+            for (final (i, th) in themes.indexed)
+              Positioned(
+                left: 10,
+                right: 10,
+                top: 50 + i * 34.0,
+                child: Opacity(
+                  opacity: 1 - k * 0.7,
+                  child: Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: i == 1 && t > 0.38 ? cs.primary.withValues(alpha: 0.18) : null,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 18,
+                          height: 18,
+                          clipBehavior: Clip.antiAlias,
+                          decoration: const BoxDecoration(shape: BoxShape.circle),
+                          child: Row(
+                            children: [
+                              Expanded(child: ColoredBox(color: th.$2)),
+                              Expanded(child: ColoredBox(color: th.$3)),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(th.$1, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700)),
+                        const Spacer(),
+                        if (i == 1 && k > 0.5) Icon(Icons.check_circle, size: 13, color: pick.$3),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            if (t > 0.3 && t < 0.5) _finger(130, 101, down: tap),
+            Positioned(
+              left: 10,
+              right: 10,
+              bottom: 10,
+              child: Opacity(
+                opacity: k,
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: pick.$3,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text('Abyss Green imported and in use',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Color(0xFF0B1410))),
+                ),
+              ),
+            ),
+          ],
+          header: const Text('Import a HyDE theme',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+          bg: Color.lerp(cs.surface, pick.$2, k),
+        );
+
+      case VibeDemo.namePill:
+        final k = _ease(_seg(t, 0.25, 0.45)) * (1 - _seg(t, 0.88, 1));
+        return phone('Design crew', [
+          Positioned(
+            left: 10,
+            right: 10,
+            top: 70,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _avatar('Aria', 22),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 5 * k, vertical: 1 * k),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEB459E).withValues(alpha: 0.22 * k),
+                          border: Border.all(
+                            color: const Color(0xFFEB459E).withValues(alpha: 0.6 * k),
+                          ),
+                          borderRadius: BorderRadius.circular(7),
+                        ),
+                        child: const Text('Aria',
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFFEB459E))),
+                      ),
+                      const SizedBox(height: 3),
+                      const Text('New logo draft is up', style: TextStyle(fontSize: 10)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          inputBar(),
+        ]);
+
+      case VibeDemo.textScale:
+        final k = _ease(_seg(t, 0.2, 0.5)) * (1 - _seg(t, 0.85, 1));
+        return phone('', [
+          for (final (i, (name, read)) in const [
+            ('announcements', false),
+            ('general', false),
+            ('rules', true),
+          ].indexed)
+            Positioned(
+              left: 12,
+              top: 52 + i * (26 + 8 * k),
+              child: Text.rich(
+                TextSpan(children: [
+                  TextSpan(text: '#  ', style: TextStyle(color: cs.onSurfaceVariant)),
+                  TextSpan(text: name),
+                ]),
+                style: TextStyle(
+                  fontSize: 10 + 3 * k,
+                  fontWeight: read ? FontWeight.w600 : FontWeight.w800,
+                  color: read ? cs.onSurfaceVariant : cs.onSurface,
+                ),
+              ),
+            ),
+        ], header: Text('Design crew',
+            style: TextStyle(fontSize: 12 + 3 * k, fontWeight: FontWeight.w800)));
+
+      case VibeDemo.homeBounce:
+        // the dots hop, then each chat springs in and settles
+        final dots = 1 - _seg(t, 0.18, 0.24);
+        return phone('', [
+          if (dots > 0)
+            Center(
+              child: Opacity(
+                opacity: dots,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (var i = 0; i < 3; i++)
+                      Transform.translate(
+                        offset: Offset(0, -8 * math.max(0, math.sin((t * 12 - i * 0.5) * math.pi))),
+                        child: Container(
+                          width: 9,
+                          height: 9,
+                          margin: const EdgeInsets.symmetric(horizontal: 3),
+                          decoration: BoxDecoration(color: cs.primary, shape: BoxShape.circle),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          for (final (i, name) in const ['Maya', 'Leo', 'Aria', 'Kenji', 'Sam'].indexed)
+            Builder(builder: (_) {
+              final u = _seg(t, 0.24 + i * 0.06, 0.24 + i * 0.06 + 0.16);
+              return Positioned(
+                left: 10,
+                right: 10,
+                top: 50 + i * 38.0 + (1 - _pop(u)) * 26,
+                child: Opacity(
+                  opacity: _seg(u, 0, 0.45) * (1 - _seg(t, 0.92, 1)),
+                  child: Transform.scale(
+                    scale: 0.9 + 0.1 * _pop(u),
+                    child: Row(
+                      children: [
+                        _avatar(name, 24),
+                        const SizedBox(width: 8),
+                        Text(name, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
+        ], header: const Text('Keepr',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)));
+
+      case VibeDemo.mutedQuiet:
+        final n = (t * 5).floor().clamp(0, 4);
+        return phone('', [
+          Positioned(
+            left: 10,
+            right: 10,
+            top: 56,
+            child: Row(
+              children: [
+                _avatar('Family', 24),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text('Family', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
+                ),
+                Icon(Icons.notifications_off_rounded, size: 14, color: cs.onSurfaceVariant),
+                const SizedBox(width: 6),
+                if (n > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: cs.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text('$n', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800)),
+                  ),
+              ],
+            ),
+          ),
+          Positioned(
+            left: 10,
+            right: 10,
+            top: 110,
+            child: Text(
+              'Messages arrive quietly: no pop-up, no side picture',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 9, color: cs.onSurfaceVariant),
+            ),
+          ),
+        ], header: const Text('Muted chats',
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800)));
     }
   }
 
