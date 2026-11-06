@@ -34,6 +34,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:matrix/matrix.dart';
 import 'package:vibe/vibe/vibe_threads.dart';
+import 'package:vibe/vibe/vibe_text_size.dart';
 import 'package:vibe/vibe/vibe_swipe_reply.dart';
 import 'package:vibe/vibe/vibe_chunks.dart';
 import 'package:vibe/vibe/vibe_link_preview.dart';
@@ -504,7 +505,7 @@ class VibeMessage extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
-                    fontSize: 16,
+                    fontSize: VibeTextSize.message,
                     height: 1.15,
                     color: color,
                     shadows: _nameShadows(theme),
@@ -524,7 +525,7 @@ class VibeMessage extends StatelessWidget {
                 Text(
                   vibeTime(event.originServerTs),
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: VibeTextSize.message * 0.74,
                     height: 1.15,
                     color: cs.onSurfaceVariant,
                   ),
@@ -532,7 +533,10 @@ class VibeMessage extends StatelessWidget {
               if (isEdited)
                 Text(
                   L10n.of(context).edited,
-                  style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+                  style: TextStyle(
+                    fontSize: VibeTextSize.message * 0.74,
+                    color: cs.onSurfaceVariant,
+                  ),
                 ),
             ],
           );
@@ -555,7 +559,7 @@ class VibeMessage extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 13.5,
+                fontSize: VibeTextSize.message * 0.88,
                 fontStyle: FontStyle.italic,
                 color: cs.onSurfaceVariant,
               ),
@@ -598,8 +602,8 @@ class VibeMessage extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
+                      fontSize: VibeTextSize.message * 0.88,
+                      fontWeight: FontWeight.w700,
                       color: rcolor,
                       shadows: _nameShadows(theme),
                     ),
@@ -612,7 +616,7 @@ class VibeMessage extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 13.5,
+                      fontSize: VibeTextSize.message * 0.88,
                       color: cs.onSurfaceVariant,
                     ),
                   ),
