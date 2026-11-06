@@ -189,6 +189,8 @@ class VibeDmDetail extends StatelessWidget {
                 ),
                 builder: (context, _) => VibeHashRow(
                   label: 'chat',
+                  // a plain speech bubble instead of "#"
+                  icon: Icons.chat_bubble_rounded,
                   subtitle: room.encrypted ? 'End-to-end encrypted' : null,
                   subtitleIcon: Icons.lock_rounded,
                   unread: room.notificationCount > 0
