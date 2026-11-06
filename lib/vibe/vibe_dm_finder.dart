@@ -68,7 +68,7 @@ abstract class VibeDmFinder {
     return client.startDirectChat(
       userId,
       enableEncryption: true,
-      initialState: VibeStrict.initialState(),
+      initialState: VibeStrict.initialState(direct: true),
     );
   }
 

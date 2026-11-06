@@ -74,9 +74,9 @@ class ChatEncryptionSettingsView extends StatelessWidget {
                           VibeSwitchRow(
                             title: 'Strict encryption',
                             subtitle: VibeStrict.canChange(room)
-                                ? 'A fresh key every ${VibeStrict.msgs} messages or '
-                                      'every hour, so a leaked key unlocks '
-                                      'only a few messages'
+                                ? 'A fresh key ${VibeStrict.describe(room)}, '
+                                      'so a leaked key unlocks only a few '
+                                      'messages'
                                 : 'Only people who can change this chat\'s '
                                       'settings can switch it',
                             value: VibeStrict.isOn(room),

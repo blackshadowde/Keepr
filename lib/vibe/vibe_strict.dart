@@ -8,20 +8,31 @@ import 'package:flutter/material.dart';
 import 'package:matrix/matrix.dart';
 
 /// Strict encryption: the chat's message key is replaced every
-/// [msgs] messages or every hour, instead of Matrix's default (every 100
-/// messages or a week). A leaked key then unlocks at most a handful of
+/// [msgs] messages or every hour in groups, servers and communities, and
+/// every [dmMsgs] messages or [dmMinutes] minutes in direct chats, instead of
+/// Matrix's default (every 100 messages or a week). A leaked key then unlocks at most a handful of
 /// messages. It's the standard Matrix room setting, so Element and every
 /// other app keep reading the chat.
 abstract class VibeStrict {
   static const msgs = 10;
   static const ms = 60 * 60 * 1000;
+
+  /// Direct chats (two people): a fresh key more often.
+  static const dmMsgs = 3;
+  static const dmMinutes = 5;
+  static const _dmMs = dmMinutes * 60 * 1000;
   static const _algorithm = 'm.megolm.v1.aes-sha2';
 
-  static Map<String, Object?> _content(bool on) => {
+  static Map<String, Object?> _content(bool on, {bool direct = false}) => {
     'algorithm': _algorithm,
-    'rotation_period_ms': on ? ms : 7 * 24 * ms,
-    'rotation_period_msgs': on ? msgs : 100,
+    'rotation_period_ms': on ? (direct ? _dmMs : ms) : 7 * 24 * ms,
+    'rotation_period_msgs': on ? (direct ? dmMsgs : msgs) : 100,
   };
+
+  /// What strict means in this chat, in words.
+  static String describe(Room room) => room.isDirectChat
+      ? 'every $dmMsgs messages or every $dmMinutes minutes'
+      : 'every $msgs messages or every hour';
 
   static bool isOn(Room room) {
     if (!room.encrypted) return false;
@@ -42,7 +53,7 @@ abstract class VibeStrict {
       room.id,
       EventTypes.Encryption,
       '',
-      _content(on),
+      _content(on, direct: room.isDirectChat),
     );
     // start the next message on a fresh key right away
     try {
@@ -54,10 +65,30 @@ abstract class VibeStrict {
   }
 
   /// For new chats Vibe creates (when "Strict for my new chats" is on).
-  static List<StateEvent>? initialState() =>
+  static List<StateEvent>? initialState({bool direct = false}) =>
       AppSettings.vibeStrictNew.value
-      ? [StateEvent(type: EventTypes.Encryption, content: _content(true))]
+      ? [
+          StateEvent(
+            type: EventTypes.Encryption,
+            content: _content(true, direct: direct),
+          ),
+        ]
       : null;
+
+  /// Direct chats checked this session.
+  static final _checked = <String>{};
+
+  /// When a direct chat with strict encryption opens: move it from the group
+  /// rhythm (10 messages / 1 hour) to the direct-chat one, once.
+  static Future<void> upgradeDirect(Room room) async {
+    if (!_checked.add(room.id)) return;
+    if (!room.isDirectChat || !isOn(room) || !canChange(room)) return;
+    final n = room.getState(EventTypes.Encryption)?.content['rotation_period_msgs'];
+    if (n is int && n <= dmMsgs) return;
+    try {
+      await set(room, true);
+    } catch (_) {}
+  }
 
   /// The one-time introduction after the update.
   static Future<void> maybeIntro(BuildContext context) async {
@@ -405,7 +436,9 @@ class _StrictIntroState extends State<_StrictIntro>
                     'Every chat locks its messages with a key. Normally that key '
                         'stays the same for up to 100 messages or a week. With '
                         'strict encryption a fresh key takes over every '
-                        '${VibeStrict.msgs} messages or every hour.',
+                        '${VibeStrict.dmMsgs} messages or ${VibeStrict.dmMinutes} '
+                        'minutes in direct chats, and every '
+                        '${VibeStrict.msgs} messages or every hour in groups.',
                   ),
                   point(
                     Icons.shield_outlined,
