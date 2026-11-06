@@ -133,9 +133,28 @@ class ChatInputRow extends StatelessWidget {
                       : const SizedBox.shrink(),
                 ]
               : <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(10, 0, 0, 8),
+                    child: Material(
+                      color: theme.colorScheme.surfaceContainer,
+                      shape: const CircleBorder(),
+                      clipBehavior: Clip.antiAlias,
+                      child: SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: IconButton(
+                          padding: EdgeInsets.zero,
+                          tooltip: 'Attach',
+                          icon: const Icon(Icons.add, size: 24),
+                          onPressed: () =>
+                              VibeAttachSheet.show(context, controller),
+                        ),
+                      ),
+                    ),
+                  ),
                   Expanded(
                     child: Container(
-                      margin: const EdgeInsets.fromLTRB(10, 6, 0, 3),
+                      margin: const EdgeInsets.fromLTRB(8, 6, 0, 3),
                       // Vibgram proportions: slimmer pill, so the whole
                       // "# Message | name" hint fits.
                       padding: const EdgeInsets.fromLTRB(6, 4, 2, 4),
@@ -154,21 +173,6 @@ class ChatInputRow extends StatelessWidget {
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Material(
-                            color: theme.colorScheme.surfaceContainerHighest,
-                            shape: const CircleBorder(),
-                            clipBehavior: Clip.antiAlias,
-                            child: SizedBox(
-                              width: 44,
-                              height: 44,
-                              child: IconButton(
-                                padding: EdgeInsets.zero,
-                                icon: const Icon(Icons.add, size: 26),
-                                onPressed: () =>
-                                    VibeAttachSheet.show(context, controller),
-                              ),
-                            ),
-                          ),
                           if (Matrix.of(context).isMultiAccount &&
                               Matrix.of(context).hasComplexBundles &&
                               Matrix.of(context).currentBundle!.length > 1)
@@ -179,7 +183,7 @@ class ChatInputRow extends StatelessWidget {
                             ),
                           Expanded(
                             child: Padding(
-                              padding: const EdgeInsets.only(left: 12, right: 4),
+                              padding: const EdgeInsets.only(left: 10, right: 4),
                               child: InputBar(
                                 room: controller.room,
                                 minLines: 1,
@@ -201,7 +205,7 @@ class ChatInputRow extends StatelessWidget {
                                   ),
                                   counter: const SizedBox.shrink(),
                                   hintText:
-                                      '# Message | ${controller.room.getLocalizedDisplayname(MatrixLocals(L10n.of(context)))}',
+                                      'Message ${controller.room.getLocalizedDisplayname(MatrixLocals(L10n.of(context)))}',
                                   hintMaxLines: 1,
                                   hintStyle: TextStyle(
                                     fontSize: 16,
@@ -255,9 +259,9 @@ class ChatInputRow extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    height: 56,
-                    width: 56,
-                    margin: const EdgeInsets.only(top: 6, bottom: 3),
+                    height: 52,
+                    width: 52,
+                    margin: const EdgeInsets.only(top: 6, bottom: 5),
                     alignment: Alignment.center,
                     child:
                         PlatformInfos.platformCanRecord &&
@@ -291,11 +295,11 @@ class ChatInputRow extends StatelessWidget {
                               onLongPress: () => recordingViewModel
                                   .startRecording(controller.room),
                               style: IconButton.styleFrom(
-                                backgroundColor: const Color(0xFFDCE4FF),
-                                foregroundColor: const Color(0xFF226DFD),
-                                fixedSize: const Size(56, 56),
+                                backgroundColor: theme.colorScheme.primary,
+                                foregroundColor: theme.colorScheme.onPrimary,
+                                fixedSize: const Size(48, 48),
                               ),
-                              icon: const Icon(Icons.graphic_eq, size: 28),
+                              icon: const Icon(Icons.mic_none_rounded, size: 24),
                             ),
                           )
                         // Long-press: send with effect / send later. No
@@ -307,11 +311,11 @@ class ChatInputRow extends StatelessWidget {
                             onLongPress: () =>
                                 VibeEffects.showSendOptions(context, controller),
                             style: IconButton.styleFrom(
-                              backgroundColor: const Color(0xFFDCE4FF),
-                              foregroundColor: const Color(0xFF226DFD),
-                              fixedSize: const Size(56, 56),
+                              backgroundColor: theme.colorScheme.primary,
+                              foregroundColor: theme.colorScheme.onPrimary,
+                              fixedSize: const Size(48, 48),
                             ),
-                            icon: const Icon(Icons.send_rounded, size: 24),
+                            icon: const Icon(Icons.send_rounded, size: 22),
                           ),
                   ),
                   const SizedBox(width: 10),

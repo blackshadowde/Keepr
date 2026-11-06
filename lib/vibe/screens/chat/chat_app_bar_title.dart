@@ -12,6 +12,7 @@ import 'package:vibe/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:vibe/utils/sync_status_localization.dart';
 import 'package:vibe/vibe/vibe_connection.dart';
 import 'package:vibe/vibe/vibe_status.dart';
+import 'package:vibe/vibe/vibe_strict.dart';
 import 'package:vibe/vibe/vibe_typing_pen.dart';
 import 'package:vibe/vibe/vibe_user_sheet.dart';
 import 'package:vibe/widgets/avatar.dart';
@@ -93,6 +94,52 @@ class ChatAppBarTitle extends StatelessWidget {
                 ),
                 if (dmUser != null && !AppSettings.vibeStatusBubble.value)
                   VibeStatusLine(room: room, userId: dmUser),
+                // groups and channels: where it lives and how it's locked
+                if (dmUser == null)
+                  Builder(
+                    builder: (context) {
+                      final cs = Theme.of(context).colorScheme;
+                      Room? parent;
+                      for (final p in room.spaceParents) {
+                        final r = room.client.getRoomById(p.roomId ?? '');
+                        if (r != null) {
+                          parent = r;
+                          break;
+                        }
+                      }
+                      final bits = [
+                        if (parent != null) parent.getLocalizedDisplayname(),
+                        !room.encrypted
+                            ? 'not encrypted'
+                            : VibeStrict.isOn(room)
+                            ? 'strict encryption'
+                            : 'encrypted',
+                      ];
+                      return Row(
+                        children: [
+                          Icon(
+                            room.encrypted
+                                ? Icons.lock_outline
+                                : Icons.lock_open,
+                            size: 12,
+                            color: room.encrypted ? cs.primary : cs.error,
+                          ),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              bits.join(' · '),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                color: cs.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
                 StreamBuilder(
                   stream: room.client.onSyncStatus.stream,
                   builder: (context, snapshot) {
