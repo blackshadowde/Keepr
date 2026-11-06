@@ -10,6 +10,7 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 - Plan for quantum-safe direct chats between Keepr users: docs/post-quantum.md (nothing built yet)
 - New text sizes and weights: in chats, names are as big as the message text, with the time and reply previews in proportion (they follow your text size setting); channel names are bigger (read ones lighter, unread ones bolder); the community name, section headers, settings rows and page titles are bigger and heavier. Figtree ExtraBold is now included for the heaviest titles ([5c48048](https://github.com/blackshadowde/keepr/commit/5c4804801))
 - Direct chat pane: the chat row has a speech bubble icon instead of "#" ([44c61c2](https://github.com/blackshadowde/keepr/commit/44c61c236))
+- Glass look: "Import a HyDE theme". Pick one of the themes in HyDE's gallery, or paste the GitHub link of any HyDE theme. Keepr reads the theme's own colours (its theme.dcol) and finds its wallpapers; it then sits next to the built-in palettes. Long-press an imported theme to remove it. Themes and wallpapers are fetched from GitHub only when you import or pick them (privacy policy updated) ([fc8f4a8](https://github.com/blackshadowde/keepr/commit/fc8f4a886))
 
 ## 2026-11-05 ([a97fb90](https://github.com/blackshadowde/keepr/commit/a97fb90e4))
 
