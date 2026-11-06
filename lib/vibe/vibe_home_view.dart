@@ -240,9 +240,13 @@ class _VibeHomeViewState extends State<VibeHomeView> {
                         removeTop: selectedId == null,
                       // glossy glass: a floating, frosted pane with edges
                       child: VibeGlassPane(
-                        plainRadius: const BorderRadius.vertical(
-                          top: Radius.circular(24),
-                        ),
+                        // the chat list draws its own rounded panel
+                        frame: selectedId != null,
+                        plainRadius: selectedId == null
+                            ? BorderRadius.zero
+                            : const BorderRadius.vertical(
+                                top: Radius.circular(24),
+                              ),
                         child: selectedId == _startId
                             ? VibeStartPane(
                                 onBack: () => setState(() => selectedId = null),
@@ -432,7 +436,11 @@ class _HomeTop extends StatelessWidget {
             ),
           ),
         );
-    return SafeArea(
+    // Material: the app's font and colours for the title (without it Flutter
+    // shows its red, underlined fallback text)
+    return Material(
+      type: MaterialType.transparency,
+      child: SafeArea(
       bottom: false,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -505,6 +513,7 @@ class _HomeTop extends StatelessWidget {
           ),
           const SizedBox(height: 6),
         ],
+      ),
       ),
     );
   }

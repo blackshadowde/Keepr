@@ -320,7 +320,8 @@ class _DmTile extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Flexible(
+                        // the name takes the room, so every time lines up
+                        Expanded(
                           child: Text(
                             name,
                             maxLines: 1,
@@ -336,7 +337,7 @@ class _DmTile extends StatelessWidget {
                           const SizedBox(width: 4),
                           Icon(Icons.push_pin, size: 13, color: cs.onSurfaceVariant),
                         ],
-                        const Spacer(),
+                        const SizedBox(width: 8),
                         Text(
                           room.latestEventReceivedTime.localizedTimeShort(context),
                           style: TextStyle(

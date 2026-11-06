@@ -674,9 +674,13 @@ class VibeGlassPane extends StatelessWidget {
 
   /// The look without glossy glass (the home pane's own rounding).
   final BorderRadius plainRadius;
+
+  /// false: no window frame (the pane draws its own panel).
+  final bool frame;
   const VibeGlassPane({
     required this.child,
     this.plainRadius = BorderRadius.zero,
+    this.frame = true,
     super.key,
   });
 
@@ -686,7 +690,7 @@ class VibeGlassPane extends StatelessWidget {
     return ValueListenableBuilder<int>(
       valueListenable: VibeGlass.version,
       builder: (context, _, _) {
-        if (!VibePalette.isGlass || !VibeGlass.glossy) {
+        if (!frame || !VibePalette.isGlass || !VibeGlass.glossy) {
           return ClipRRect(borderRadius: plainRadius, child: child);
         }
         final p = VibeGlass.palette;
