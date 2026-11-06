@@ -59,7 +59,8 @@ links that point to a call server.
 - **Google Fonts (`fonts.gstatic.com`):** the animated emoji in reaction
   and effect menus are downloaded from there when shown. Low data mode
   turns them off.
-- Only when you use them: wallpapers for the HyDE look (GitHub), sticker
+- Only when you use them: wallpapers and imported themes for the HyDE look
+  (GitHub: HyDE's gallery and the theme authors' repositories), sticker
   packs you import from Sticker.ly.
 
 ## On your device

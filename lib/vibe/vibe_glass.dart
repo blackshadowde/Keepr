@@ -13,6 +13,7 @@ import 'dart:ui' as ui;
 import 'package:file_picker/file_picker.dart';
 import 'package:vibe/config/setting_keys.dart';
 import 'package:vibe/utils/file_selector.dart';
+import 'package:vibe/vibe/vibe_hyde_import.dart';
 import 'package:vibe/vibe/vibe_palette.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
@@ -27,12 +28,17 @@ class VibeGlassPalette {
   final Color accent, onAccent, base, mantle, crust, s0, s1, text, sub, tert;
 
   /// The HyDE theme with this palette's wallpapers (branch and folder in
-  /// github.com/HyDE-Project/hyde-themes), if there is one.
+  /// [hydeRepo] on GitHub), if there is one.
   final String? hydeBranch;
   final String? hydeDir;
+
+  /// GitHub repository (owner/name) of the theme; imported themes live in
+  /// their authors' own repositories.
+  final String hydeRepo;
   const VibeGlassPalette({
     required this.id,
     required this.name,
+    this.hydeRepo = 'HyDE-Project/hyde-themes',
     this.hydeBranch,
     this.hydeDir,
     required this.accent,
@@ -218,10 +224,16 @@ abstract class VibeGlass {
   /// 'wallbash' (from the wallpaper) or one of [palettes].
   static String get paletteId => AppSettings.vibeGlassPalette.value;
 
+  /// The built-in palettes and the imported HyDE themes.
+  static List<VibeGlassPalette> get all => [
+    ...palettes,
+    ...VibeHydeImport.palettes,
+  ];
+
   /// The palette in use.
   static VibeGlassPalette get palette {
     final id = paletteId;
-    for (final p in palettes) {
+    for (final p in all) {
       if (p.id == id) return p;
     }
     return _wallbash(Color(AppSettings.vibeGlassSeed.value));
@@ -354,7 +366,7 @@ abstract class VibeGlass {
     final r = await http.get(
       Uri.https(
         'api.github.com',
-        '/repos/HyDE-Project/hyde-themes/contents/$dir',
+        '/repos/${p.hydeRepo}/contents/$dir',
         {'ref': branch},
       ),
       headers: {'Accept': 'application/vnd.github+json'},
@@ -678,13 +690,24 @@ class VibeGlassSettings extends StatelessWidget {
                   selected: current == 'wallbash',
                   onSelected: (_) => VibeGlass.setPalette('wallbash'),
                 ),
-                for (final p in VibeGlass.palettes)
-                  ChoiceChip(
-                    label: Text(p.name),
-                    avatar: CircleAvatar(backgroundColor: p.accent),
-                    selected: current == p.id,
-                    onSelected: (_) => VibeGlass.setPalette(p.id),
+                for (final p in VibeGlass.all)
+                  GestureDetector(
+                    // imported themes: long-press to remove
+                    onLongPress: VibeHydeImport.isImported(p.id)
+                        ? () => VibeHydeImport.confirmRemove(context, p)
+                        : null,
+                    child: ChoiceChip(
+                      label: Text(p.name),
+                      avatar: CircleAvatar(backgroundColor: p.accent),
+                      selected: current == p.id,
+                      onSelected: (_) => VibeGlass.setPalette(p.id),
+                    ),
                   ),
+                ActionChip(
+                  avatar: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('Import a HyDE theme'),
+                  onPressed: () => VibeHydeImport.open(context),
+                ),
               ],
             ),
           ),
