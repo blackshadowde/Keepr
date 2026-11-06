@@ -30,8 +30,8 @@ abstract class VibeSettingsStyle {
   /// because list tiles replace the inherited style instead of merging).
   static TextStyle rowTitle(BuildContext context) =>
       (Theme.of(context).textTheme.bodyLarge ?? const TextStyle()).copyWith(
-        fontSize: 15.5,
-        fontWeight: FontWeight.w500,
+        fontSize: 16.5,
+        fontWeight: FontWeight.w600,
         color: text(context),
         height: 1.25,
         letterSpacing: 0,
@@ -39,7 +39,7 @@ abstract class VibeSettingsStyle {
 
   static TextStyle rowSubtitle(BuildContext context) =>
       (Theme.of(context).textTheme.bodyMedium ?? const TextStyle()).copyWith(
-        fontSize: 13,
+        fontSize: 13.5,
         color: text2(context),
         height: 1.3,
         letterSpacing: 0,
@@ -113,6 +113,13 @@ class VibeSettingsTheme extends StatelessWidget {
           surfaceTintColor: Colors.transparent,
           scrolledUnderElevation: 0,
           elevation: 0,
+          // page titles ("Settings", "Notifications"): big and heavy
+          titleTextStyle: (theme.textTheme.titleLarge ?? const TextStyle())
+              .copyWith(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                color: VibeSettingsStyle.text(context),
+              ),
         ),
         dividerTheme: theme.dividerTheme.copyWith(
           color: VibeSettingsStyle.line(context),
@@ -205,8 +212,8 @@ class VibeSectionLabel extends StatelessWidget {
     child: Text(
       text,
       style: TextStyle(
-        fontSize: 14.5,
-        fontWeight: FontWeight.w500,
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
         color: VibeSettingsStyle.text2(context),
       ),
     ),
@@ -383,8 +390,8 @@ class VibeSettingsRow extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 15.5,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 16.5,
+                      fontWeight: FontWeight.w600,
                       color: text,
                     ),
                   ),

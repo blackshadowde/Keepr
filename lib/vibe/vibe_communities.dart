@@ -685,8 +685,8 @@ class _VibeCommunityPaneState extends State<VibeCommunityPane> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 21,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ),
@@ -695,7 +695,11 @@ class _VibeCommunityPaneState extends State<VibeCommunityPane> {
               child: Text(
                 '${VibeGroups.memberCount(space)} members · '
                 '${isPublic ? 'Public community' : 'Private community'}',
-                style: TextStyle(fontSize: 13.5, color: cs.onSurfaceVariant),
+                style: TextStyle(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w600,
+                  color: cs.onSurfaceVariant,
+                ),
               ),
             ),
             if (topic.isNotEmpty)

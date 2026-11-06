@@ -54,7 +54,7 @@ class VibeTextSizePreview extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
-                      fontSize: 16,
+                      fontSize: textSize,
                       height: 1.15,
                       color: color,
                     ),
@@ -64,7 +64,7 @@ class VibeTextSizePreview extends StatelessWidget {
                 Text(
                   time,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: textSize * 0.74,
                     height: 1.15,
                     color: cs.onSurfaceVariant,
                   ),
@@ -103,8 +103,8 @@ class VibeTextSizePreview extends StatelessWidget {
                       Text(
                         '@$myName',
                         style: TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w600,
+                          fontSize: textSize * 0.88,
+                          fontWeight: FontWeight.w700,
                           color: ownName,
                         ),
                       ),
@@ -115,7 +115,7 @@ class VibeTextSizePreview extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 13.5,
+                            fontSize: textSize * 0.88,
                             color: cs.onSurfaceVariant,
                           ),
                         ),

@@ -362,9 +362,9 @@ class VibePaneHeader extends StatelessWidget {
     final label = Text(
       text,
       style: TextStyle(
-        fontSize: 12.5,
+        fontSize: 14,
         fontWeight: FontWeight.w700,
-        letterSpacing: 0.4,
+        letterSpacing: 0.2,
         color: muted,
       ),
     );
@@ -472,9 +472,9 @@ class VibeHashRow extends StatelessWidget {
                         ],
                       ),
                       style: TextStyle(
-                        fontSize: 14.5,
+                        fontSize: 16.5,
                         color: bold ? cs.onSurface : muted,
-                        fontWeight: bold ? FontWeight.w800 : FontWeight.w700,
+                        fontWeight: bold ? FontWeight.w700 : FontWeight.w600,
                       ),
                     ),
                     if (subtitle != null)
