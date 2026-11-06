@@ -5,6 +5,7 @@
 
 import 'dart:async';
 
+import 'package:vibe/vibe/vibe_glass.dart';
 import 'package:vibe/vibe/screens/chat_list/chat_list.dart';
 import 'package:vibe/utils/stream_extension.dart';
 import 'package:vibe/vibe/vibe_archive.dart';
@@ -248,8 +249,9 @@ class _VibeHomeViewState extends State<VibeHomeView> {
                       ),
                     ),
                     Expanded(
-                      child: ClipRRect(
-                        borderRadius: const BorderRadius.only(
+                      // glossy glass: a floating, frosted pane with edges
+                      child: VibeGlassPane(
+                        plainRadius: const BorderRadius.only(
                           topLeft: Radius.circular(24),
                         ),
                         child: selectedId == _startId

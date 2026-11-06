@@ -98,6 +98,7 @@ class ChatView extends StatelessWidget {
             return VibeGlassBackdrop(
               // Glass look: this chat's own wallpaper, if it has one
               roomId: controller.room.id,
+              frost: true,
               child: VibeStaleKeyboardGuard(child: Scaffold(
               key: Key('chat_page'),
               extendBodyBehindAppBar: true,

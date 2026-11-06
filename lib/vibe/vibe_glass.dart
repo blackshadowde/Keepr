@@ -315,6 +315,23 @@ abstract class VibeGlass {
 
   static bool hasChatWallpaper(String roomId) => pathFor(roomId) != null;
 
+  /// Glossy glass (experimental): the wallpaper stays sharp and only the
+  /// panes over it are frosted, like windows on HyDE.
+  static bool get glossy => AppSettings.vibeGlassGlossy.value;
+
+  /// The sharp copy kept next to a blurred wallpaper (pictures picked before
+  /// glossy glass existed have none).
+  static String sharpOf(String path) =>
+      path.replaceFirst(RegExp(r'\.jpg$'), '_sharp.jpg');
+
+  /// What to draw: the sharp copy with glossy glass on (when there is
+  /// one), otherwise the blurred picture.
+  static String displayPath(String path) {
+    if (!glossy) return path;
+    final s = sharpOf(path);
+    return File(s).existsSync() ? s : path;
+  }
+
   /// Pick a picture: blur it once, keep it, and (for the app wallpaper)
   /// take its main colour for "From wallpaper". Returns false if cancelled.
   static Future<bool> pick(BuildContext context, {String? roomId}) async {
@@ -327,7 +344,7 @@ abstract class VibeGlass {
 
   /// Use [bytes] (a picture) as the app's or a chat's wallpaper.
   static Future<void> setFromBytes(Uint8List bytes, {String? roomId, String? name}) async {
-    final (jpg, seed) = await Isolate.run(() => _process(bytes));
+    final (jpg, sharp, seed) = await Isolate.run(() => _process(bytes));
     final dir = Directory('${(await getApplicationSupportDirectory()).path}/vibe_glass');
     await dir.create(recursive: true);
     final name =
@@ -335,6 +352,7 @@ abstract class VibeGlass {
         '_${DateTime.now().millisecondsSinceEpoch}.jpg';
     final file = File('${dir.path}/$name');
     await file.writeAsBytes(jpg, flush: true);
+    await File(sharpOf(file.path)).writeAsBytes(sharp, flush: true);
     final old = pathFor(roomId);
     if (roomId == null) {
       await AppSettings.vibeGlassWallpaper.setItem(file.path);
@@ -433,22 +451,26 @@ abstract class VibeGlass {
   static void _delete(String? path) {
     if (path == null) return;
     try {
-      final f = File(path);
-      FileImage(f).evict();
-      if (f.existsSync()) f.deleteSync();
+      for (final f in [File(path), File(sharpOf(path))]) {
+        FileImage(f).evict();
+        if (f.existsSync()) f.deleteSync();
+      }
     } catch (e) {
       Logs().v('Keepr glass: could not delete old wallpaper', e);
     }
   }
 
-  /// Runs in the background: blur (on a phone-sized copy) and find the
-  /// main colour (the most common vivid hue).
-  static (Uint8List, int) _process(Uint8List bytes) {
+  /// Runs in the background: blur (on a phone-sized copy), keep a sharp
+  /// screen-sized copy (for glossy glass) and find the main colour (the
+  /// most common vivid hue).
+  static (Uint8List, Uint8List, int) _process(Uint8List bytes) {
     final src = img.decodeImage(bytes);
     if (src == null) throw Exception('Not a picture');
     final small = src.width > 720 ? img.copyResize(src, width: 720) : src;
     final blurred = img.gaussianBlur(small, radius: 8);
     final jpg = Uint8List.fromList(img.encodeJpg(blurred, quality: 86));
+    final big = src.width > 1440 ? img.copyResize(src, width: 1440) : src;
+    final sharp = Uint8List.fromList(img.encodeJpg(big, quality: 90));
 
     final tiny = img.copyResize(src, width: 48);
     final weight = List<double>.filled(24, 0);
@@ -480,12 +502,12 @@ abstract class VibeGlass {
     for (var i = 0; i < 24; i++) {
       if (weight[i] > 0 && (best < 0 || weight[i] > weight[best])) best = i;
     }
-    if (best < 0) return (jpg, 0xFF7AA2F7);
+    if (best < 0) return (jpg, sharp, 0xFF7AA2F7);
     final w = weight[best];
     int c(double v) => (v / w * 255).round().clamp(0, 255);
     final seed =
         0xFF000000 | (c(sumR[best]) << 16) | (c(sumG[best]) << 8) | c(sumB[best]);
-    return (jpg, seed);
+    return (jpg, sharp, seed);
   }
 }
 
@@ -551,13 +573,33 @@ class VibeGlassLayer extends StatelessWidget {
                   gradient
                 else ...[
                   Image.file(
-                    File(path),
+                    File(VibeGlass.displayPath(path)),
                     fit: BoxFit.cover,
                     gaplessPlayback: true,
+                    filterQuality: FilterQuality.medium,
                     errorBuilder: (_, _, _) => gradient,
                   ),
-                  // keeps text readable over bright pictures
-                  ColoredBox(color: p.crust.withAlpha(0x52)),
+                  // keeps text readable over bright pictures (glossy: a
+                  // lighter dim, darker only under the status bar and the
+                  // bottom bar)
+                  if (!VibeGlass.glossy)
+                    ColoredBox(color: p.crust.withAlpha(0x52))
+                  else
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          stops: const [0, 0.14, 0.8, 1],
+                          colors: [
+                            p.crust.withAlpha(0x8C),
+                            p.crust.withAlpha(0x26),
+                            p.crust.withAlpha(0x26),
+                            p.crust.withAlpha(0x99),
+                          ],
+                        ),
+                      ),
+                    ),
                 ],
               ],
             ),
@@ -573,15 +615,180 @@ class VibeGlassLayer extends StatelessWidget {
 class VibeGlassBackdrop extends StatelessWidget {
   final String? roomId;
   final Widget child;
-  const VibeGlassBackdrop({required this.child, this.roomId, super.key});
+
+  /// Glossy glass: frost the whole page (a chat, a settings page), like a
+  /// full-screen window over the sharp wallpaper.
+  final bool frost;
+  const VibeGlassBackdrop({
+    required this.child,
+    this.roomId,
+    this.frost = false,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) => Stack(
     children: [
       Positioned.fill(child: VibeGlassLayer(roomId: roomId)),
+      if (frost) const Positioned.fill(child: VibeGlassFrost()),
       child,
     ],
   );
+}
+
+/// Glossy glass: a frosted layer over everything under it (nothing in the
+/// other looks).
+class VibeGlassFrost extends StatelessWidget {
+  const VibeGlassFrost({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    Theme.of(context);
+    return ValueListenableBuilder<int>(
+      valueListenable: VibeGlass.version,
+      builder: (context, _, _) {
+        if (!VibePalette.isGlass || !VibeGlass.glossy) {
+          return const SizedBox.shrink();
+        }
+        return IgnorePointer(
+          child: ClipRect(
+            child: BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+              child: ColoredBox(
+                color: VibeGlass.palette.base.withAlpha(0x33),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Glossy glass: a floating pane like a window on HyDE: a gap around it,
+/// rounded corners, frosted, a thin border in the theme's accent with a
+/// light highlight on its top edge, and a soft shadow. Plain [child]
+/// otherwise.
+class VibeGlassPane extends StatelessWidget {
+  final Widget child;
+
+  /// The look without glossy glass (the home pane's own rounding).
+  final BorderRadius plainRadius;
+  const VibeGlassPane({
+    required this.child,
+    this.plainRadius = BorderRadius.zero,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    Theme.of(context);
+    return ValueListenableBuilder<int>(
+      valueListenable: VibeGlass.version,
+      builder: (context, _, _) {
+        if (!VibePalette.isGlass || !VibeGlass.glossy) {
+          return ClipRRect(borderRadius: plainRadius, child: child);
+        }
+        final p = VibeGlass.palette;
+        const r = BorderRadius.all(Radius.circular(18));
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(2, 6, 6, 0),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: r,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(0x66),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            position: DecorationPosition.background,
+            child: ClipRRect(
+              borderRadius: r,
+              child: BackdropFilter(
+                filter: ui.ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+                child: DecoratedBox(
+                  position: DecorationPosition.foreground,
+                  decoration: BoxDecoration(
+                    borderRadius: r,
+                    // the window border: the accent fading into the
+                    // theme's second colour, like HyDE's active border
+                    border: GradientBoxBorder(
+                      colors: [
+                        p.accent.withAlpha(0xD9),
+                        p.tert.withAlpha(0x8C),
+                      ],
+                    ),
+                  ),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      // a soft light on the top edge: the glass catches it
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        stops: const [0, 0.08],
+                        colors: [
+                          Colors.white.withAlpha(0x14),
+                          Colors.white.withAlpha(0),
+                        ],
+                      ),
+                    ),
+                    child: child,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// A 1.4 px border drawn with a gradient (top left to bottom right).
+class GradientBoxBorder extends BoxBorder {
+  final List<Color> colors;
+  final double width;
+  const GradientBoxBorder({required this.colors, this.width = 1.4});
+
+  @override
+  BorderSide get top => BorderSide.none;
+  @override
+  BorderSide get bottom => BorderSide.none;
+  @override
+  bool get isUniform => true;
+  @override
+  EdgeInsetsGeometry get dimensions => EdgeInsets.all(width);
+
+  @override
+  ShapeBorder scale(double t) =>
+      GradientBoxBorder(colors: colors, width: width * t);
+
+  @override
+  void paint(
+    Canvas canvas,
+    Rect rect, {
+    TextDirection? textDirection,
+    BoxShape shape = BoxShape.rectangle,
+    BorderRadius? borderRadius,
+  }) {
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = width
+      ..shader = LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: colors,
+      ).createShader(rect);
+    final r = rect.deflate(width / 2);
+    if (borderRadius != null) {
+      canvas.drawRRect(borderRadius.toRRect(r), paint);
+    } else {
+      canvas.drawRect(r, paint);
+    }
+  }
 }
 
 /// Frosted glass behind a pane / bar in the Glass look (live blur of what's
@@ -664,6 +871,39 @@ class VibeGlassSettings extends StatelessWidget {
                     onPressed: () => VibeGlass.remove(),
                   ),
             onTap: () => _pick(context),
+          ),
+          SwitchListTile.adaptive(
+            title: Row(
+              children: [
+                const Flexible(child: Text('Glossy glass')),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.tertiary.withAlpha(0x33),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'Experimental',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: theme.colorScheme.tertiary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            subtitle: const Text(
+              'A sharp wallpaper with frosted panes and glowing edges over it, '
+              'like HyDE on a desktop. Uses a little more battery. Wallpapers '
+              'picked before this was on: pick them again to see them sharp.',
+            ),
+            value: VibeGlass.glossy,
+            onChanged: (v) async {
+              await AppSettings.vibeGlassGlossy.setItem(v);
+              VibeGlass.version.value++;
+            },
           ),
           if (VibeGlass.launcherFound)
             SwitchListTile.adaptive(

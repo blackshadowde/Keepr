@@ -109,6 +109,8 @@ enum AppSettings<T> {
   vibeGlassSeed<int>('chat.keepr.glass_seed', 0xFF7AA2F7),
   // Glass look: take the palette from Hypr Launcher when it's installed
   vibeGlassFollowLauncher<bool>('chat.keepr.glass_follow_launcher', true),
+  // Glass look, experimental: sharp wallpaper, frosted panes with edges
+  vibeGlassGlossy<bool>('chat.keepr.glass_glossy', false),
   vibeSaveMedia<bool>('chat.keepr.save_media', false),
   vibeStatusBubble<bool>('chat.keepr.status_bubble', true),
   vibeLowData<bool>('chat.keepr.low_data', false),

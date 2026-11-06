@@ -299,9 +299,14 @@ class _VibeBackSwipeState<T> extends State<_VibeBackSwipe<T>> {
 class VibePage<T> extends Page<T> {
   final Widget child;
   final bool sheet;
+
+  /// Glossy glass: frost the page over the sharp wallpaper (off for the
+  /// home screen, whose pane frosts itself, and chats, which do their own).
+  final bool frost;
   const VibePage({
     required this.child,
     this.sheet = false,
+    this.frost = true,
     super.key,
     super.restorationId,
   });
@@ -318,7 +323,10 @@ class _VibePageRoute<T> extends PageRoute<T>
 
   @override
   Widget buildContent(BuildContext context) =>
-      VibeGlassBackdrop(child: (settings as VibePage<T>).child);
+      VibeGlassBackdrop(
+        frost: (settings as VibePage<T>).frost,
+        child: (settings as VibePage<T>).child,
+      );
 
   @override
   bool get maintainState => true;
@@ -561,6 +569,8 @@ class _SheetPageState extends State<_SheetPage>
                     children: [
                       // Glass look: the wallpaper behind the pane
                       const Positioned.fill(child: VibeGlassLayer()),
+                      // glossy glass: frosted
+                      const Positioned.fill(child: VibeGlassFrost()),
                       Positioned.fill(
                         child: ScrollConfiguration(
                           // half open (or moving): the list stays put

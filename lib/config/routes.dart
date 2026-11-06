@@ -501,6 +501,8 @@ abstract class AppRoutes {
             restorationId: state.pageKey.value,
             // Settings pages slide up from the bottom and close with a swipe down
             sheet: state.matchedLocation.startsWith('/rooms/settings/'),
+            // glossy glass: home and chats frost themselves
+            frost: state.fullPath != '/rooms' && state.fullPath != '/rooms/:roomid',
             child: child,
           );
   }
