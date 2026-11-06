@@ -389,6 +389,12 @@ class VibeMessage extends StatelessWidget {
     final cs = theme.colorScheme;
     final client = Matrix.of(context).client;
     final ownMessage = event.senderId == client.userID;
+    // Your messages sit on the other side: avatar and text on the right
+    // (left in right-to-left languages).
+    final dir = Directionality.of(context);
+    final side = ownMessage
+        ? (dir == TextDirection.ltr ? TextDirection.rtl : TextDirection.ltr)
+        : dir;
 
     bool sameGroup(Event? e) =>
         e != null &&
@@ -587,6 +593,9 @@ class VibeMessage extends StatelessWidget {
                   removeMarkdown: true,
                 );
             content = Row(
+              mainAxisAlignment: ownMessage
+                  ? MainAxisAlignment.end
+                  : MainAxisAlignment.start,
               children: [
                 Avatar(
                   mxContent: rs.avatarUrl,
@@ -610,7 +619,8 @@ class VibeMessage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 6),
-                Expanded(
+                Flexible(
+                  fit: ownMessage ? FlexFit.loose : FlexFit.tight,
                   child: Text(
                     preview,
                     maxLines: 1,
@@ -631,11 +641,16 @@ class VibeMessage extends StatelessWidget {
             child: SizedBox(
               height: 22,
               child: Row(
+                textDirection: side,
                 children: [
                   SizedBox(
                     width: avatarSize,
                     height: 22,
-                    child: CustomPaint(painter: _ReplyCurve(lineColor)),
+                    // the same curve, mirrored when the avatar is on the right
+                    child: Transform.flip(
+                      flipX: side == TextDirection.rtl,
+                      child: CustomPaint(painter: _ReplyCurve(lineColor)),
+                    ),
                   ),
                   const SizedBox(width: 6),
                   Expanded(child: content),
@@ -648,12 +663,16 @@ class VibeMessage extends StatelessWidget {
     }
 
     final body = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: ownMessage
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         if (first) header(),
         Align(
-          alignment: Alignment.centerLeft,
+          alignment: ownMessage
+              ? AlignmentDirectional.centerEnd
+              : AlignmentDirectional.centerStart,
           child: Builder(
             builder: (context) {
               // Vibe X's soft shadow under the text in light mode
@@ -928,6 +947,7 @@ class VibeMessage extends StatelessWidget {
                       children: [
                         if (replying) replyStrip(),
                         Row(
+                          textDirection: side,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             avatar(),
