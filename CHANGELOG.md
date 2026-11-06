@@ -3,6 +3,10 @@
 Vibe's changes are listed on each release:
 https://github.com/blackshadowde/Vibe-flutter/releases
 
+## 2026-11-06 ([ca7d315](https://github.com/blackshadowde/keepr/commit/ca7d31536))
+
+- The app's text now says Keepr in every language. 152 translated lines in 39 languages still said FluffyChat, and invites pointed to fluffychat.im instead of get-keepr.github.io ([ca7d315](https://github.com/blackshadowde/keepr/commit/ca7d31536))
+
 ## 2026-11-05 ([a97fb90](https://github.com/blackshadowde/keepr/commit/a97fb90e4))
 
 - Your own typing indicator now also reaches direct chats started after you set it, and chats where sharing it failed before: it's shared when you open the chat ([a97fb90](https://github.com/blackshadowde/keepr/commit/a97fb90e4))
