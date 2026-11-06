@@ -663,7 +663,7 @@
         "type": "String",
         "placeholders": {}
     },
-    "inviteText": "{username} har invitert deg til FluffyChat. \n1. Installer FluffyChat: https://fluffychat.im \n2. Registrer deg eller logg inn \n3. Åpne invitasjonslenken: \n {link}",
+    "inviteText": "{username} har invitert deg til Keepr. \n1. Installer Keepr: https://get-keepr.github.io \n2. Registrer deg eller logg inn \n3. Åpne invitasjonslenken: \n {link}",
     "@inviteText": {
         "type": "String",
         "placeholders": {
@@ -810,7 +810,7 @@
         "type": "String",
         "placeholders": {}
     },
-    "newMessageInFluffyChat": "Ny melding i FluffyChat",
+    "newMessageInFluffyChat": "Ny melding i Keepr",
     "@newMessageInFluffyChat": {
         "type": "String",
         "placeholders": {}
@@ -2493,7 +2493,7 @@
     "addChatOrSubSpace": "Legg til chat eller underområde",
     "signIn": "Logg på",
     "createNewAccount": "Opprett ny konto",
-    "signUpGreeting": "FluffyChat er desentralisert! Velg en server der du vil opprette kontoen din, så kjører vi på!",
+    "signUpGreeting": "Keepr er desentralisert! Velg en server der du vil opprette kontoen din, så kjører vi på!",
     "signInGreeting": "Har du allerede en Matrix-konto? Velkommen tilbake! Velg hjemmeserveren din og logg inn.",
     "theProcessWasCanceled": "Prosessen ble avbrutt.",
     "join": "Bli med",
@@ -2513,7 +2513,7 @@
     },
     "createNewChat": "Opprett ny chat",
     "reset": "Nullstill",
-    "supportFluffyChat": "Støtt FluffyChat",
+    "supportFluffyChat": "Støtt Keepr",
     "support": "Støtte",
     "setLowPriority": "Sett lav prioritet",
     "unsetLowPriority": "Fjern lav prioritet",

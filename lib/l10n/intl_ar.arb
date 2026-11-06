@@ -549,7 +549,7 @@
         "type": "String",
         "placeholders": {}
     },
-    "inviteText": "دعاك {username} إلى FluffyChat.\n1. قم بزيارة موقع fluffychat.im وقم بتثبيت التطبيق\n2. قم بإنشاءحساب أو تسجيل الدخول\n3. افتح رابط الدعوة:\n {link}",
+    "inviteText": "دعاك {username} إلى Keepr.\n1. قم بزيارة موقع get-keepr.github.io وقم بتثبيت التطبيق\n2. قم بإنشاءحساب أو تسجيل الدخول\n3. افتح رابط الدعوة:\n {link}",
     "@inviteText": {
         "type": "String",
         "placeholders": {
@@ -681,7 +681,7 @@
         "type": "String",
         "placeholders": {}
     },
-    "newMessageInFluffyChat": "رسالة جديدة في FluffyChat",
+    "newMessageInFluffyChat": "رسالة جديدة في Keepr",
     "@newMessageInFluffyChat": {
         "type": "String",
         "placeholders": {}
