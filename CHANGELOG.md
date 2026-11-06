@@ -13,9 +13,9 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 - Home: the chat list and community pane now fill the screen edge to edge, with no outer frame or rounded window corner ([6ceb04c](https://github.com/blackshadowde/keepr/commit/6ceb04c))
 - Person page and community pane redone as a folding tree: sections (Conversation, Threads, Shared, About for a person; Channels, Voice for a community) with a small arrow to fold them and rows hanging off one faint guide line, no boxes. A person's page shows the online dot on their picture, the last message time on Chat, the communities you share and whether strict encryption is on. A community has Rooms / Threads / People tabs with Invite beside them, threads sit under their channel, the open chat is tinted, and ⋯ shows its settings ([49b7d8c](https://github.com/blackshadowde/keepr/commit/49b7d8c))
 - Motion: a person page or community slides in from the left while the chat list moves out to the right, and back again; swipe right on it to close it ([49b7d8c](https://github.com/blackshadowde/keepr/commit/49b7d8c))
-- Chat text: messages now use Figtree Regular with more room between lines, so long messages read cleaner (PENDING)
-- Photos: two or more photos sent together now show as one stack, the first photo on top and tilted cards behind it, on the sender's side; tap to swipe through them (was a grid for 4 or more) (PENDING)
-- Read state: your messages show 1 dot when sent and 2 when delivered; once read, "Seen by" and the names show once under your newest read message instead of on every message (PENDING)
+- Chat text: messages now use Figtree Regular with more room between lines, so long messages read cleaner ([75547f5](https://github.com/blackshadowde/keepr/commit/75547f5))
+- Photos: two or more photos sent together now show as one stack, the first photo on top and tilted cards behind it, on the sender's side; tap to swipe through them (was a grid for 4 or more) ([75547f5](https://github.com/blackshadowde/keepr/commit/75547f5))
+- Read state: your messages show 1 dot when sent and 2 when delivered; once read, "Seen by" and the names show once under your newest read message instead of on every message ([75547f5](https://github.com/blackshadowde/keepr/commit/75547f5))
 
 ## 2026-11-06 ([ca7d315](https://github.com/blackshadowde/keepr/commit/ca7d31536))
 
