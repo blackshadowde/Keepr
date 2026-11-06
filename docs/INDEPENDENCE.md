@@ -14,6 +14,7 @@ licence requires; everything else becomes Keepr's.
 - [x] Old FluffyChat build scripts and leftovers removed; desktop (Linux, Windows, Mac) named Keepr; Keepr's own privacy, security, contributing and changelog pages
 - [x] Settings keys `chat.fluffy.*` → `chat.keepr.*` (old ones carried over on first start)
 - [x] Help links, homeserver list, website and logo now on get-keepr.github.io
+- [x] Translations: every language says Keepr (FluffyChat and fluffychat.im replaced in the app's text; the text keys stay)
 - [x] iPhone notification extension: app group and ID now Keepr's
 - [ ] iPhone: FluffyChat's Firebase file (`GoogleService-Info.plist`) and the "FluffyChat Share" folder name (kept for now: removing them needs an iPhone build to test)
 
