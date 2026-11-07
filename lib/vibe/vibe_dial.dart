@@ -18,7 +18,11 @@ import 'package:vibe/vibe/vibe_dm_detail.dart';
 import 'package:vibe/vibe/vibe_glass.dart';
 import 'package:vibe/vibe/vibe_groups.dart';
 import 'package:vibe/vibe/vibe_haptics.dart';
+import 'package:vibe/vibe/vibe_call.dart';
 import 'package:vibe/vibe/vibe_lock.dart';
+import 'package:vibe/vibe/vibe_strict.dart';
+import 'package:vibe/vibe/vibe_user_sheet.dart';
+import 'package:vibe/widgets/presence_builder.dart';
 import 'package:vibe/widgets/avatar.dart';
 import 'package:vibe/widgets/matrix.dart';
 
@@ -131,10 +135,9 @@ abstract class VibeDial {
           },
           child: Scaffold(
             backgroundColor: bg,
-            body: VibeDmDetail(
+            body: VibeDialPerson(
               room: room,
               onBack: () => Navigator.of(ctx).pop(),
-              onOpenChat: () => Navigator.of(ctx).pop(),
             ),
           ),
         ),
@@ -279,10 +282,13 @@ class _VibeDialBarState extends State<VibeDialBar>
     final chats = VibeDial.chats(
       widget.room.client,
     ).where((r) => VibeGroups.isGroup(r) == group).toList();
-    if (!chats.any((r) => r.id == widget.room.id)) {
-      chats.insert(0, widget.room);
+    // the dial is for the people you talk to now: pinned and the 15 most
+    // recent; everyone else is a swipe up away (rings, list, search)
+    final near = chats.take(15).toList();
+    if (!near.any((r) => r.id == widget.room.id)) {
+      near.insert(0, widget.room);
     }
-    return chats;
+    return near;
   }
 
   @override
@@ -310,6 +316,10 @@ class _VibeDialBarState extends State<VibeDialBar>
         }
       },
       onHorizontalDragEnd: (d) async {
+        // a flick carries on a few people, like spinning a real dial
+        final fling = (-d.velocity.pixelsPerSecond.dx / 900).round();
+        _steps = (_steps + fling).clamp(-i, chats.length - 1 - i);
+        if (fling != 0) VibeHaptics.selection();
         final target = chats[(i + _steps).clamp(0, chats.length - 1)];
         // settle on the person in the middle (a soft spring), then open
         _settle.value = _drag;
@@ -1066,4 +1076,463 @@ class VibeDialLine extends CustomPainter {
       old.hook != hook ||
       old.right != right ||
       old.hookColor != hookColor;
+}
+
+/// Your message's dot on the middle line tells its state: it glows while
+/// it's being encrypted, pulses while it goes out, turns blue once sent,
+/// green once delivered, red if it couldn't be sent.
+class VibeDialStatusDot extends StatefulWidget {
+  final Event event;
+  const VibeDialStatusDot(this.event, {super.key});
+
+  static const sent = Color(0xFF4DA3FF);
+  static const delivered = Color(0xFF3DDC84);
+  static const failed = Color(0xFFFF5C5C);
+
+  @override
+  State<VibeDialStatusDot> createState() => _VibeDialStatusDotState();
+}
+
+class _VibeDialStatusDotState extends State<VibeDialStatusDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  );
+  final _born = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    _sync();
+  }
+
+  @override
+  void didUpdateWidget(VibeDialStatusDot old) {
+    super.didUpdateWidget(old);
+    _sync();
+  }
+
+  void _sync() {
+    final busy = widget.event.status == EventStatus.sending;
+    if (busy && !_c.isAnimating) _c.repeat(reverse: true);
+    if (!busy && _c.isAnimating) _c.stop();
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final status = widget.event.status;
+    if (status != EventStatus.sending) {
+      final color = switch (status) {
+        EventStatus.error => VibeDialStatusDot.failed,
+        EventStatus.sent => VibeDialStatusDot.sent,
+        _ => VibeDialStatusDot.delivered,
+      };
+      return AnimatedContainer(
+        duration: const Duration(milliseconds: 260),
+        width: 9,
+        height: 9,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      );
+    }
+    // the first moments of an encrypted message: glowing; then pulsing
+    final encrypting = widget.event.room.encrypted &&
+        DateTime.now().difference(_born).inMilliseconds < 700;
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (context, _) {
+        final v = Curves.easeInOut.transform(_c.value);
+        return Container(
+          width: 9,
+          height: 9,
+          decoration: BoxDecoration(
+            color: VibeDial.lime.withValues(alpha: encrypting ? 1 : 0.5 + 0.5 * v),
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: VibeDial.lime.withValues(alpha: encrypting ? 0.7 * v : 0.25 * v),
+                blurRadius: encrypting ? 10 : 6,
+                spreadRadius: encrypting ? 3 * v : 1.5 * v,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// The person's (or group's) page in Dial: the middle line runs on from
+/// the chat and everything hangs off it as a tree, theirs to the left and
+/// yours to the right: Conversation, Shared, About, Actions.
+class VibeDialPerson extends StatelessWidget {
+  final Room room;
+  final VoidCallback onBack;
+  const VibeDialPerson({required this.room, required this.onBack, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final name = room.getLocalizedDisplayname(MatrixLocals(L10n.of(context)));
+    final other = room.directChatMatrixID;
+    final group = VibeGroups.isGroup(room);
+    final strict = room.encrypted && VibeStrict.isOn(room);
+    final shared = other == null || group
+        ? const <String>[]
+        : [
+            for (final s in VibeCommunities.joined(room.client))
+              if (s.getParticipants().any((u) => u.id == other))
+                VibeGroups.nameOf(context, s),
+          ];
+    final muted = room.pushRuleState != PushRuleState.notify;
+    void openShared(String k) => VibeDmDetail.openShared(context, room, k);
+    final rows = <Widget>[
+      _section('CONVERSATION'),
+      _pair(
+        _Leaf('Chat', meta: _ago(room), metaColor: VibeDial.lime, onTap: onBack),
+        room.canSendDefaultMessages
+            ? _Leaf(
+                'Voice call',
+                onTap: () => VibeCall.startFrom(context, room, video: false),
+              )
+            : null,
+      ),
+      if (room.canSendDefaultMessages)
+        _pair(
+          null,
+          _Leaf(
+            'Video call',
+            onTap: () => VibeCall.startFrom(context, room, video: true),
+          ),
+        ),
+      _section('SHARED'),
+      _pair(
+        _Leaf('Media', onTap: () => openShared('media')),
+        _Leaf('Files', onTap: () => openShared('files')),
+      ),
+      _pair(
+        _Leaf('Links', onTap: () => openShared('links')),
+        _Leaf('Voice', onTap: () => openShared('voice')),
+      ),
+      _pair(_Leaf('Starred', onTap: () => openShared('starred')), null),
+      if (group) ...[
+        _section('MEMBERS'),
+        _pair(
+          _Leaf(
+            'Members',
+            meta: '${VibeGroups.memberCount(room)}',
+            onTap: () => VibeGroups.showMembers(context, room),
+          ),
+          room.canInvite
+              ? _Leaf('Invite', onTap: () => VibeGroups.showInvite(context, room))
+              : null,
+        ),
+      ],
+      _section('ABOUT'),
+      _pair(
+        _Leaf(
+          room.encrypted ? 'Strict encryption' : 'Not encrypted',
+          meta: room.encrypted ? (strict ? 'ON' : 'OFF') : null,
+          metaColor: strict ? VibeDial.lime : VibeDial.dim,
+          onTap: room.encrypted
+              ? () => ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(VibeStrict.describe(room))),
+                )
+              : null,
+        ),
+        shared.isNotEmpty ? _Leaf(shared.first, meta: 'IN') : null,
+      ),
+      if (other != null && !group)
+        _pair(
+          _Leaf(
+            'Profile',
+            onTap: () => VibeUserSheet.show(
+              context,
+              client: room.client,
+              userId: other,
+              displayName: name,
+              avatarUrl: room.avatar,
+              currentRoomId: room.id,
+            ),
+          ),
+          shared.length > 1 ? _Leaf(shared[1], meta: 'IN') : null,
+        ),
+      _section('ACTIONS'),
+      _pair(
+        _Leaf(
+          muted ? 'Unmute' : 'Mute',
+          onTap: () => room.setPushRuleState(
+            muted ? PushRuleState.notify : PushRuleState.mentionsOnly,
+          ),
+        ),
+        _Leaf(
+          VibeLock.isLocked(room.id) ? 'Unlock chat' : 'Lock chat',
+          onTap: () => VibeLock.toggle(context, room),
+        ),
+      ),
+      _pair(
+        _Leaf(
+          'More',
+          onTap: () => VibeChatActions.show(context, room, onOpen: onBack),
+        ),
+        null,
+      ),
+    ];
+    return Scaffold(
+      backgroundColor: VibeDial.bg,
+      body: SafeArea(
+        child: StreamBuilder<Object?>(
+          stream: room.client.onSync.stream.where(
+            (u) => u.rooms?.join?.containsKey(room.id) ?? false,
+          ),
+          builder: (context, _) => CustomPaint(
+            painter: const _Spine(top: 236),
+            child: ListView(
+              padding: const EdgeInsets.only(bottom: 40),
+              children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton(
+                    onPressed: onBack,
+                    child: Text(
+                      '← BACK TO CHAT',
+                      style: VibeDial.label(color: VibeDial.ink),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Center(
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        width: 88,
+                        height: 88,
+                        padding: const EdgeInsets.all(3),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: VibeDial.bg,
+                          border: Border.all(color: VibeDial.pink, width: 1.5),
+                        ),
+                        child: Avatar(
+                          mxContent: room.avatar,
+                          name: name,
+                          size: 80,
+                          client: room.client,
+                        ),
+                      ),
+                      if (other != null && !group)
+                        Positioned(
+                          right: 2,
+                          bottom: 4,
+                          child: PresenceBuilder(
+                            client: room.client,
+                            userId: other,
+                            builder: (context, p) => Container(
+                              width: 18,
+                              height: 18,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: p?.presence.isOnline == true
+                                    ? VibeDial.lime
+                                    : VibeDial.faint,
+                                border: Border.all(color: VibeDial.bg, width: 3),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  name,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w700,
+                    color: VibeDial.ink,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  (group
+                          ? '${VibeGroups.memberCount(room)} members'
+                          : (other ?? ''))
+                      .toUpperCase(),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: VibeDial.label(size: 9),
+                ),
+                const SizedBox(height: 12),
+                ...rows,
+                const SizedBox(height: 20),
+                Text(
+                  'SWIPE RIGHT TO GO BACK',
+                  textAlign: TextAlign.center,
+                  style: VibeDial.label(size: 9),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static String? _ago(Room room) {
+    final t = room.lastEvent?.originServerTs;
+    if (t == null) return null;
+    final d = DateTime.now().difference(t);
+    if (d.inMinutes < 1) return 'NOW';
+    if (d.inHours < 1) return '${d.inMinutes}M';
+    if (d.inDays < 1) return '${d.inHours}H';
+    return '${d.inDays}D';
+  }
+
+  static Widget _section(String text) => Padding(
+    padding: const EdgeInsets.only(top: 18, bottom: 8),
+    child: Center(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        decoration: BoxDecoration(
+          color: VibeDial.bg,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: VibeDial.faint),
+        ),
+        child: Text(text, style: VibeDial.label(size: 9)),
+      ),
+    ),
+  );
+
+  static Widget _pair(_Leaf? left, _Leaf? right) => SizedBox(
+    height: 38,
+    child: CustomPaint(
+      painter: _Elbows(left: left != null, right: right != null),
+      child: Row(
+        children: [
+          Expanded(
+            child: left == null
+                ? const SizedBox.shrink()
+                : Align(
+                    alignment: Alignment.centerRight,
+                    child: left.build(end: true),
+                  ),
+          ),
+          const SizedBox(width: 72),
+          Expanded(
+            child: right == null
+                ? const SizedBox.shrink()
+                : Align(
+                    alignment: Alignment.centerLeft,
+                    child: right.build(end: false),
+                  ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _Leaf {
+  final String label;
+  final String? meta;
+  final Color metaColor;
+  final VoidCallback? onTap;
+  const _Leaf(
+    this.label, {
+    this.meta,
+    this.metaColor = VibeDial.dim,
+    this.onTap,
+  });
+
+  Widget build({required bool end}) {
+    final text = Text(
+      label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        fontSize: 15,
+        color: onTap == null ? VibeDial.dim : VibeDial.ink,
+      ),
+    );
+    final m = meta == null
+        ? null
+        : Text(meta!, style: VibeDial.label(color: metaColor, size: 10));
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: onTap == null
+          ? null
+          : () {
+              VibeHaptics.selection();
+              onTap!();
+            },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: end
+              ? [Flexible(child: text), if (m != null) ...[const SizedBox(width: 8), m]]
+              : [if (m != null) ...[m, const SizedBox(width: 8)], Flexible(child: text)],
+        ),
+      ),
+    );
+  }
+}
+
+/// The line down the middle of the tree page, from under the header.
+class _Spine extends CustomPainter {
+  final double top;
+  const _Spine({required this.top});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final x = size.width / 2;
+    canvas.drawLine(
+      Offset(x, top),
+      Offset(x, size.height),
+      Paint()
+        ..color = VibeDial.faint
+        ..strokeWidth = 1,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_Spine old) => old.top != top;
+}
+
+/// A row's branches: from the line, a curve out to each side that has one.
+class _Elbows extends CustomPainter {
+  final bool left;
+  final bool right;
+  const _Elbows({required this.left, required this.right});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final x = size.width / 2;
+    final y = size.height / 2;
+    final paint = Paint()
+      ..color = VibeDial.faint
+      ..strokeWidth = 1.2
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    for (final s in [if (left) -1, if (right) 1]) {
+      final path = Path()
+        ..moveTo(x, y - 14)
+        ..quadraticBezierTo(x, y, x + 12.0 * s, y)
+        ..lineTo(x + 30.0 * s, y);
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_Elbows old) => old.left != left || old.right != right;
 }

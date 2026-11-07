@@ -54,6 +54,11 @@ class VibeDmDetail extends StatelessWidget {
     super.key,
   });
 
+  /// Media, files, links, voice messages or starred ([kind] is one of
+  /// those words) as a sheet, for layouts that list them their own way.
+  static Future<void> openShared(BuildContext context, Room room, String kind) =>
+      _DmSheet.open(context, room, _Kind.values.byName(kind));
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);

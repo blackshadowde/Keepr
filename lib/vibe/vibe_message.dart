@@ -789,7 +789,8 @@ class VibeMessage extends StatelessWidget {
               // Status sits right after the text the whole time:
               // "Encrypting…" → ✓ → blue ✓✓, changing in place. Only
               // failures and file uploads (with Retry / Cancel) go below.
-              final ticks = ownMessage && !_statusBelow(event);
+              // (Dial: the state shows on the dot on the middle line)
+              final ticks = ownMessage && !_statusBelow(event) && !dial;
               if (!ticks && effect == null) return content;
               // Sent/read ticks sit beside the text: after it, or before it
               // on your side so the right edge stays clean.
@@ -1050,13 +1051,13 @@ class VibeMessage extends StatelessWidget {
                               ),
                             ),
                           )
+                        : ownMessage
+                        ? VibeDialStatusDot(event)
                         : Container(
                             width: 9,
                             height: 9,
                             decoration: BoxDecoration(
-                              color: ownMessage
-                                  ? VibeDial.lime
-                                  : (group ? color : VibeDial.ink),
+                              color: group ? color : VibeDial.ink,
                               shape: BoxShape.circle,
                             ),
                           ),
