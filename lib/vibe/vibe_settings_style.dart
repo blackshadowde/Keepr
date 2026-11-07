@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import 'package:vibe/vibe/vibe_palette.dart';
+import 'package:vibe/vibe/vibe_cascade.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
 import 'package:flutter/material.dart';
 
@@ -334,13 +335,13 @@ class VibeSwitchRow extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => ListTile(
+  Widget build(BuildContext context) => VibeRiseIn(child: ListTile(
     leading: icon == null ? null : Icon(icon, size: 22),
     title: Text(title),
     subtitle: subtitle == null ? null : Text(subtitle!),
     trailing: VibeSwitch(value: value, onChanged: onChanged),
     onTap: onChanged == null ? null : () => onChanged!(!value),
-  );
+  ));
 }
 
 /// One row in a Vibgram-style settings card: filled icon, title, optional
@@ -368,7 +369,7 @@ class VibeSettingsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = color ?? VibeSettingsStyle.text(context);
-    return VibePressable(
+    return VibeRiseIn(child: VibePressable(
       child: InkWell(
       onTap: onTap,
       child: SizedBox(
@@ -425,7 +426,7 @@ class VibeSettingsRow extends StatelessWidget {
         ),
       ),
     ),
-    );
+    ));
   }
 }
 

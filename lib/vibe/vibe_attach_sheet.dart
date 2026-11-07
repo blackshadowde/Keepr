@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import 'package:vibe/vibe/vibe_dialog.dart';
+import 'package:vibe/vibe/vibe_cascade.dart';
 import 'dart:typed_data';
 
 import 'package:vibe/vibe/vibe_contact_share.dart';
@@ -422,7 +423,7 @@ class _Action extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final color = active ? cs.onSurface : cs.onSurfaceVariant;
-    return InkWell(
+    return VibeRiseIn(child: InkWell(
       borderRadius: BorderRadius.circular(18),
       onTap: onTap,
       child: Padding(
@@ -443,6 +444,6 @@ class _Action extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
   }
 }

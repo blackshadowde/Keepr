@@ -5,6 +5,11 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 
 ## 2026-11-07 ([a7d176a](https://github.com/blackshadowde/keepr/commit/a7d176a))
 
+- Motion, block style: opening a chat, the list's rows (and the profile bar and rail) slide away to the right as solid blocks, shrinking and fading one after another from the top, and the chat comes up from dim behind them; back plays it in reverse. Dragging a chat open or closed with a finger still slides it 1:1 (PENDING)
+- Chats / Spaces switch and opening a person or community: the old rows leave as blocks, then the new rows come in the same way (PENDING)
+- Menus and settings: rows in the chat menu, attach menu, message menu, locked chats and settings rise into place one after another as the pane opens (PENDING)
+- Locked chats title and the "Chats" / "Spaces" label in the profile bar flicker into place with a short glitch (PENDING)
+
 - Chat list: every chat is now its own rounded pill on the wallpaper (like the rows in the start pane) instead of one shared panel, with the same rise-in and press motion; the open chat's pill is tinted ([db35545](https://github.com/blackshadowde/keepr/commit/db35545))
 
 - Home: your profile bar moved to the top, with search beside settings; the separate title and new-chat pencil are gone (the + tile covers new chats). After switching, the bar shows "Chats" or "Spaces" for a moment, then your name again ([44a8db0](https://github.com/blackshadowde/keepr/commit/44a8db0))

@@ -37,10 +37,15 @@ class VibePageTransitionsBuilder extends PageTransitionsBuilder {
     // slides over it (like Telegram). Paint-only, so it costs almost nothing.
     // Its own layer: moving / dimming the covered page each frame must not
     // repaint everything on it (that was the stutter when closing a chat).
-    final under = _Underneath(
-      animation: secondaryAnimation,
-      child: RepaintBoundary(child: child),
-    );
+    final page = route.settings;
+    // The chat list doesn't drift: its rows slide away as blocks themselves
+    // (VibeCascadeOut), uncovering the chat.
+    final under = page is VibePage && page.cascade
+        ? RepaintBoundary(child: child)
+        : _Underneath(
+            animation: secondaryAnimation,
+            child: RepaintBoundary(child: child),
+          );
     if (route.isFirst) return under;
     if (VibeSwipe.pending && animation.status == AnimationStatus.forward) {
       VibeSwipe.pending = false;
@@ -52,11 +57,13 @@ class VibePageTransitionsBuilder extends PageTransitionsBuilder {
     }
     return _VibeBackSwipe<T>(
       route: route,
-      child: _SlideOver(
-        route: route,
-        animation: animation,
-        child: under,
-      ),
+      child: page is VibePage && page.reveal
+          ? _Reveal(route: route, animation: animation, child: under)
+          : _SlideOver(
+              route: route,
+              animation: animation,
+              child: under,
+            ),
     );
   }
 }
@@ -116,6 +123,43 @@ class _SlideOver extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      );
+    },
+  );
+}
+
+/// A chat opening: it comes up from dim and slightly small while the list's
+/// rows slide away over it, so it feels uncovered rather than pushed in.
+/// Following a finger (swipe open / swipe back) it slides, 1:1.
+class _Reveal extends StatelessWidget {
+  final PageRoute<dynamic> route;
+  final Animation<double> animation;
+  final Widget child;
+  const _Reveal({
+    required this.route,
+    required this.animation,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: animation,
+    child: child,
+    builder: (context, child) {
+      final gesture = route.navigator?.userGestureInProgress == true;
+      final v = animation.value.clamp(0.0, 1.0);
+      // opening: shows from a third of the way in, as the rows clear;
+      // closing: gone before the rows are back
+      final f = gesture
+          ? 1.0
+          : Curves.easeOutCubic.transform(((v - 0.3) / 0.7).clamp(0.0, 1.0));
+      // Same widgets every frame, so the chat keeps its state.
+      return FractionalTranslation(
+        translation: Offset(gesture ? 1 - v : 0, 0),
+        child: Transform.scale(
+          scale: 0.96 + 0.04 * f,
+          child: Opacity(opacity: f, child: child),
         ),
       );
     },
@@ -303,10 +347,18 @@ class VibePage<T> extends Page<T> {
   /// Glossy glass: frost the page over the sharp wallpaper (off for the
   /// home screen, whose pane frosts itself, and chats, which do their own).
   final bool frost;
+
+  /// The chat list: its rows slide away as blocks when a chat opens over it.
+  final bool cascade;
+
+  /// A chat: uncovered as the list's rows slide away (see [cascade]).
+  final bool reveal;
   const VibePage({
     required this.child,
     this.sheet = false,
     this.frost = true,
+    this.cascade = false,
+    this.reveal = false,
     super.key,
     super.restorationId,
   });
@@ -331,11 +383,16 @@ class _VibePageRoute<T> extends PageRoute<T>
   @override
   bool get maintainState => true;
 
+  bool get _reveal => (settings as VibePage<T>).reveal;
+
+  // the block motion takes a little longer than a slide
   @override
-  Duration get transitionDuration => vibePageSpring.duration;
+  Duration get transitionDuration =>
+      _reveal ? const Duration(milliseconds: 640) : vibePageSpring.duration;
 
   @override
-  Duration get reverseTransitionDuration => const Duration(milliseconds: 300);
+  Duration get reverseTransitionDuration =>
+      Duration(milliseconds: _reveal ? 460 : 300);
 }
 
 /// A settings page as a pane: it rises to half the screen, then on up to

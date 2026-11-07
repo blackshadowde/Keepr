@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import 'package:vibe/vibe/vibe_palette.dart';
+import 'package:vibe/vibe/vibe_cascade.dart';
 import 'package:vibe/config/setting_keys.dart';
 import 'package:vibe/l10n/l10n.dart';
 import 'package:vibe/utils/matrix_sdk_extensions/matrix_locals.dart';
@@ -126,7 +127,8 @@ abstract class VibeLock {
                 children: [
                   Icon(Icons.lock_outline, size: 22),
                   SizedBox(width: 10),
-                  Text(
+                  // flickers into place as it unlocks
+                  VibeGlitchText(
                     'Locked chats',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
@@ -144,7 +146,7 @@ abstract class VibeLock {
                   final name = r.getLocalizedDisplayname(
                     MatrixLocals(L10n.of(ctx)),
                   );
-                  return ListTile(
+                  return VibeRiseIn(child: ListTile(
                     leading: Avatar(
                       mxContent: r.avatar,
                       name: name,
@@ -161,7 +163,7 @@ abstract class VibeLock {
                       Navigator.pop(ctx);
                       await toggle(context, r);
                     },
-                  );
+                  ));
                 },
               ),
             const Padding(

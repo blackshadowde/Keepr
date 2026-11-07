@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import 'package:vibe/vibe/vibe_event_body.dart';
+import 'package:vibe/vibe/vibe_cascade.dart';
 import 'package:vibe/vibe/vibe_palette.dart';
 import 'package:vibe/vibe/vibe_haptics.dart';
 import 'package:vibe/vibe/vibe_new_hint.dart';
@@ -165,7 +166,7 @@ class _Menu extends StatelessWidget {
       VoidCallback onTap, {
       Color? color,
       String? subtitle,
-    }) => InkWell(
+    }) => VibeRiseIn(child: InkWell(
       onTap: () {
         VibeHaptics.selection();
         onTap();
@@ -202,7 +203,7 @@ class _Menu extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ));
 
     return SafeArea(
       child: SingleChildScrollView(

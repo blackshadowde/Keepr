@@ -26,6 +26,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:matrix/matrix.dart';
 import 'package:vibe/vibe/vibe_threads.dart';
+import 'package:vibe/vibe/vibe_cascade.dart';
 import 'package:vibe/vibe/vibe_tree.dart';
 import 'package:vibe/vibe/vibe_strict.dart';
 import 'package:vibe/vibe/vibe_communities.dart';
@@ -88,7 +89,7 @@ class VibeDmDetail extends StatelessWidget {
           padding: EdgeInsets.only(
             bottom: 24 + MediaQuery.paddingOf(context).bottom,
           ),
-          children: [
+          children: vibeCascadeAll([
             VibeTreeTop(
               onBack: onBack,
               onMore: invited
@@ -398,7 +399,7 @@ class VibeDmDetail extends StatelessWidget {
                 ],
               ),
             ],
-          ],
+          ]),
         ),
       ),
     );
