@@ -3,8 +3,11 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'dart:math' as math;
+
 import 'package:vibe/vibe/vibe_event_body.dart';
 import 'package:vibe/vibe/vibe_cascade.dart';
+import 'package:vibe/vibe/vibe_dial.dart';
 import 'package:vibe/vibe/vibe_palette.dart';
 import 'package:vibe/vibe/vibe_haptics.dart';
 import 'package:vibe/vibe/vibe_new_hint.dart';
@@ -32,6 +35,8 @@ abstract class VibeMessageMenu {
     ChatController controller,
     Event event,
   ) {
+    // Dial: a ring of actions round the message instead of a sheet
+    if (VibeDial.on) return _Pie.show(context, controller, event);
     final cs = Theme.of(context).colorScheme;
     return showVibeSheet<void>(
       sheetAnimationStyle: vibeSheetStyle,
@@ -429,3 +434,322 @@ const Map<String, String> _quickEmojis = {
 /// An animated emoji, like Vibgram's animated reactions. Loaded once from
 /// Google's Noto Animated Emoji and kept in the image cache; shows the plain
 /// emoji while loading, offline, or in Low data mode.
+
+
+/// Dial's long-press menu: the message in a disc in the middle, its actions
+/// on a ring round it (they turn into place like the dial), quick reactions
+/// above. Tap outside to close.
+class _Pie extends StatefulWidget {
+  final ChatController controller;
+  final Event event;
+  const _Pie({required this.controller, required this.event});
+
+  static Future<void> show(
+    BuildContext context,
+    ChatController controller,
+    Event event,
+  ) {
+    VibeHaptics.medium();
+    return showGeneralDialog<void>(
+      context: context,
+      useRootNavigator: true,
+      barrierDismissible: true,
+      barrierLabel: 'Close',
+      barrierColor: Colors.black.withValues(alpha: 0.72),
+      transitionDuration: const Duration(milliseconds: 420),
+      pageBuilder: (ctx, anim, _) => _Pie(controller: controller, event: event),
+    );
+  }
+
+  @override
+  State<_Pie> createState() => _PieState();
+}
+
+class _PieAct {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool danger;
+  const _PieAct(this.icon, this.label, this.onTap, {this.danger = false});
+}
+
+class _PieState extends State<_Pie> {
+  @override
+  Widget build(BuildContext context) {
+    final controller = widget.controller;
+    final event = widget.event;
+    // the sheet's own actions, closing this ring instead of the sheet
+    final m = _Menu(controller: controller, event: event, sheetContext: context);
+    final i18n = MatrixLocals(L10n.of(context));
+    final name = event.senderFromMemoryOrFallback.calcDisplayname(i18n: i18n);
+    final body = event.getDisplayEvent(controller.timeline!).body;
+    controller.selectedEvents
+      ..clear()
+      ..add(event);
+    final canRedact = controller.canRedactSelectedEvents;
+    controller.selectedEvents.clear();
+    final own = event.senderId == event.room.client.userID;
+    final canEdit =
+        !controller.isArchived &&
+        own &&
+        event.type == EventTypes.Message &&
+        !event.redacted &&
+        const {
+          MessageTypes.Text,
+          MessageTypes.Notice,
+          MessageTypes.Emote,
+        }.contains(event.messageType) &&
+        event.status != EventStatus.error &&
+        event.status != EventStatus.sending;
+    final canSend = event.room.canSendDefaultMessages;
+    final text = const {
+      MessageTypes.Text,
+      MessageTypes.Notice,
+      MessageTypes.Emote,
+    }.contains(event.messageType);
+    final starred = VibeStarred.isStarred(event.room.id, event.eventId);
+    final acts = <_PieAct>[
+      if (canSend)
+        _PieAct(Icons.reply, 'Reply', () {
+          m._close();
+          controller.replyAction(replyTo: event);
+        }),
+      if (canSend && controller.activeThreadId == null)
+        _PieAct(VibeThreads.icon, 'Thread', () {
+          m._close();
+          controller.createThread(event);
+        }),
+      if (canSend && text)
+        _PieAct(Icons.format_quote_rounded, 'Quote', () {
+          m._close();
+          controller.quotePartAction(event);
+        }),
+      if (canEdit) _PieAct(Icons.edit_outlined, 'Edit', m._edit),
+      _PieAct(
+        Icons.shortcut,
+        'Forward',
+        () => m._withSelection(controller.forwardEventsAction),
+      ),
+      _PieAct(Icons.copy_outlined, 'Copy', () {
+        m._close();
+        controller.selectedEvents
+          ..clear()
+          ..add(event);
+        controller.copyEventsAction();
+        controller.selectedEvents.clear();
+      }),
+      _PieAct(starred ? Icons.bookmark : Icons.bookmark_border, 'Save', () {
+        m._close();
+        VibeStarred.toggle(event.room.id, event.eventId);
+      }),
+      _PieAct(Icons.info_outline, 'Info', () {
+        m._close();
+        controller.showEventInfo(event);
+      }),
+      if (canRedact)
+        _PieAct(
+          Icons.block,
+          'Delete',
+          () => m._withSelection(controller.redactEventsAction),
+          danger: true,
+        ),
+      if (!own)
+        _PieAct(
+          Icons.flag_outlined,
+          'Report',
+          () => m._withSelection(controller.reportEventAction),
+          danger: true,
+        ),
+    ];
+    final anim = ModalRoute.of(context)!.animation!;
+    // (a Material so text gets the app's style, not the plain fallback)
+    return Material(
+      type: MaterialType.transparency,
+      child: AnimatedBuilder(
+      animation: anim,
+      builder: (context, _) {
+        final t = Curves.easeOutCubic.transform(anim.value);
+        return LayoutBuilder(
+          builder: (context, box) {
+            final c = Offset(box.maxWidth / 2, box.maxHeight / 2);
+            const r = 128.0;
+            const s = 56.0;
+            return Stack(
+              children: [
+                // tap anywhere else to close
+                Positioned.fill(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: m._close,
+                  ),
+                ),
+                // the ring line
+                Positioned(
+                  left: c.dx - r,
+                  top: c.dy - r,
+                  child: Opacity(
+                    opacity: t,
+                    child: Container(
+                      width: r * 2,
+                      height: r * 2,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: VibeDial.faint),
+                      ),
+                    ),
+                  ),
+                ),
+                // the message
+                Positioned(
+                  left: c.dx - 74,
+                  top: c.dy - 74,
+                  child: Transform.scale(
+                    scale: 0.7 + 0.3 * t,
+                    child: Opacity(
+                      opacity: t,
+                      child: Container(
+                        width: 148,
+                        height: 148,
+                        padding: const EdgeInsets.all(18),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: VibeDial.card,
+                          border: Border.all(
+                            color: own ? VibeDial.lime : VibeDial.faint,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              name.toUpperCase(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: VibeDial.label(
+                                color: own ? VibeDial.lime : VibeDial.dim,
+                                size: 9,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              body,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: VibeDial.ink,
+                                decoration: TextDecoration.none,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                // the actions turn into place round it, like the dial
+                for (var i = 0; i < acts.length; i++)
+                  () {
+                    final deg = -90 + i * 360 / acts.length - (1 - t) * 70;
+                    final a = deg * 3.141592653589793 / 180;
+                    final rr = r * (0.6 + 0.4 * t);
+                    final p = c + Offset(rr * math.cos(a), rr * math.sin(a));
+                    final act = acts[i];
+                    final color = act.danger ? _red : VibeDial.ink;
+                    return Positioned(
+                      left: p.dx - 36,
+                      top: p.dy - s / 2,
+                      width: 72,
+                      child: Opacity(
+                        opacity: t,
+                        child: GestureDetector(
+                          onTap: () {
+                            VibeHaptics.selection();
+                            act.onTap();
+                          },
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: s,
+                                height: s,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: VibeDial.bg,
+                                  border: Border.all(
+                                    color: act.danger
+                                        ? _red.withValues(alpha: 0.6)
+                                        : VibeDial.faint,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Icon(act.icon, color: color, size: 22),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                act.label.toUpperCase(),
+                                style: VibeDial.label(
+                                  color: act.danger ? _red : VibeDial.dim,
+                                  size: 8.5,
+                                ).copyWith(decoration: TextDecoration.none),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }(),
+                // quick reactions above the ring
+                if (canSend)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    top: c.dy - r - 96,
+                    child: Opacity(
+                      opacity: t,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          for (final e in _quickEmojis.keys)
+                            GestureDetector(
+                              onTap: () => m._react(context, e),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 7,
+                                ),
+                                child: Text(
+                                  e,
+                                  style: const TextStyle(
+                                    fontSize: 28,
+                                    decoration: TextDecoration.none,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          GestureDetector(
+                            onTap: () => m._moreEmojis(context),
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 7),
+                              child: Icon(
+                                Icons.add_reaction_outlined,
+                                color: VibeDial.dim,
+                                size: 26,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            );
+          },
+        );
+      },
+    ),
+    );
+  }
+}

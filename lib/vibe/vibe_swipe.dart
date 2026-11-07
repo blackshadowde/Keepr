@@ -43,7 +43,14 @@ class VibePageTransitionsBuilder extends PageTransitionsBuilder {
     // The chat list doesn't drift: its rows slide away as blocks themselves
     // (VibeCascadeOut), uncovering the chat.
     final under = page is VibePage && page.cascade
-        ? RepaintBoundary(child: child)
+        ? (VibeDial.on
+              // Dial: all chats turn away like the dial as a chat comes in
+              ? VibeDialTurn(
+                  animation: secondaryAnimation,
+                  out: true,
+                  child: RepaintBoundary(child: child),
+                )
+              : RepaintBoundary(child: child))
         : _Underneath(
             animation: secondaryAnimation,
             child: RepaintBoundary(child: child),
@@ -153,12 +160,18 @@ class _Reveal extends StatelessWidget {
     builder: (context, child) {
       final gesture = route.navigator?.userGestureInProgress == true;
       final v = animation.value.clamp(0.0, 1.0);
+      // Dial: the chat turns in like the dial instead of strips
+      final dial = VibeDial.on && !gesture;
       // Same widgets every frame, so the chat keeps its state.
       return FractionalTranslation(
         translation: Offset(gesture ? 1 - v : 0, 0),
-        child: ClipPath(
-          clipper: _Strips(v, all: gesture),
-          child: child,
+        child: Transform(
+          alignment: VibeDial.pivot,
+          transform: Matrix4.rotationZ(dial ? VibeDial.turnAngle(v) : 0),
+          child: ClipPath(
+            clipper: _Strips(v, all: gesture || dial),
+            child: child,
+          ),
         ),
       );
     },

@@ -2,9 +2,11 @@
 
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
+import 'package:flutter/rendering.dart';
 import 'package:go_router/go_router.dart';
 import 'package:matrix/matrix.dart';
 import 'package:vibe/config/setting_keys.dart';
@@ -104,21 +106,59 @@ abstract class VibeDial {
   static Rect? _dialRect;
   static bool covers(Offset p) => on && (_dialRect?.contains(p) ?? false);
 
-  /// Switch to another chat from the dial: a quick dark wipe over the old
-  /// chat, the new one under it, and the wipe lifts.
-  static Future<void> switchTo(BuildContext context, Room room) async {
+  /// Screens turn like the dial: round a point far below the screen.
+  static const pivot = Alignment(0, 2.4);
+
+  /// Which way the last turn went: 1 = the next chat comes from the right.
+  static int turnDir = 1;
+
+  /// How far a chat coming in is still turned, at [v] (0 → 1).
+  static double turnAngle(double v) =>
+      (1 - Curves.easeOutCubic.transform(v.clamp(0.0, 1.0))) * 0.5 * turnDir;
+
+  /// Switch to another chat from the dial: the chat you're in turns away
+  /// one way (a picture of it) while the next one turns in from the other,
+  /// like the dial itself. [dir] 1: the next one is to the right.
+  static Future<void> switchTo(
+    BuildContext context,
+    Room room, {
+    int dir = 1,
+  }) async {
     final overlay = Overlay.of(context, rootOverlay: true);
     final router = GoRouter.of(context);
-    final curtain = GlobalKey<_CurtainState>();
+    turnDir = dir;
+    final shot = await _shot(context);
+    if (shot == null) {
+      router.go('/rooms/${room.id}');
+      return;
+    }
+    final done = Completer<void>();
     final entry = OverlayEntry(
-      builder: (_) => _Curtain(key: curtain, quick: true),
+      builder: (_) => _TurnOut(image: shot, dir: dir, onDone: done.complete),
     );
     overlay.insert(entry);
-    await Future<void>.delayed(const Duration(milliseconds: 150));
     router.go('/rooms/${room.id}');
-    await Future<void>.delayed(const Duration(milliseconds: 120));
-    await curtain.currentState?.lift();
+    await done.future;
     entry.remove();
+    shot.dispose();
+  }
+
+  /// A picture of the whole page [context] is on.
+  static Future<ui.Image?> _shot(BuildContext context) async {
+    final h = MediaQuery.sizeOf(context).height;
+    final ratio = MediaQuery.devicePixelRatioOf(context) * 0.75;
+    RenderObject? o = context.findRenderObject();
+    while (o != null) {
+      if (o is RenderRepaintBoundary && o.hasSize && o.size.height >= h * 0.9) {
+        try {
+          return await o.toImage(pixelRatio: ratio);
+        } catch (_) {
+          return null;
+        }
+      }
+      o = o.parent;
+    }
+    return null;
   }
 
   /// The person's (or group's) page, sliding in from the left; swipe right
@@ -195,9 +235,7 @@ abstract class VibeDial {
 }
 
 class _Curtain extends StatefulWidget {
-  /// A quick plain wipe (switching chats) instead of the named curtain.
-  final bool quick;
-  const _Curtain({this.quick = false, super.key});
+  const _Curtain({super.key});
 
   @override
   State<_Curtain> createState() => _CurtainState();
@@ -207,7 +245,7 @@ class _CurtainState extends State<_Curtain>
     with SingleTickerProviderStateMixin {
   late final AnimationController _c = AnimationController(
     vsync: this,
-    duration: Duration(milliseconds: widget.quick ? 150 : 300),
+    duration: const Duration(milliseconds: 300),
   )..forward();
 
   Future<void> lift() => _c.reverse();
@@ -221,9 +259,7 @@ class _CurtainState extends State<_Curtain>
   @override
   Widget build(BuildContext context) => FadeTransition(
     opacity: _c,
-    child: widget.quick
-        ? const IgnorePointer(child: ColoredBox(color: VibeDial.bg))
-        : const Material(
+    child: const Material(
       color: VibeDial.bg,
       child: Center(
         child: Text(
@@ -282,16 +318,23 @@ class _VibeDialBarState extends State<VibeDialBar>
   )..addListener(() => setState(() => _drag = _settle.value));
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // hidden for the keyboard: nothing to keep clear of the swipe-back
+    if (MediaQuery.viewInsetsOf(context).bottom > 0) VibeDial._dialRect = null;
+  }
+
+  @override
   void dispose() {
     _settle.dispose();
     VibeDial._dialRect = null;
     super.dispose();
   }
 
-  void _open(Room r) {
+  void _open(Room r, {int dir = 1}) {
     if (r.id == widget.room.id) return;
     VibeHaptics.light();
-    VibeDial.switchTo(context, r);
+    VibeDial.switchTo(context, r, dir: dir);
   }
 
   List<Room> _chats() {
@@ -319,6 +362,17 @@ class _VibeDialBarState extends State<VibeDialBar>
 
   @override
   Widget build(BuildContext context) {
+    // typing: the dial steps aside so the chat keeps its room
+    final typing = MediaQuery.viewInsetsOf(context).bottom > 0;
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.topCenter,
+      child: typing ? const SizedBox(width: double.infinity) : _dial(context),
+    );
+  }
+
+  Widget _dial(BuildContext context) {
     // where the dial is, so the chat's swipe-back leaves it alone
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final box = context.findRenderObject();
@@ -365,7 +419,7 @@ class _VibeDialBarState extends State<VibeDialBar>
           ),
         );
         if (!mounted) return;
-        _open(target);
+        _open(target, dir: _steps < 0 ? -1 : 1);
       },
       onVerticalDragEnd: (d) {
         if ((d.primaryVelocity ?? 0) < -250) context.go('/rooms');
@@ -545,7 +599,7 @@ class _VibeDialBarState extends State<VibeDialBar>
         // the middle: the open chat's page, or open whoever is there
         onTap: () => center && room.id == widget.room.id
             ? VibeDial.openPerson(context, room)
-            : _open(room),
+            : _open(room, dir: angle < 0 ? -1 : 1),
         child: Stack(
           clipBehavior: Clip.none,
           children: [
@@ -1673,4 +1727,90 @@ class _Elbows extends CustomPainter {
 
   @override
   bool shouldRepaint(_Elbows old) => old.left != left || old.right != right;
+}
+
+
+/// A picture of the chat you left, turning away round the dial's centre
+/// (far below the screen) while the next chat turns in.
+class _TurnOut extends StatefulWidget {
+  final ui.Image image;
+  final int dir;
+  final VoidCallback onDone;
+  const _TurnOut({required this.image, required this.dir, required this.onDone});
+
+  @override
+  State<_TurnOut> createState() => _TurnOutState();
+}
+
+class _TurnOutState extends State<_TurnOut>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 520),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _c.forward().whenComplete(widget.onDone);
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => IgnorePointer(
+    child: AnimatedBuilder(
+      animation: _c,
+      builder: (context, _) {
+        final t = Curves.easeInCubic.transform(_c.value);
+        return Transform(
+          alignment: VibeDial.pivot,
+          transform: Matrix4.rotationZ(-0.5 * widget.dir * t),
+          child: Opacity(
+            opacity: 1 - 0.4 * t,
+            child: RawImage(
+              image: widget.image,
+              fit: BoxFit.fill,
+              width: double.infinity,
+              height: double.infinity,
+            ),
+          ),
+        );
+      },
+    ),
+  );
+}
+
+/// A page turning away round the dial's centre as [animation] goes 0 → 1
+/// (all chats, while a chat turns in over it).
+class VibeDialTurn extends StatelessWidget {
+  final Animation<double> animation;
+  final bool out;
+  final Widget child;
+  const VibeDialTurn({
+    required this.animation,
+    required this.child,
+    this.out = true,
+    super.key,
+  });
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: animation,
+    child: child,
+    builder: (context, child) {
+      final t = Curves.easeInOutCubic.transform(
+        animation.value.clamp(0.0, 1.0),
+      );
+      return Transform(
+        alignment: VibeDial.pivot,
+        transform: Matrix4.rotationZ(-0.5 * VibeDial.turnDir * t),
+        child: child,
+      );
+    },
+  );
 }
