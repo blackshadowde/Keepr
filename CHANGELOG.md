@@ -5,7 +5,7 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 
 ## 2026-11-07 ([a7d176a](https://github.com/blackshadowde/keepr/commit/a7d176a))
 
-- Block motion: each row gives a tiny tick as it slides out (and as it comes back), so the ripple feels like turning a dial. Follows the haptics setting (PENDING)
+- Block motion: each row gives a tiny tick as it slides out (and as it comes back), so the ripple feels like turning a dial. Follows the haptics setting ([2957f51](https://github.com/blackshadowde/keepr/commit/2957f51))
 
 - Motion, block style: opening a chat, the list's rows (and the profile bar and rail) slide away to the right as solid blocks, shrinking and fading one after another from the top, and the chat comes up from dim behind them; back plays it in reverse. Dragging a chat open or closed with a finger still slides it 1:1 ([38e6f2b](https://github.com/blackshadowde/keepr/commit/38e6f2b))
 - Chats / Spaces switch and opening a person or community: the old rows leave as blocks, then the new rows come in the same way ([38e6f2b](https://github.com/blackshadowde/keepr/commit/38e6f2b))
