@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'package:vibe/vibe/vibe_dial.dart';
 import 'package:vibe/vibe/vibe_glass.dart';
 import 'package:flutter/material.dart';
 
@@ -37,13 +38,13 @@ abstract class VibePalette {
 
   /// True while the Discord colours are used, so the hand-tuned Discord
   /// shades stay exactly as they were.
-  static bool get isVibe => effective == VibeLook.vibe;
+  static bool get isVibe => !VibeDial.on && effective == VibeLook.vibe;
 
   /// Frosted glass look (see VibeGlass).
-  static bool get isGlass => effective == VibeLook.glass;
+  static bool get isGlass => !VibeDial.on && effective == VibeLook.glass;
 
   /// App font (the same in every look).
-  static String get fontFamily => 'Figtree';
+  static String get fontFamily => VibeDial.on ? VibeDial.font : 'Figtree';
 
   /// The accent of the current look (buttons, links, ticks, toggles).
   /// Kept up to date by the app (from the active theme).
@@ -51,6 +52,8 @@ abstract class VibePalette {
 
   /// The colour scheme for [brightness], or null for the Discord one.
   static ColorScheme? scheme(Brightness brightness) {
+    // Dial (experimental): its own near-black and lime
+    if (VibeDial.on) return VibeDial.scheme;
     switch (effective) {
       case VibeLook.vibe:
         return null;

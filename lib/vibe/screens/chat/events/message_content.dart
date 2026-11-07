@@ -3,6 +3,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'package:vibe/vibe/vibe_dial.dart';
 import 'package:vibe/vibe/vibe_call.dart';
 import 'package:vibe/vibe/vibe_sticker.dart';
 import 'dart:math';
@@ -69,7 +70,8 @@ class MessageContent extends StatelessWidget {
             final maxSize =
                 event.messageType == MessageTypes.Sticker || vibeSticker
                 ? (vibeSticker ? 150.0 : 128.0)
-                : 256.0;
+                // Dial: half the width each side of the line
+                : (VibeDial.on ? 160.0 : 256.0);
             final w = event.content
                 .tryGetMap<String, Object?>('info')
                 ?.tryGet<int>('w');

@@ -3,6 +3,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'package:vibe/vibe/vibe_dial.dart';
 import 'package:vibe/vibe/screens/chat_list/chat_list.dart';
 import 'package:vibe/vibe/vibe_home_view.dart';
 import 'package:flutter/material.dart';
@@ -13,5 +14,7 @@ class ChatListView extends StatelessWidget {
   const ChatListView(this.controller, {super.key});
 
   @override
-  Widget build(BuildContext context) => VibeHomeView(controller);
+  // Dial (experimental): every chat on rings instead of the list
+  Widget build(BuildContext context) =>
+      VibeDial.on ? VibeDialHome(controller) : VibeHomeView(controller);
 }
