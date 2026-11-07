@@ -1025,13 +1025,32 @@ class VibeMessage extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (replying) replyStrip(),
-                        Row(
-                          textDirection: side,
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        // one line runs down from the picture and curves
+                        // into each message in this run of theirs
+                        Stack(
                           children: [
-                            avatar(),
-                            const SizedBox(width: 12),
-                            Expanded(child: body),
+                            if (!(first && last) && !longPressSelect)
+                              Positioned.fill(
+                                child: CustomPaint(
+                                  painter: _GroupLine(
+                                    first: first,
+                                    last: last,
+                                    mirror: side == ui.TextDirection.rtl,
+                                    elbow: VibeTextSize.message * 0.725,
+                                    color: theme.colorScheme.onSurfaceVariant
+                                        .withValues(alpha: 0.35),
+                                  ),
+                                ),
+                              ),
+                            Row(
+                              textDirection: side,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                avatar(),
+                                const SizedBox(width: 12),
+                                Expanded(child: body),
+                              ],
+                            ),
                           ],
                         ),
                       ],
@@ -1288,4 +1307,59 @@ class _SendingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _SendingPainter old) => old.t != t || old.fold != fold || old.color != color;
+}
+
+/// The line under a picture that runs down a run of one person's messages
+/// and curves into each one. [mirror]: the picture is on the right (yours).
+class _GroupLine extends CustomPainter {
+  final bool first;
+  final bool last;
+  final bool mirror;
+  final double elbow;
+  final Color color;
+  const _GroupLine({
+    required this.first,
+    required this.last,
+    required this.mirror,
+    required this.elbow,
+    required this.color,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const x0 = 20.0; // middle of the 40px picture column
+    const r = 10.0; // how round the curve is
+    const end = 46.0; // stops just before the text
+    double fx(double x) => mirror ? size.width - x : x;
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    final path = Path();
+    if (first) {
+      // from under the picture down to the next message
+      path.moveTo(fx(x0), 46);
+      path.lineTo(fx(x0), size.height);
+    } else {
+      path.moveTo(fx(x0), 0);
+      if (!last) {
+        path.lineTo(fx(x0), size.height);
+        path.moveTo(fx(x0), elbow - r);
+      } else {
+        path.lineTo(fx(x0), elbow - r);
+      }
+      path.quadraticBezierTo(fx(x0), elbow, fx(x0 + r), elbow);
+      path.lineTo(fx(end), elbow);
+    }
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(_GroupLine old) =>
+      old.first != first ||
+      old.last != last ||
+      old.mirror != mirror ||
+      old.elbow != elbow ||
+      old.color != color;
 }

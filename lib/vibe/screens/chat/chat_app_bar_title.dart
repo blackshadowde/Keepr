@@ -5,6 +5,7 @@
 
 import 'dart:async';
 
+import 'package:vibe/vibe/vibe_motion.dart';
 import 'package:vibe/vibe/vibe_mute.dart';
 import 'package:vibe/config/setting_keys.dart';
 import 'package:vibe/config/themes.dart';
@@ -235,9 +236,12 @@ class _ChatTitlePillState extends State<ChatTitlePill> {
     final name = room.getLocalizedDisplayname(MatrixLocals(L10n.of(context)));
     return Align(
       alignment: AlignmentDirectional.centerStart,
-      child: AnimatedSize(
+      // squeezes when pressed, then grows open
+      child: VibePressable(
+        scale: 0.95,
+        child: AnimatedSize(
         duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
+        curve: Curves.easeOutBack,
         alignment: AlignmentDirectional.centerStart,
         child: Material(
           color: cs.surfaceContainerHigh.withValues(alpha: 0.9),
@@ -293,6 +297,7 @@ class _ChatTitlePillState extends State<ChatTitlePill> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

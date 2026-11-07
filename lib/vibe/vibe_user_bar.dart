@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import 'package:vibe/vibe/vibe_tap_icon.dart';
+import 'package:vibe/vibe/vibe_motion.dart';
 import 'package:vibe/vibe/vibe_connection.dart';
 import 'package:vibe/vibe/vibe_own_profile.dart';
 import 'package:vibe/vibe/vibe_profile_cache.dart';
@@ -35,7 +36,8 @@ class VibeUserBar extends StatelessWidget {
             builder: (context, profile) {
               final name =
                   profile?.displayName ?? client.userID?.localpart ?? '';
-              return Stack(
+              // any floating bar squeezes when pressed
+              return VibePressable(scale: 0.97, child: Stack(
                 clipBehavior: Clip.none,
                 children: [
                   Positioned(
@@ -136,7 +138,7 @@ class VibeUserBar extends StatelessWidget {
                     ),
                   ),
                 ],
-              );
+              ));
             },
           ),
         ),

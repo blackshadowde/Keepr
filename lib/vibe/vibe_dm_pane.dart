@@ -30,12 +30,22 @@ class VibeDmPane extends StatefulWidget {
   /// The search field (the home screen's search button shows it).
   final bool showSearch;
 
+  /// false: only direct chats. true: only groups and communities.
+  final bool spacesMode;
+
+  /// Communities, listed in [spacesMode]; tapping one calls [onSpace].
+  final List<Room> spaces;
+  final void Function(Room room)? onSpace;
+
   const VibeDmPane({
     required this.rooms,
     required this.activeRoomId,
     required this.onTap,
     required this.onOpen,
     this.showSearch = true,
+    this.spacesMode = false,
+    this.spaces = const [],
+    this.onSpace,
     super.key,
   });
 
@@ -62,9 +72,18 @@ class _VibeDmPaneState extends State<VibeDmPane> {
     String nameOf(Room r) =>
         r.getLocalizedDisplayname(MatrixLocals(l10n));
 
+    // Chats: direct chats only. Spaces: groups and communities only.
+    bool keep(Room r) =>
+        widget.spacesMode ? VibeGroups.isGroup(r) : !VibeGroups.isGroup(r);
     final visible = widget.rooms
+        .where((r) => keep(r))
         .where((r) => q.isEmpty || nameOf(r).toLowerCase().contains(q))
         .toList();
+    final spaces = !widget.spacesMode
+        ? const <Room>[]
+        : widget.spaces
+              .where((r) => q.isEmpty || nameOf(r).toLowerCase().contains(q))
+              .toList();
     final invites = visible
         .where((r) => r.membership == Membership.invite)
         .toList();
@@ -72,12 +91,7 @@ class _VibeDmPaneState extends State<VibeDmPane> {
         .where((r) => r.membership != Membership.invite)
         .toList();
     final pinned = joined.where((r) => r.isFavourite).toList();
-    final others = joined
-        .where((r) => !r.isFavourite && !VibeGroups.isGroup(r))
-        .toList();
-    final groups = joined
-        .where((r) => !r.isFavourite && VibeGroups.isGroup(r))
-        .toList();
+    final others = joined.where((r) => !r.isFavourite).toList();
 
     Widget dmTile(Room r, int index) => VibeStagger(
       key: ValueKey('dm_${r.id}'),
@@ -130,13 +144,8 @@ class _VibeDmPaneState extends State<VibeDmPane> {
               // Built lazily: only rows on (or near) the screen exist, so a
               // long chat list scrolls and animates as lightly as a short one.
               // the list sits in one rounded panel
-              child: Container(
-                margin: const EdgeInsets.fromLTRB(12, 4, 12, 0),
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.88),
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                ),
+              child: Padding(
+                padding: const EdgeInsets.only(top: 4),
               child: Builder(
                 builder: (context) {
                   final rows = <Widget Function()>[
@@ -158,43 +167,110 @@ class _VibeDmPaneState extends State<VibeDmPane> {
                       for (var i = 0; i < pinned.length; i++)
                         () => dmTile(pinned[i], i + invites.length + 1),
                     ],
+                    if (spaces.isNotEmpty) ...[
+                      () => const _SectionLabel('Communities'),
+                      for (var i = 0; i < spaces.length; i++)
+                        () => VibeStagger(
+                          key: ValueKey('sp_${spaces[i].id}'),
+                          index: i + invites.length + pinned.length + 1,
+                          child: VibePressable(
+                            scale: 0.97,
+                            child: _DmTile(
+                              room: spaces[i],
+                              name: nameOf(spaces[i]),
+                              active: false,
+                              subtitle:
+                                  '${VibeGroups.memberCount(spaces[i])} members',
+                              onTap: () => widget.onSpace?.call(spaces[i]),
+                              onAvatarTap: () => widget.onSpace?.call(spaces[i]),
+                              onLongPress: () => VibeChatActions.show(
+                                context,
+                                spaces[i],
+                                onOpen: () => widget.onSpace?.call(spaces[i]),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                     // adding lives in the + tile above, not on each label
-                    () => const _SectionLabel('Direct messages'),
+                    () => _SectionLabel(
+                      widget.spacesMode ? 'Groups' : 'Direct messages',
+                    ),
                     for (var i = 0; i < others.length; i++)
                       () => dmTile(
                         others[i],
-                        i + invites.length + pinned.length + 1,
+                        i + invites.length + pinned.length + spaces.length + 1,
                       ),
-                    () => const _SectionLabel('Groups'),
-                    for (var i = 0; i < groups.length; i++)
-                      () => dmTile(
-                        groups[i],
-                        i + invites.length + pinned.length + others.length + 2,
-                      ),
-                    // the archive, at the end of the list (locked chats:
-                    // long-press the chats tile above)
-                    () => Padding(
-                      padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
-                      child: Row(
-                        children: [
-                            TextButton.icon(
-                              onPressed: () => VibeArchive.open(
-                                context,
-                                client,
-                                onOpen: widget.onOpen,
-                              ),
-                              icon: const Icon(Icons.archive_outlined, size: 18),
-                              label: const Text('Archive'),
-                            ),
-                        ],
-                      ),
-                    ),
                   ];
-                  return ListView.builder(
-                    padding: const EdgeInsets.only(bottom: 110),
+                  // the chats in one panel, edge to edge; the archive as
+                  // its own pill under it
+                  return CustomScrollView(
                     cacheExtent: 600,
-                    itemCount: rows.length,
-                    itemBuilder: (context, i) => rows[i](),
+                    slivers: [
+                      DecoratedSliver(
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerLow
+                              .withValues(alpha: 0.88),
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        sliver: SliverPadding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          sliver: SliverList.builder(
+                            itemCount: rows.length,
+                            itemBuilder: (context, i) => rows[i](),
+                          ),
+                        ),
+                      ),
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 12, 12, 110),
+                          child: VibePressable(
+                            child: Material(
+                              color: theme.colorScheme.surfaceContainerLow
+                                  .withValues(alpha: 0.88),
+                              shape: const StadiumBorder(),
+                              clipBehavior: Clip.antiAlias,
+                              child: InkWell(
+                                onTap: () => VibeArchive.open(
+                                  context,
+                                  client,
+                                  onOpen: widget.onOpen,
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 14,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.archive_outlined,
+                                        size: 20,
+                                        color: theme.colorScheme.onSurfaceVariant,
+                                      ),
+                                      const SizedBox(width: 14),
+                                      const Expanded(
+                                        child: Text(
+                                          'Archived chats',
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                      Icon(
+                                        Icons.chevron_right_rounded,
+                                        color: theme.colorScheme.onSurfaceVariant,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   );
                 },
               ),
@@ -233,7 +309,11 @@ class _DmTile extends StatelessWidget {
   final VoidCallback onAvatarTap;
   final VoidCallback onLongPress;
 
+  /// Replaces the last-message line (a community's member count).
+  final String? subtitle;
+
   const _DmTile({
+    this.subtitle,
     required this.room,
     required this.name,
     required this.active,
@@ -248,7 +328,7 @@ class _DmTile extends StatelessWidget {
     final unread = room.isUnread;
     final last = room.lastEvent;
     // the last message, or what kind of chat it is
-    final preview = last?.vibeBodyFallback(
+    final preview = subtitle ?? last?.vibeBodyFallback(
           MatrixLocals(L10n.of(context)),
           hideReply: true,
           withSenderNamePrefix: VibeGroups.isGroup(room),

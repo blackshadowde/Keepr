@@ -5,6 +5,12 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 
 ## 2026-11-07 ([a7d176a](https://github.com/blackshadowde/keepr/commit/a7d176a))
 
+- Home: a Chats / Spaces button beside the title. Tap it and it grows into a pill with both; Chats lists only direct chats, Spaces lists only groups and communities (communities open their pane). The title follows the choice (PENDING)
+- Home rail: now your pinned chats and channels, chats with unread messages, then the chats you wrote in last. The first tile switches to Chats (hold it for locked chats); the + tile still joins or creates a community (PENDING)
+- Chat list: one panel from edge to edge, rounded; Archived chats sits under it as its own pill (PENDING)
+- Floating bars (the chat bar pill, the profile bar, the Chats / Spaces pill) squeeze when pressed and spring open (PENDING)
+- Chat: a thin line runs down from a person's picture and curves into each message they sent in that run (PENDING)
+
 - Chat list: the + beside the Direct messages and Groups labels is gone (the + tile at the top covers adding). The end of the list now shows only Archive. Locked chats moved: press and hold the chats tile at the top to open them ([817e04d](https://github.com/blackshadowde/keepr/commit/817e04d))
 - Person page and community pane: a soft tint over the wallpaper behind them (still full screen, no box) so they're readable on light wallpapers and glass themes ([817e04d](https://github.com/blackshadowde/keepr/commit/817e04d))
 - Chat screen: the top bar is now a floating pill with the round picture and name. Tap it to open search, the lock shield and the menu; tap the picture or name again for the profile or details; it folds back after a few seconds ([817e04d](https://github.com/blackshadowde/keepr/commit/817e04d))

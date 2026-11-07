@@ -12,6 +12,7 @@ import 'package:vibe/vibe/vibe_archive.dart';
 import 'package:vibe/vibe/vibe_chat_actions.dart';
 import 'package:vibe/vibe/vibe_communities.dart';
 import 'package:vibe/vibe/vibe_lock.dart';
+import 'package:vibe/vibe/vibe_motion.dart';
 import 'package:vibe/vibe/vibe_dm_detail.dart';
 import 'package:vibe/vibe/vibe_dm_pane.dart';
 import 'package:vibe/widgets/avatar.dart';
@@ -38,6 +39,9 @@ class _VibeHomeViewState extends State<VibeHomeView> {
   /// The rail's "+" pane (Start something).
   static const _startId = '+start';
   bool _search = false;
+
+  /// false: the list shows direct chats; true: groups and communities.
+  bool _spacesMode = false;
   String? selectedId;
   String? _lastOpenedId;
 
@@ -202,19 +206,42 @@ class _VibeHomeViewState extends State<VibeHomeView> {
                 .toList(),
           );
           _rooms = rooms;
-          // Communities sit in the rail; their channels live inside them.
+          // Communities are listed under Spaces; their channels live inside
+          // them, not in the list.
           final spaces = VibeCommunities.joined(client);
           final channels = VibeCommunities.channelIds(client);
-          final railRooms = [
-            ...rooms.where(
-              (r) =>
-                  !VibeGroups.isGroup(r) ||
-                  r.isFavourite ||
-                  r.membership == Membership.invite ||
-                  !channels.contains(r.id),
-            ),
-            ...spaces,
-          ];
+          final listRooms = rooms
+              .where(
+                (r) =>
+                    !VibeGroups.isGroup(r) ||
+                    r.isFavourite ||
+                    r.membership == Membership.invite ||
+                    !channels.contains(r.id),
+              )
+              .toList();
+          // the rail: pinned chats and channels, unread ones, then the
+          // chats you've written in last
+          final me = client.userID;
+          final quick = <Room>[];
+          void add(Room r) {
+            if (quick.length < 14 && !quick.contains(r)) quick.add(r);
+          }
+          final joinedRooms = rooms.where(
+            (r) => r.membership == Membership.join,
+          );
+          for (final r in joinedRooms.where((r) => r.isFavourite)) {
+            add(r);
+          }
+          for (final r in joinedRooms.where(
+            (r) => r.notificationCount > 0 || r.markedUnread,
+          )) {
+            add(r);
+          }
+          for (final r in joinedRooms
+              .where((r) => r.lastEvent?.senderId == me)
+              .take(6)) {
+            add(r);
+          }
           Room? selected;
           for (final r in [...rooms, ...spaces]) {
             if (r.id == selectedId) selected = r;
@@ -237,10 +264,15 @@ class _VibeHomeViewState extends State<VibeHomeView> {
                     // communities as tiles (hidden while one is open)
                     if (selectedId == null)
                       _HomeTop(
-                        spaces: railRooms.where((r) => r.isSpace).toList(),
+                        quick: quick,
+                        spacesMode: _spacesMode,
+                        onMode: (v) => setState(() => _spacesMode = v),
+                        onOpenChat: (room) {
+                          _lastOpenedId = room.id;
+                          controller.onChatTap(room);
+                        },
                         onSearch: () => setState(() => _search = !_search),
                         onCompose: () => VibeGroups.showNew(context),
-                        onSelect: (room) => setState(() => selectedId = room.id),
                         onAdd: () => setState(() => selectedId = _startId),
                         onLongPress: (room) => VibeChatActions.show(
                           context,
@@ -296,7 +328,11 @@ class _VibeHomeViewState extends State<VibeHomeView> {
                             ? VibeDmPane(
                                 key: const ValueKey('list'),
                                 showSearch: _search,
-                                rooms: rooms,
+                                spacesMode: _spacesMode,
+                                spaces: spaces,
+                                onSpace: (room) =>
+                                    setState(() => selectedId = room.id),
+                                rooms: listRooms,
                                 activeRoomId: controller.activeChat,
                                 onTap: (room) =>
                                     setState(() => selectedId = room.id),
@@ -421,19 +457,24 @@ class _RoomListBuilderState extends State<_RoomListBuilder> {
 /// The top of the home screen: "Chats" with search and new chat, then the
 /// communities as tiles (Direct first, + last).
 class _HomeTop extends StatelessWidget {
-  final List<Room> spaces;
+  /// Pinned, unread and recent chats for the rail.
+  final List<Room> quick;
+  final bool spacesMode;
+  final ValueChanged<bool> onMode;
+  final void Function(Room room) onOpenChat;
   final VoidCallback onSearch;
   final VoidCallback onCompose;
   final VoidCallback onAdd;
-  final void Function(Room room) onSelect;
   final void Function(Room room) onLongPress;
   final VoidCallback onLockedChats;
   const _HomeTop({
-    required this.spaces,
+    required this.quick,
+    required this.spacesMode,
+    required this.onMode,
+    required this.onOpenChat,
     required this.onSearch,
     required this.onCompose,
     required this.onAdd,
-    required this.onSelect,
     required this.onLongPress,
     required this.onLockedChats,
   });
@@ -496,12 +537,13 @@ class _HomeTop extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 10, 8, 6),
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Chats',
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: -0.4),
+                    spacesMode ? 'Spaces' : 'Chats',
+                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: -0.4),
                   ),
                 ),
+                _ModePill(spaces: spacesMode, onChange: onMode),
                 IconButton(
                   tooltip: 'Search',
                   icon: const Icon(Icons.search),
@@ -523,24 +565,25 @@ class _HomeTop extends StatelessWidget {
               children: [
                 tile(
                   label: 'Chats',
+                  onTap: () => onMode(false),
                   // hold: locked chats
                   onHold: onLockedChats,
                   color: cs.primary,
                   child: Icon(Icons.chat_bubble_outline_rounded, color: cs.onPrimary),
                 ),
-                for (final s in spaces)
+                for (final r in quick)
                   tile(
-                    label: s.getLocalizedDisplayname(),
-                    onTap: () => onSelect(s),
-                    onHold: () => onLongPress(s),
-                    dot: VibeCommunities.unread(s) > 0 ||
-                        s.membership == Membership.invite,
+                    label: r.getLocalizedDisplayname(),
+                    onTap: () => onOpenChat(r),
+                    onHold: () => onLongPress(r),
+                    dot: r.notificationCount > 0 || r.markedUnread,
+                    color: Colors.transparent,
                     child: Avatar(
-                      mxContent: s.avatar,
-                      name: s.getLocalizedDisplayname(),
+                      mxContent: r.avatar,
+                      name: r.getLocalizedDisplayname(),
                       size: 48,
-                      client: s.client,
-                      borderRadius: BorderRadius.circular(14),
+                      client: r.client,
+                      presenceUserId: r.directChatMatrixID,
                     ),
                   ),
                 tile(
@@ -563,6 +606,95 @@ class _HomeTop extends StatelessWidget {
           const SizedBox(height: 6),
         ],
       ),
+      ),
+    );
+  }
+}
+
+/// Chats / Spaces as one round button; tap it and it grows into a pill with
+/// both, pick one and it folds back.
+class _ModePill extends StatefulWidget {
+  final bool spaces;
+  final ValueChanged<bool> onChange;
+  const _ModePill({required this.spaces, required this.onChange});
+
+  @override
+  State<_ModePill> createState() => _ModePillState();
+}
+
+class _ModePillState extends State<_ModePill> {
+  bool _open = false;
+
+  static IconData _icon(bool spaces) =>
+      spaces ? Icons.workspaces_outline : Icons.chat_bubble_rounded;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    Widget seg(bool sp) {
+      final on = sp == widget.spaces;
+      return InkWell(
+        customBorder: const StadiumBorder(),
+        onTap: () {
+          setState(() => _open = false);
+          widget.onChange(sp);
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          decoration: BoxDecoration(
+            color: on ? cs.surfaceContainerHighest : Colors.transparent,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(_icon(sp), size: 20, color: on ? cs.onSurface : cs.onSurfaceVariant),
+              const SizedBox(height: 2),
+              Text(
+                sp ? 'Spaces' : 'Chats',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: on ? cs.onSurface : cs.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return VibePressable(
+      scale: 0.94,
+      child: AnimatedSize(
+        duration: const Duration(milliseconds: 240),
+        curve: Curves.easeOutBack,
+        child: Material(
+          color: cs.surfaceContainerHigh.withValues(alpha: 0.9),
+          shape: const StadiumBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: Padding(
+            padding: const EdgeInsets.all(3),
+            child: _open
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [seg(false), seg(true)],
+                  )
+                : InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: () => setState(() => _open = true),
+                    child: Padding(
+                      padding: const EdgeInsets.all(9),
+                      child: Icon(
+                        _icon(widget.spaces),
+                        size: 20,
+                        semanticLabel: widget.spaces ? 'Spaces' : 'Chats',
+                      ),
+                    ),
+                  ),
+          ),
+        ),
       ),
     );
   }
