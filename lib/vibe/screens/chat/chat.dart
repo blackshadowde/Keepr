@@ -695,6 +695,20 @@ class ChatController extends State<ChatPageWithRoom>
     if (firstEvent == null) return;
     final eventId = stableId(firstEvent);
     if (!_animated.add(eventId)) return;
+    // a new message: follow it down if you're at (or near) the newest,
+    // or if it's yours
+    if (scrollController.hasClients &&
+        (scrollController.offset < 400 ||
+            firstEvent.senderId == room.client.userID)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !scrollController.hasClients) return;
+        scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutCubic,
+        );
+      });
+    }
     animateInEventId = eventId;
     await Future.delayed(VibeThemes.animationDuration);
     if (animateInEventId == eventId) animateInEventId = null;

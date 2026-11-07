@@ -5,6 +5,8 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 
 ## 2026-11-07 ([a7d176a](https://github.com/blackshadowde/keepr/commit/a7d176a))
 
+- Chat: a new message now brings the chat down to it when you're at or near the newest messages, and always when it's one you sent; it used to stay where it was (PENDING)
+
 - Dial fixes: tapping the quoted line over a reply jumps to the message it answers. The dial now steps aside whenever the message box has the keyboard (it could stay before). The person page lists open threads; tap one to open it. Long-press now opens two curved bands right where your finger is: the big one with Reply, Thread, Quote, Edit, Forward, Copy, Save and Info, the small one inside with quick reactions, more emoji and Delete or Report; they sweep open and the buttons turn into place along them ([8543160](https://github.com/blackshadowde/keepr/commit/8543160))
 
 - Dial: the dial steps aside while the keyboard is up, so the chat keeps its room. Switching chats on the dial now turns: the chat you're in swings away round a point below the screen and the next one swings in from the side you turned to. Opening a chat from all chats turns the same way (all chats swing out as the chat swings in, and back). Long-press a message for a ring of actions round it: the message in a disc in the middle, Reply, Thread, Quote, Edit, Forward, Copy, Save, Info, Delete or Report turning into place round it, and quick reactions above ([270144d](https://github.com/blackshadowde/keepr/commit/270144d))
