@@ -3,6 +3,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:vibe/vibe/vibe_haptics.dart';
 
 /// Block motion: rows leave as solid blocks that slide right, shrink and
 /// fade, one after another from the top, uncovering what's underneath; they
@@ -76,6 +77,24 @@ class VibeCascadeOut extends StatefulWidget {
 }
 
 class _VibeCascadeOutState extends State<VibeCascadeOut> with _ScreenSpot {
+  /// Has this row started to slide out? Each row ticks once as it goes (and
+  /// once as it comes back), like the clicks of a dial.
+  bool _out = false;
+
+  /// One tick at a time across all rows, so a fast ripple is a quick run of
+  /// clicks rather than a buzz.
+  static DateTime _lastTick = DateTime.fromMillisecondsSinceEpoch(0);
+
+  void _tick(double t) {
+    final out = t > 0.08;
+    if (out == _out) return;
+    _out = out;
+    final now = DateTime.now();
+    if (now.difference(_lastTick).inMilliseconds < 28) return;
+    _lastTick = now;
+    VibeHaptics.selection();
+  }
+
   @override
   Widget build(BuildContext context) {
     final scope = VibeCascadeScope.maybeOf(context);
@@ -98,6 +117,7 @@ class _VibeCascadeOutState extends State<VibeCascadeOut> with _ScreenSpot {
         );
         // the same widgets every frame (only the numbers change), so rows
         // keep their state through the motion
+        _tick(t);
         return IgnorePointer(
           ignoring: t > 0,
           child: FractionalTranslation(
