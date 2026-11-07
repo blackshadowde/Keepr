@@ -5,9 +5,9 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 
 ## 2026-11-07 ([a7d176a](https://github.com/blackshadowde/keepr/commit/a7d176a))
 
-- Chat list: the + beside the Direct messages and Groups labels is gone (the + tile at the top covers adding). The end of the list now shows only Archive. Locked chats moved: press and hold the chats tile at the top to open them (PENDING)
-- Person page and community pane: a soft tint over the wallpaper behind them (still full screen, no box) so they're readable on light wallpapers and glass themes (PENDING)
-- Chat screen: the top bar is now a floating pill with the round picture and name. Tap it to open search, the lock shield and the menu; tap the picture or name again for the profile or details; it folds back after a few seconds (PENDING)
+- Chat list: the + beside the Direct messages and Groups labels is gone (the + tile at the top covers adding). The end of the list now shows only Archive. Locked chats moved: press and hold the chats tile at the top to open them ([817e04d](https://github.com/blackshadowde/keepr/commit/817e04d))
+- Person page and community pane: a soft tint over the wallpaper behind them (still full screen, no box) so they're readable on light wallpapers and glass themes ([817e04d](https://github.com/blackshadowde/keepr/commit/817e04d))
+- Chat screen: the top bar is now a floating pill with the round picture and name. Tap it to open search, the lock shield and the menu; tap the picture or name again for the profile or details; it folds back after a few seconds ([817e04d](https://github.com/blackshadowde/keepr/commit/817e04d))
 
 - New home: a "Chats" title with search and new chat buttons, your communities as tiles under it (unread dot, + to join or create), and the chat list in one rounded panel showing each chat's last message and time, with Locked chats and Archive at the end. Tap a chat to open it; tap its picture for the person's page; long-press for the menu. The profile bar is unchanged ([f023981](https://github.com/blackshadowde/keepr/commit/f023981))
 - Community pane: back, Invite and a menu at the top, the picture and name with members, and a Rooms / Community switch (Community has members, invite, picture, name, privacy and leave) ([f023981](https://github.com/blackshadowde/keepr/commit/f023981))
