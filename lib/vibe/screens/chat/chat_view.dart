@@ -656,6 +656,8 @@ class ChatView extends StatelessWidget {
                                                   if (VibeDial.on)
                                                     VibeDialBar(
                                                       room: controller.room,
+                                                      typing:
+                                                          controller.inputFocus,
                                                     ),
                                                   ChatEmojiPicker(controller),
                                                   // room for the docked chat

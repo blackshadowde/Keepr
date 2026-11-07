@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/rendering.dart';
@@ -23,6 +24,7 @@ import 'package:vibe/vibe/vibe_haptics.dart';
 import 'package:vibe/vibe/vibe_call.dart';
 import 'package:vibe/vibe/vibe_lock.dart';
 import 'package:vibe/vibe/vibe_strict.dart';
+import 'package:vibe/vibe/vibe_threads.dart';
 import 'package:vibe/vibe/vibe_user_sheet.dart';
 import 'package:vibe/widgets/presence_builder.dart';
 import 'package:vibe/widgets/avatar.dart';
@@ -198,6 +200,17 @@ abstract class VibeDial {
     );
   }
 
+  /// Where the last finger went down (the long-press menu opens there).
+  static Offset? lastDown;
+  static bool _tracking = false;
+  static void track() {
+    if (_tracking) return;
+    _tracking = true;
+    GestureBinding.instance.pointerRouter.addGlobalRoute((e) {
+      if (e is PointerDownEvent) lastDown = e.position;
+    });
+  }
+
   /// Opened the last chat this run already (only once, at start).
   static bool _openedLast = false;
 
@@ -284,7 +297,10 @@ class _CurtainState extends State<_Curtain>
 /// to open them, tap the middle for their page, swipe up for all chats.
 class VibeDialBar extends StatefulWidget {
   final Room room;
-  const VibeDialBar({required this.room, super.key});
+
+  /// The message box: while it has the keyboard the dial steps aside.
+  final FocusNode typing;
+  const VibeDialBar({required this.room, required this.typing, super.key});
 
   @override
   State<VibeDialBar> createState() => _VibeDialBarState();
@@ -318,10 +334,9 @@ class _VibeDialBarState extends State<VibeDialBar>
   )..addListener(() => setState(() => _drag = _settle.value));
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // hidden for the keyboard: nothing to keep clear of the swipe-back
-    if (MediaQuery.viewInsetsOf(context).bottom > 0) VibeDial._dialRect = null;
+  void initState() {
+    super.initState();
+    VibeDial.track();
   }
 
   @override
@@ -363,12 +378,20 @@ class _VibeDialBarState extends State<VibeDialBar>
   @override
   Widget build(BuildContext context) {
     // typing: the dial steps aside so the chat keeps its room
-    final typing = MediaQuery.viewInsetsOf(context).bottom > 0;
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOutCubic,
-      alignment: Alignment.topCenter,
-      child: typing ? const SizedBox(width: double.infinity) : _dial(context),
+    return ListenableBuilder(
+      listenable: widget.typing,
+      builder: (context, _) {
+        final typing = widget.typing.hasFocus;
+        if (typing) VibeDial._dialRect = null;
+        return AnimatedSize(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          alignment: Alignment.topCenter,
+          child: typing
+              ? const SizedBox(width: double.infinity)
+              : _dial(context),
+        );
+      },
     );
   }
 
@@ -1402,6 +1425,20 @@ class VibeDialPerson extends StatelessWidget {
             onTap: () => VibeCall.startFrom(context, room, video: true),
           ),
         ),
+      if (VibeThreads.ids(room.id).isNotEmpty) ...[
+        _section('THREADS'),
+        for (final id in VibeThreads.ids(room.id))
+          _pair(
+            null,
+            _Leaf(
+              VibeThreads.nameOf(room.id, id, null),
+              onTap: () {
+                VibeThreads.openNext(room.id, id);
+                onBack();
+              },
+            ),
+          ),
+      ],
       _section('SHARED'),
       _pair(
         _Leaf('Media', onTap: () => openShared('media')),

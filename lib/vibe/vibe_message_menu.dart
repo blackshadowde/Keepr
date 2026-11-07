@@ -562,194 +562,154 @@ class _PieState extends State<_Pie> {
         ),
     ];
     final anim = ModalRoute.of(context)!.animation!;
+    final outer = acts.where((a) => !a.danger).toList();
+    final inner = <_PieAct>[
+      if (canSend)
+        for (final e in _quickEmojis.keys.take(3))
+          _PieAct(Icons.circle, e, () => m._react(context, e)),
+      if (canSend)
+        _PieAct(
+          Icons.add_reaction_outlined,
+          'More',
+          () => m._moreEmojis(context),
+        ),
+      ...acts.where((a) => a.danger),
+    ];
     // (a Material so text gets the app's style, not the plain fallback)
     return Material(
       type: MaterialType.transparency,
-      child: AnimatedBuilder(
-      animation: anim,
-      builder: (context, _) {
-        final t = Curves.easeOutCubic.transform(anim.value);
-        return LayoutBuilder(
-          builder: (context, box) {
-            final c = Offset(box.maxWidth / 2, box.maxHeight / 2);
-            const r = 128.0;
-            const s = 56.0;
-            return Stack(
-              children: [
-                // tap anywhere else to close
-                Positioned.fill(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: m._close,
-                  ),
-                ),
-                // the ring line
-                Positioned(
-                  left: c.dx - r,
-                  top: c.dy - r,
-                  child: Opacity(
-                    opacity: t,
-                    child: Container(
-                      width: r * 2,
-                      height: r * 2,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: VibeDial.faint),
+      child: LayoutBuilder(
+        builder: (context, box) {
+          const r1 = 150.0, b1 = 62.0; // the big band
+          const r2 = 84.0, b2 = 54.0; // the small one inside it
+          final pad = MediaQuery.paddingOf(context);
+          // the bands curve round a point just below-right of the finger
+          final a = VibeDial.lastDown ?? box.biggest.center(Offset.zero);
+          final c = Offset(
+            (a.dx + 70).clamp(r1 + b1 / 2 + 8, box.maxWidth - 8),
+            (a.dy + 70).clamp(r1 + b1 / 2 + pad.top + 8, box.maxHeight - pad.bottom - 8),
+          );
+          return AnimatedBuilder(
+            animation: anim,
+            builder: (context, _) {
+              final t = Curves.easeOutCubic.transform(anim.value);
+              List<Widget> band(List<_PieAct> items, double r, double b, double from, double to) {
+                final step = items.length < 2 ? 0.0 : (to - from) / (items.length - 1);
+                return [
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: CustomPaint(
+                        painter: _Band(c, r, b, from - 12, (to - from + 24) * t),
                       ),
                     ),
                   ),
-                ),
-                // the message
-                Positioned(
-                  left: c.dx - 74,
-                  top: c.dy - 74,
-                  child: Transform.scale(
-                    scale: 0.7 + 0.3 * t,
-                    child: Opacity(
-                      opacity: t,
-                      child: Container(
-                        width: 148,
-                        height: 148,
-                        padding: const EdgeInsets.all(18),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: VibeDial.card,
-                          border: Border.all(
-                            color: own ? VibeDial.lime : VibeDial.faint,
-                            width: 1.5,
+                  for (var i = 0; i < items.length; i++)
+                    () {
+                      // each one turns into place along the band
+                      final show = ((t * (items.length + 2) - i) / 2).clamp(0.0, 1.0);
+                      final deg = from + step * i - (1 - show) * 20;
+                      final p = c + Offset(r * math.cos(deg * math.pi / 180), r * math.sin(deg * math.pi / 180));
+                      final act = items[i];
+                      final emoji = act.icon == Icons.circle;
+                      return Positioned(
+                        left: p.dx - 22,
+                        top: p.dy - 22,
+                        width: 44,
+                        height: 44,
+                        child: Opacity(
+                          opacity: show,
+                          child: Tooltip(
+                            message: act.label,
+                            child: InkResponse(
+                              radius: 24,
+                              onTap: () {
+                                VibeHaptics.selection();
+                                act.onTap();
+                              },
+                              child: Center(
+                                child: emoji
+                                    ? Text(act.label, style: const TextStyle(fontSize: 24))
+                                    : Icon(act.icon, size: 24, color: act.danger ? _red : VibeDial.ink),
+                              ),
+                            ),
                           ),
                         ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              name.toUpperCase(),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: VibeDial.label(
-                                color: own ? VibeDial.lime : VibeDial.dim,
-                                size: 9,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              body,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: VibeDial.ink,
-                                decoration: TextDecoration.none,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                      );
+                    }(),
+                ];
+              }
+
+              return Stack(
+                children: [
+                  Positioned.fill(
+                    child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: m._close),
                   ),
-                ),
-                // the actions turn into place round it, like the dial
-                for (var i = 0; i < acts.length; i++)
-                  () {
-                    final deg = -90 + i * 360 / acts.length - (1 - t) * 70;
-                    final a = deg * 3.141592653589793 / 180;
-                    final rr = r * (0.6 + 0.4 * t);
-                    final p = c + Offset(rr * math.cos(a), rr * math.sin(a));
-                    final act = acts[i];
-                    final color = act.danger ? _red : VibeDial.ink;
-                    return Positioned(
-                      left: p.dx - 36,
-                      top: p.dy - s / 2,
-                      width: 72,
-                      child: Opacity(
-                        opacity: t,
-                        child: GestureDetector(
-                          onTap: () {
-                            VibeHaptics.selection();
-                            act.onTap();
-                          },
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: s,
-                                height: s,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: VibeDial.bg,
-                                  border: Border.all(
-                                    color: act.danger
-                                        ? _red.withValues(alpha: 0.6)
-                                        : VibeDial.faint,
-                                    width: 1.5,
-                                  ),
-                                ),
-                                child: Icon(act.icon, color: color, size: 22),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                act.label.toUpperCase(),
-                                style: VibeDial.label(
-                                  color: act.danger ? _red : VibeDial.dim,
-                                  size: 8.5,
-                                ).copyWith(decoration: TextDecoration.none),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  }(),
-                // quick reactions above the ring
-                if (canSend)
+                  // what you pressed, above the bands
                   Positioned(
-                    left: 0,
-                    right: 0,
-                    top: c.dy - r - 96,
+                    left: 20,
+                    right: 20,
+                    top: (c.dy - r1 - b1 / 2 - 64).clamp(pad.top + 8, box.maxHeight),
                     child: Opacity(
                       opacity: t,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          for (final e in _quickEmojis.keys)
-                            GestureDetector(
-                              onTap: () => m._react(context, e),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 7,
-                                ),
-                                child: Text(
-                                  e,
-                                  style: const TextStyle(
-                                    fontSize: 28,
-                                    decoration: TextDecoration.none,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          GestureDetector(
-                            onTap: () => m._moreEmojis(context),
-                            child: const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 7),
-                              child: Icon(
-                                Icons.add_reaction_outlined,
-                                color: VibeDial.dim,
-                                size: 26,
-                              ),
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        '${name.toUpperCase()} · $body',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: VibeDial.label(color: own ? VibeDial.lime : VibeDial.dim, size: 10),
                       ),
                     ),
                   ),
-              ],
-            );
-          },
-        );
-      },
-    ),
+                  ...band(outer, r1, b1, 168, 282),
+                  ...band(inner, r2, b2, 172, 278),
+                ],
+              );
+            },
+          );
+        },
+      ),
     );
   }
+}
+
+/// One curved band of the long-press menu: a thick arc round [c].
+class _Band extends CustomPainter {
+  final Offset c;
+  final double r;
+  final double width;
+  final double from;
+  final double sweep;
+  const _Band(this.c, this.r, this.width, this.from, this.sweep);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (sweep <= 0) return;
+    final rect = Rect.fromCircle(center: c, radius: r);
+    final a = from * math.pi / 180;
+    final s = sweep * math.pi / 180;
+    canvas.drawArc(
+      rect,
+      a,
+      s,
+      false,
+      Paint()
+        ..color = VibeDial.card
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = width
+        ..strokeCap = StrokeCap.round,
+    );
+    canvas.drawArc(
+      rect.inflate(width / 2),
+      a,
+      s,
+      false,
+      Paint()
+        ..color = VibeDial.faint
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_Band old) => old.sweep != sweep || old.c != c;
 }

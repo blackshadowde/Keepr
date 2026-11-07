@@ -950,7 +950,10 @@ class VibeMessage extends StatelessWidget {
                   removeMarkdown: true,
                 ) ??
             '…';
-        return SizedBox(
+        return GestureDetector(
+          // tap: jump to the message it answers
+          onTap: r == null ? null : () => scrollToEventId(r.eventId),
+          child: SizedBox(
           height: 17,
           child: Text(
             '↳ $who · $words',
@@ -958,6 +961,7 @@ class VibeMessage extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             textAlign: atEnd ? TextAlign.end : TextAlign.start,
             style: VibeDial.label(size: 10).copyWith(letterSpacing: 0.4),
+          ),
           ),
         );
       },
