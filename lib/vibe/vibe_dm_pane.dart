@@ -223,7 +223,12 @@ class _VibeDmPaneState extends State<VibeDmPane> {
                       ),
                       SliverToBoxAdapter(
                         child: Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 12, 12, 110),
+                          padding: EdgeInsets.fromLTRB(
+                            12,
+                            12,
+                            12,
+                            20 + MediaQuery.paddingOf(context).bottom,
+                          ),
                           child: VibePressable(
                             child: Material(
                               color: theme.colorScheme.surfaceContainerLow

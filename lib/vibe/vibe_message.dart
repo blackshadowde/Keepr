@@ -526,7 +526,8 @@ class VibeMessage extends StatelessWidget {
           ),
         );
       }
-      if (!first) return const SizedBox(width: avatarSize);
+      // the picture sits at the bottom of a run; the line grows up from it
+      if (!last) return const SizedBox(width: avatarSize);
       return FutureBuilder<User?>(
         future: event.fetchSenderUser(),
         builder: (context, snapshot) {
@@ -1025,11 +1026,12 @@ class VibeMessage extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (replying) replyStrip(),
-                        // one line runs down from the picture and curves
-                        // into each message in this run of theirs
+                        // the picture sits under the last message of a run;
+                        // one line grows up from it, curving into each
+                        // earlier message of that run
                         Stack(
                           children: [
-                            if (!(first && last) && !longPressSelect)
+                            if (!last && !longPressSelect)
                               Positioned.fill(
                                 child: CustomPaint(
                                   painter: _GroupLine(
@@ -1309,8 +1311,9 @@ class _SendingPainter extends CustomPainter {
   bool shouldRepaint(covariant _SendingPainter old) => old.t != t || old.fold != fold || old.color != color;
 }
 
-/// The line under a picture that runs down a run of one person's messages
-/// and curves into each one. [mirror]: the picture is on the right (yours).
+/// The line that grows up from a picture (under the last message of a run)
+/// and curves into each earlier message of that run. Drawn on every row but
+/// the last. [mirror]: the picture is on the right (yours).
 class _GroupLine extends CustomPainter {
   final bool first;
   final bool last;
@@ -1336,22 +1339,16 @@ class _GroupLine extends CustomPainter {
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
-    final path = Path();
-    if (first) {
-      // from under the picture down to the next message
-      path.moveTo(fx(x0), 46);
-      path.lineTo(fx(x0), size.height);
-    } else {
-      path.moveTo(fx(x0), 0);
-      if (!last) {
-        path.lineTo(fx(x0), size.height);
-        path.moveTo(fx(x0), elbow - r);
-      } else {
-        path.lineTo(fx(x0), elbow - r);
-      }
-      path.quadraticBezierTo(fx(x0), elbow, fx(x0 + r), elbow);
-      path.lineTo(fx(end), elbow);
-    }
+    if (last) return; // the picture's own row
+    final path = Path()
+      // up from the row below: to the top for a middle message, to the
+      // curve for the first one
+      ..moveTo(fx(x0), size.height)
+      ..lineTo(fx(x0), first ? elbow + r : 0);
+    if (!first) path.moveTo(fx(x0), elbow + r);
+    path
+      ..quadraticBezierTo(fx(x0), elbow, fx(x0 + r), elbow)
+      ..lineTo(fx(end), elbow);
     canvas.drawPath(path, paint);
   }
 

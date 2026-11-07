@@ -64,12 +64,13 @@ class _VibePressableState extends State<VibePressable> {
       if (s != null && (e.position - s).distance > _slop) _cancel();
     },
     onPointerUp: (_) {
-      // A quick tap: show the squeeze briefly so it still feels pressed.
+      // A quick tap: show the squeeze long enough to read as a press, then
+      // let it spring back.
       if (_timer?.isActive ?? false) {
         _timer!.cancel();
         _set(true);
         VibeHaptics.light();
-        Future<void>.delayed(const Duration(milliseconds: 70), () => _set(false));
+        Future<void>.delayed(const Duration(milliseconds: 130), () => _set(false));
         _start = null;
         return;
       }
@@ -78,8 +79,8 @@ class _VibePressableState extends State<VibePressable> {
     onPointerCancel: (_) => _cancel(),
     child: AnimatedScale(
       scale: _down ? widget.scale : 1,
-      duration: _down ? const Duration(milliseconds: 160) : vibeReleaseSpring.duration,
-      curve: _down ? Curves.easeOutCubic : vibeReleaseSpring,
+      duration: _down ? const Duration(milliseconds: 130) : vibePressSpring.duration,
+      curve: _down ? Curves.easeOut : vibePressSpring,
       child: widget.child,
     ),
   );
@@ -311,6 +312,20 @@ final VibeSpringCurve vibeSheetSpring = VibeSpringCurve(
 final VibeSpringCurve vibeReleaseSpring = VibeSpringCurve(
   damping: 0.52,
   stiffness: 385,
+);
+
+/// Letting go of a pressed control: soft, barely any overshoot (response
+/// about 0.36 s, damping 0.78) so the squeeze and return read as one motion.
+final VibeSpringCurve vibePressSpring = VibeSpringCurve(
+  damping: 0.78,
+  stiffness: 300,
+);
+
+/// Pills growing and shrinking (chat bar, Chats / Spaces): smooth, settles
+/// without a visible bounce.
+final VibeSpringCurve vibePillSpring = VibeSpringCurve(
+  damping: 0.86,
+  stiffness: 260,
 );
 
 /// The same spring as a physics simulation, for gestures: starts from where

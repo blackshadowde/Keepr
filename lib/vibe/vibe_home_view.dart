@@ -42,6 +42,22 @@ class _VibeHomeViewState extends State<VibeHomeView> {
 
   /// false: the list shows direct chats; true: groups and communities.
   bool _spacesMode = false;
+
+  /// "Chats" / "Spaces" shown in the profile bar for a moment after
+  /// switching, then your name again.
+  String? _flash;
+  Timer? _flashTimer;
+
+  void _setMode(bool spaces) {
+    _flashTimer?.cancel();
+    setState(() {
+      _spacesMode = spaces;
+      _flash = spaces ? 'Spaces' : 'Chats';
+    });
+    _flashTimer = Timer(const Duration(milliseconds: 1800), () {
+      if (mounted) setState(() => _flash = null);
+    });
+  }
   String? selectedId;
   String? _lastOpenedId;
 
@@ -77,6 +93,7 @@ class _VibeHomeViewState extends State<VibeHomeView> {
     VibeLock.changes.removeListener(_onLockChange);
     VibeCommunities.select.removeListener(_onSelectCommunity);
     VibeSwipe.reset();
+    _flashTimer?.cancel();
     super.dispose();
   }
 
@@ -266,13 +283,13 @@ class _VibeHomeViewState extends State<VibeHomeView> {
                       _HomeTop(
                         quick: quick,
                         spacesMode: _spacesMode,
-                        onMode: (v) => setState(() => _spacesMode = v),
+                        flash: _flash,
+                        onMode: _setMode,
                         onOpenChat: (room) {
                           _lastOpenedId = room.id;
                           controller.onChatTap(room);
                         },
                         onSearch: () => setState(() => _search = !_search),
-                        onCompose: () => VibeGroups.showNew(context),
                         onAdd: () => setState(() => selectedId = _startId),
                         onLongPress: (room) => VibeChatActions.show(
                           context,
@@ -368,12 +385,6 @@ class _VibeHomeViewState extends State<VibeHomeView> {
                     ),
                   ],
                 ),
-                const Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: VibeUserBar(),
-                ),
               ],
             ),
             ),
@@ -463,7 +474,7 @@ class _HomeTop extends StatelessWidget {
   final ValueChanged<bool> onMode;
   final void Function(Room room) onOpenChat;
   final VoidCallback onSearch;
-  final VoidCallback onCompose;
+  final String? flash;
   final VoidCallback onAdd;
   final void Function(Room room) onLongPress;
   final VoidCallback onLockedChats;
@@ -473,7 +484,7 @@ class _HomeTop extends StatelessWidget {
     required this.onMode,
     required this.onOpenChat,
     required this.onSearch,
-    required this.onCompose,
+    required this.flash,
     required this.onAdd,
     required this.onLongPress,
     required this.onLockedChats,
@@ -533,43 +544,23 @@ class _HomeTop extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 10, 8, 6),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    spacesMode ? 'Spaces' : 'Chats',
-                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: -0.4),
-                  ),
-                ),
-                _ModePill(spaces: spacesMode, onChange: onMode),
-                IconButton(
-                  tooltip: 'Search',
-                  icon: const Icon(Icons.search),
-                  onPressed: onSearch,
-                ),
-                IconButton(
-                  tooltip: 'New chat or group',
-                  icon: const Icon(Icons.edit_outlined),
-                  onPressed: onCompose,
-                ),
-              ],
-            ),
-          ),
+          // your profile bar sits on top: name (or "Chats" / "Spaces" for
+          // a moment after switching), search and settings
+          VibeUserBar(top: true, flash: flash, onSearch: onSearch),
           SizedBox(
             height: 56,
             child: ListView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.fromLTRB(20, 4, 10, 4),
               children: [
-                tile(
-                  label: 'Chats',
-                  onTap: () => onMode(false),
-                  // hold: locked chats
-                  onHold: onLockedChats,
-                  color: cs.primary,
-                  child: Icon(Icons.chat_bubble_outline_rounded, color: cs.onPrimary),
+                // tap: grows into Chats / Spaces; hold: locked chats
+                Padding(
+                  padding: const EdgeInsets.only(right: 10),
+                  child: _ModePill(
+                    spaces: spacesMode,
+                    onChange: onMode,
+                    onHold: onLockedChats,
+                  ),
                 ),
                 for (final r in quick)
                   tile(
@@ -611,12 +602,17 @@ class _HomeTop extends StatelessWidget {
   }
 }
 
-/// Chats / Spaces as one round button; tap it and it grows into a pill with
-/// both, pick one and it folds back.
+/// The rail's first tile: Chats or Spaces. Tap it and it grows into a pill
+/// with both, pick one and it folds back. Hold it for locked chats.
 class _ModePill extends StatefulWidget {
   final bool spaces;
   final ValueChanged<bool> onChange;
-  const _ModePill({required this.spaces, required this.onChange});
+  final VoidCallback onHold;
+  const _ModePill({
+    required this.spaces,
+    required this.onChange,
+    required this.onHold,
+  });
 
   @override
   State<_ModePill> createState() => _ModePillState();
@@ -633,30 +629,32 @@ class _ModePillState extends State<_ModePill> {
     final cs = Theme.of(context).colorScheme;
     Widget seg(bool sp) {
       final on = sp == widget.spaces;
-      return InkWell(
-        customBorder: const StadiumBorder(),
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: () {
           setState(() => _open = false);
           widget.onChange(sp);
         },
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+          height: 42,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: on ? cs.surfaceContainerHighest : Colors.transparent,
-            borderRadius: BorderRadius.circular(999),
+            color: on ? cs.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(11),
           ),
-          child: Column(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(_icon(sp), size: 20, color: on ? cs.onSurface : cs.onSurfaceVariant),
-              const SizedBox(height: 2),
+              Icon(_icon(sp), size: 18, color: on ? cs.onPrimary : cs.onSurfaceVariant),
+              const SizedBox(width: 6),
               Text(
                 sp ? 'Spaces' : 'Chats',
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: on ? cs.onSurface : cs.onSurfaceVariant,
+                  color: on ? cs.onPrimary : cs.onSurfaceVariant,
                 ),
               ),
             ],
@@ -668,33 +666,39 @@ class _ModePillState extends State<_ModePill> {
     return VibePressable(
       scale: 0.94,
       child: AnimatedSize(
-        duration: const Duration(milliseconds: 240),
-        curve: Curves.easeOutBack,
-        child: Material(
-          color: cs.surfaceContainerHigh.withValues(alpha: 0.9),
-          shape: const StadiumBorder(),
-          clipBehavior: Clip.antiAlias,
-          child: Padding(
-            padding: const EdgeInsets.all(3),
-            child: _open
-                ? Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [seg(false), seg(true)],
-                  )
-                : InkWell(
-                    customBorder: const CircleBorder(),
-                    onTap: () => setState(() => _open = true),
-                    child: Padding(
-                      padding: const EdgeInsets.all(9),
-                      child: Icon(
-                        _icon(widget.spaces),
-                        size: 20,
-                        semanticLabel: widget.spaces ? 'Spaces' : 'Chats',
-                      ),
-                    ),
+        duration: vibePillSpring.duration,
+        curve: vibePillSpring,
+        alignment: AlignmentDirectional.centerStart,
+        child: _open
+            ? Container(
+                height: 48,
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  color: cs.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [seg(false), seg(true)],
+                ),
+              )
+            : GestureDetector(
+                onTap: () => setState(() => _open = true),
+                onLongPress: widget.onHold,
+                child: Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: cs.primary,
+                    borderRadius: BorderRadius.circular(14),
                   ),
-          ),
-        ),
+                  child: Icon(
+                    _icon(widget.spaces),
+                    color: cs.onPrimary,
+                    semanticLabel: widget.spaces ? 'Spaces' : 'Chats',
+                  ),
+                ),
+              ),
       ),
     );
   }

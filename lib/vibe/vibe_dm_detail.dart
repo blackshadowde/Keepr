@@ -85,7 +85,9 @@ class VibeDmDetail extends StatelessWidget {
       child: SafeArea(
         bottom: false,
         child: ListView(
-          padding: const EdgeInsets.only(bottom: 120),
+          padding: EdgeInsets.only(
+            bottom: 24 + MediaQuery.paddingOf(context).bottom,
+          ),
           children: [
             VibeTreeTop(
               onBack: onBack,

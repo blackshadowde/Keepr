@@ -240,8 +240,8 @@ class _ChatTitlePillState extends State<ChatTitlePill> {
       child: VibePressable(
         scale: 0.95,
         child: AnimatedSize(
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutBack,
+        duration: vibePillSpring.duration,
+        curve: vibePillSpring,
         alignment: AlignmentDirectional.centerStart,
         child: Material(
           color: cs.surfaceContainerHigh.withValues(alpha: 0.9),

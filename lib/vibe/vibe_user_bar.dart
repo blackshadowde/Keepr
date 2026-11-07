@@ -19,7 +19,13 @@ import 'package:matrix/matrix.dart';
 /// Full-width floating user card (Discord style): big round avatar
 /// overlapping a pill with name, status, bell and gear.
 class VibeUserBar extends StatelessWidget {
-  const VibeUserBar({super.key});
+  /// At the top of the screen (home) instead of floating at the bottom.
+  final bool top;
+
+  /// Shown in place of your name for a moment ("Chats", "Spaces").
+  final String? flash;
+  final VoidCallback? onSearch;
+  const VibeUserBar({this.top = false, this.flash, this.onSearch, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -27,8 +33,9 @@ class VibeUserBar extends StatelessWidget {
     final client = Matrix.of(context).client;
     return SafeArea(
       top: false,
+      bottom: !top,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 6, 10, 10),
+        padding: EdgeInsets.fromLTRB(10, top ? 4 : 6, 10, top ? 4 : 10),
         child: SizedBox(
           height: 76,
           child: VibeOwnProfileBuilder(
@@ -63,13 +70,25 @@ class VibeUserBar extends StatelessWidget {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    name,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 16,
+                                  AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 260),
+                                    layoutBuilder: (current, previous) =>
+                                        Stack(
+                                          alignment:
+                                              AlignmentDirectional.centerStart,
+                                          children: [...previous, ?current],
+                                        ),
+                                    child: Text(
+                                      flash ?? name,
+                                      key: ValueKey(flash ?? name),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontWeight: flash != null
+                                            ? FontWeight.w700
+                                            : FontWeight.w600,
+                                        fontSize: flash != null ? 18 : 16,
+                                      ),
                                     ),
                                   ),
                                   VibeConnectionBuilder(
@@ -99,6 +118,13 @@ class VibeUserBar extends StatelessWidget {
                               ),
                               ),
                             ),
+                            if (onSearch != null)
+                              IconButton(
+                                tooltip: 'Search',
+                                icon: const Icon(Icons.search),
+                                color: theme.colorScheme.onSurfaceVariant,
+                                onPressed: onSearch,
+                              ),
                             VibeTapArea(
                               child: IconButton(
                                 // Red dot while an update is waiting.
