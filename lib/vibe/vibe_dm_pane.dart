@@ -202,31 +202,21 @@ class _VibeDmPaneState extends State<VibeDmPane> {
                         i + invites.length + pinned.length + spaces.length + 1,
                       ),
                   ];
-                  // the chats in one panel, edge to edge; the archive as
-                  // its own pill under it
+                  // every chat its own pill; the archive one more pill
+                  // under them
                   return CustomScrollView(
                     cacheExtent: 600,
                     slivers: [
-                      DecoratedSliver(
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainerLow
-                              .withValues(alpha: 0.88),
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        sliver: SliverPadding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          sliver: SliverList.builder(
-                            itemCount: rows.length,
-                            itemBuilder: (context, i) => rows[i](),
-                          ),
-                        ),
+                      SliverList.builder(
+                        itemCount: rows.length,
+                        itemBuilder: (context, i) => rows[i](),
                       ),
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: EdgeInsets.fromLTRB(
-                            12,
-                            12,
-                            12,
+                            10,
+                            10,
+                            10,
                             20 + MediaQuery.paddingOf(context).bottom,
                           ),
                           child: VibePressable(
@@ -341,13 +331,21 @@ class _DmTile extends StatelessWidget {
         (VibeGroups.isGroup(room)
             ? '${VibeGroups.memberCount(room)} members'
             : 'Encrypted chat');
-    return Material(
-      color: active ? cs.secondaryContainer.withValues(alpha: 0.6) : Colors.transparent,
+    // each chat is its own pill on the wallpaper (like the start pane's
+    // rows), not one shared panel
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      child: Material(
+      color: active
+          ? cs.secondaryContainer.withValues(alpha: 0.92)
+          : cs.surfaceContainerLow.withValues(alpha: 0.88),
+      shape: const StadiumBorder(),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         onLongPress: onLongPress,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 9, 16, 9),
+          padding: const EdgeInsets.fromLTRB(9, 9, 20, 9),
           child: Row(
             children: [
               GestureDetector(
@@ -424,6 +422,7 @@ class _DmTile extends StatelessWidget {
           ),
         ),
       ),
+    ),
     );
   }
 }

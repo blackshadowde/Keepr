@@ -5,6 +5,8 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 
 ## 2026-11-07 ([a7d176a](https://github.com/blackshadowde/keepr/commit/a7d176a))
 
+- Chat list: every chat is now its own rounded pill on the wallpaper (like the rows in the start pane) instead of one shared panel, with the same rise-in and press motion; the open chat's pill is tinted (PENDING)
+
 - Home: your profile bar moved to the top, with search beside settings; the separate title and new-chat pencil are gone (the + tile covers new chats). After switching, the bar shows "Chats" or "Spaces" for a moment, then your name again ([44a8db0](https://github.com/blackshadowde/keepr/commit/44a8db0))
 - Home rail: the first tile is now the Chats / Spaces switch. Tap it and it grows into both, pick one and it folds back; hold it for locked chats. The extra button beside the title is gone ([44a8db0](https://github.com/blackshadowde/keepr/commit/44a8db0))
 - Motion: presses and pills move on a softer spring, so squeezing and growing read as one smooth motion ([44a8db0](https://github.com/blackshadowde/keepr/commit/44a8db0))
