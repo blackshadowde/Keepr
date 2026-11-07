@@ -5,6 +5,7 @@
 
 import 'dart:async';
 
+import 'package:vibe/vibe/vibe_dial.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
 import 'package:vibe/vibe/vibe_mute.dart';
 import 'package:vibe/config/setting_keys.dart';
@@ -210,6 +211,11 @@ class _ChatTitlePillState extends State<ChatTitlePill> {
   void _details() {
     final room = widget.controller.room;
     if (widget.controller.isArchived) return;
+    // Dial: the person (or group) pane, sliding in from the left
+    if (VibeDial.on) {
+      VibeDial.openPerson(context, room);
+      return;
+    }
     final dmUser = room.directChatMatrixID;
     if (dmUser != null) {
       VibeUserSheet.show(

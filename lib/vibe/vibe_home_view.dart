@@ -338,6 +338,8 @@ class _VibeHomeViewState extends State<VibeHomeView> {
                             ? VibeDmPane(
                                 key: const ValueKey('list'),
                                 showSearch: _search,
+                                onSearchClose: () =>
+                                    setState(() => _search = false),
                                 spacesMode: _spacesMode,
                                 spaces: spaces,
                                 onSpace: (room) =>

@@ -2,6 +2,7 @@
 
 
 import 'package:vibe/vibe/vibe_cascade.dart';
+import 'package:vibe/vibe/vibe_dial.dart';
 import 'package:vibe/vibe/vibe_glass.dart';
 import 'package:flutter/gestures.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
@@ -261,6 +262,8 @@ class _VibeBackSwipeState<T> extends State<_VibeBackSwipe<T>> {
   void _down(PointerDownEvent e) {
     if (_pointer != null || e.kind == PointerDeviceKind.mouse) return;
     if (!_enabled) return;
+    // Dial: dragging the dial turns it, it doesn't close the chat
+    if (VibeDial.covers(e.position)) return;
     _pointer = e.pointer;
     _start = e.position;
     _decided = false;

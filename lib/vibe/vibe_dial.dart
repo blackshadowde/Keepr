@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
 import 'package:go_router/go_router.dart';
 import 'package:matrix/matrix.dart';
 import 'package:vibe/config/setting_keys.dart';
@@ -13,6 +14,7 @@ import 'package:vibe/vibe/screens/chat_list/chat_list.dart';
 import 'package:vibe/vibe/vibe_archive.dart';
 import 'package:vibe/vibe/vibe_chat_actions.dart';
 import 'package:vibe/vibe/vibe_communities.dart';
+import 'package:vibe/vibe/vibe_dm_detail.dart';
 import 'package:vibe/vibe/vibe_glass.dart';
 import 'package:vibe/vibe/vibe_groups.dart';
 import 'package:vibe/vibe/vibe_haptics.dart';
@@ -94,6 +96,65 @@ abstract class VibeDial {
     AppSettings.vibeDialLast.setItem(roomId);
   }
 
+  /// Where the dial is on screen (so swiping it doesn't close the chat).
+  static Rect? _dialRect;
+  static bool covers(Offset p) => on && (_dialRect?.contains(p) ?? false);
+
+  /// Switch to another chat from the dial: a quick dark wipe over the old
+  /// chat, the new one under it, and the wipe lifts.
+  static Future<void> switchTo(BuildContext context, Room room) async {
+    final overlay = Overlay.of(context, rootOverlay: true);
+    final router = GoRouter.of(context);
+    final curtain = GlobalKey<_CurtainState>();
+    final entry = OverlayEntry(
+      builder: (_) => _Curtain(key: curtain, quick: true),
+    );
+    overlay.insert(entry);
+    await Future<void>.delayed(const Duration(milliseconds: 150));
+    router.go('/rooms/${room.id}');
+    await Future<void>.delayed(const Duration(milliseconds: 120));
+    await curtain.currentState?.lift();
+    entry.remove();
+  }
+
+  /// The person's (or group's) page, sliding in from the left; swipe right
+  /// or tap back to close it.
+  static void openPerson(BuildContext context, Room room) {
+    VibeHaptics.light();
+    Navigator.of(context).push(
+      PageRouteBuilder<void>(
+        transitionDuration: const Duration(milliseconds: 380),
+        reverseTransitionDuration: const Duration(milliseconds: 300),
+        pageBuilder: (ctx, _, _) => GestureDetector(
+          onHorizontalDragEnd: (d) {
+            if ((d.primaryVelocity ?? 0) > 300) Navigator.of(ctx).pop();
+          },
+          child: Scaffold(
+            backgroundColor: bg,
+            body: VibeDmDetail(
+              room: room,
+              onBack: () => Navigator.of(ctx).pop(),
+              onOpenChat: () => Navigator.of(ctx).pop(),
+            ),
+          ),
+        ),
+        transitionsBuilder: (ctx, anim, _, child) => SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(-1, 0),
+            end: Offset.zero,
+          ).animate(
+            CurvedAnimation(
+              parent: anim,
+              curve: Curves.easeOutCubic,
+              reverseCurve: Curves.easeInCubic,
+            ),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+
   /// Opened the last chat this run already (only once, at start).
   static bool _openedLast = false;
 
@@ -131,7 +192,9 @@ abstract class VibeDial {
 }
 
 class _Curtain extends StatefulWidget {
-  const _Curtain({super.key});
+  /// A quick plain wipe (switching chats) instead of the named curtain.
+  final bool quick;
+  const _Curtain({this.quick = false, super.key});
 
   @override
   State<_Curtain> createState() => _CurtainState();
@@ -141,7 +204,7 @@ class _CurtainState extends State<_Curtain>
     with SingleTickerProviderStateMixin {
   late final AnimationController _c = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 300),
+    duration: Duration(milliseconds: widget.quick ? 150 : 300),
   )..forward();
 
   Future<void> lift() => _c.reverse();
@@ -155,7 +218,9 @@ class _CurtainState extends State<_Curtain>
   @override
   Widget build(BuildContext context) => FadeTransition(
     opacity: _c,
-    child: const Material(
+    child: widget.quick
+        ? const IgnorePointer(child: ColoredBox(color: VibeDial.bg))
+        : const Material(
       color: VibeDial.bg,
       child: Center(
         child: Text(
@@ -174,9 +239,10 @@ class _CurtainState extends State<_Curtain>
 }
 
 /// The dial under a chat: the people you talk to on an arc, the open chat
-/// in the middle. Drag sideways to turn it (a tick per person), let go to
-/// open who's in the middle; tap someone to open them; swipe up for all
-/// chats.
+/// in the middle, only chats of the same kind (people with people, groups
+/// and channels with groups). Drag sideways to turn it (a tick per person);
+/// let go and it settles on who's in the middle and opens them. Tap someone
+/// to open them, tap the middle for their page, swipe up for all chats.
 class VibeDialBar extends StatefulWidget {
   final Room room;
   const VibeDialBar({required this.room, super.key});
@@ -185,57 +251,87 @@ class VibeDialBar extends StatefulWidget {
   State<VibeDialBar> createState() => _VibeDialBarState();
 }
 
-class _VibeDialBarState extends State<VibeDialBar> {
+class _VibeDialBarState extends State<VibeDialBar>
+    with SingleTickerProviderStateMixin {
   double _drag = 0;
   int _steps = 0;
   static const _step = 56.0; // px of drag per person
+  static const _gap = 15.0; // degrees between people
+  late final AnimationController _settle = AnimationController.unbounded(
+    vsync: this,
+  )..addListener(() => setState(() => _drag = _settle.value));
+
+  @override
+  void dispose() {
+    _settle.dispose();
+    VibeDial._dialRect = null;
+    super.dispose();
+  }
 
   void _open(Room r) {
     if (r.id == widget.room.id) return;
     VibeHaptics.light();
-    context.go('/rooms/${r.id}');
+    VibeDial.switchTo(context, r);
+  }
+
+  List<Room> _chats() {
+    final group = VibeGroups.isGroup(widget.room);
+    final chats = VibeDial.chats(
+      widget.room.client,
+    ).where((r) => VibeGroups.isGroup(r) == group).toList();
+    if (!chats.any((r) => r.id == widget.room.id)) {
+      chats.insert(0, widget.room);
+    }
+    return chats;
   }
 
   @override
   Widget build(BuildContext context) {
-    final chats = VibeDial.chats(widget.room.client);
-    var i = chats.indexWhere((r) => r.id == widget.room.id);
-    if (i < 0) {
-      chats.insert(0, widget.room);
-      i = 0;
-    }
-    final name = widget.room.getLocalizedDisplayname(
-      MatrixLocals(L10n.of(context)),
-    );
-    // the arc turns with the finger; each person sits 17° apart
-    final turn = -(_drag / _step) * 17.0;
+    // where the dial is, so the chat's swipe-back leaves it alone
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final box = context.findRenderObject();
+      if (mounted && box is RenderBox && box.attached && box.hasSize) {
+        VibeDial._dialRect = box.localToGlobal(Offset.zero) & box.size;
+      }
+    });
+    final chats = _chats();
+    final i = chats.indexWhere((r) => r.id == widget.room.id);
+    final turn = -(_drag / _step) * _gap;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
+      onHorizontalDragStart: (_) => _settle.stop(),
       onHorizontalDragUpdate: (d) {
         setState(() => _drag += d.delta.dx);
-        final s = -(_drag / _step).round();
-        if (s != _steps) {
-          _steps = s;
+        final s = (-(_drag / _step)).round();
+        final clamped = s.clamp(-i, chats.length - 1 - i);
+        if (clamped != _steps) {
+          _steps = clamped;
           VibeHaptics.selection();
         }
       },
-      onHorizontalDragEnd: (_) {
-        final target = (i + _steps).clamp(0, chats.length - 1);
-        setState(() {
-          _drag = 0;
-          _steps = 0;
-        });
-        _open(chats[target]);
+      onHorizontalDragEnd: (d) async {
+        final target = chats[(i + _steps).clamp(0, chats.length - 1)];
+        // settle on the person in the middle (a soft spring), then open
+        _settle.value = _drag;
+        await _settle.animateWith(
+          SpringSimulation(
+            const SpringDescription(mass: 1, stiffness: 320, damping: 30),
+            _drag,
+            -_steps * _step,
+            d.velocity.pixelsPerSecond.dx,
+          ),
+        );
+        if (!mounted) return;
+        _open(target);
       },
       onVerticalDragEnd: (d) {
         if ((d.primaryVelocity ?? 0) < -250) context.go('/rooms');
       },
       child: SizedBox(
-        height: 132,
+        height: 140,
         child: LayoutBuilder(
           builder: (context, box) {
-            final w = box.maxWidth;
-            final cx = w / 2;
+            final cx = box.maxWidth / 2;
             const r = 250.0;
             const cy = 290.0; // centre of the big circle, below the bar
             return Stack(
@@ -246,42 +342,26 @@ class _VibeDialBarState extends State<VibeDialBar> {
                     painter: _Arc(turn: turn, cx: cx, cy: cy, r: r),
                   ),
                 ),
-                for (var k = -2; k <= 2; k++)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: 4,
+                  child: Text(
+                    'TURN · SWIPE UP FOR ALL',
+                    textAlign: TextAlign.center,
+                    style: VibeDial.label(size: 8),
+                  ),
+                ),
+                for (var k = -3; k <= 3; k++)
                   if (i + k >= 0 && i + k < chats.length)
                     _person(
                       chats[i + k],
-                      angle: k * 17.0 + turn,
+                      angle: k * _gap + turn,
                       center: k == 0,
                       cx: cx,
                       cy: cy,
                       r: r - 50,
                     ),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 22,
-                  child: Text(
-                    name,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: VibeDial.ink,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 6,
-                  child: Text(
-                    'TURN TO SWITCH · SWIPE UP FOR ALL',
-                    textAlign: TextAlign.center,
-                    style: VibeDial.label(size: 8.5),
-                  ),
-                ),
               ],
             );
           },
@@ -299,7 +379,9 @@ class _VibeDialBarState extends State<VibeDialBar> {
     required double r,
   }) {
     final a = (angle - 90) * math.pi / 180;
-    final s = center ? 50.0 : 36.0;
+    // grows as it nears the middle
+    final near = (1 - (angle.abs() / _gap).clamp(0.0, 1.0));
+    final s = 36.0 + 14 * near;
     final x = cx + r * math.cos(a);
     final y = cy + r * math.sin(a);
     final unread = room.notificationCount > 0 || room.markedUnread;
@@ -308,7 +390,9 @@ class _VibeDialBarState extends State<VibeDialBar> {
       left: x - s / 2,
       top: y - s / 2,
       child: GestureDetector(
-        onTap: () => _open(room),
+        onTap: () => center
+            ? VibeDial.openPerson(context, room)
+            : _open(room),
         onLongPress: () => VibeChatActions.show(
           context,
           room,
@@ -323,13 +407,14 @@ class _VibeDialBarState extends State<VibeDialBar> {
               padding: const EdgeInsets.all(2),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
+                color: VibeDial.bg,
                 border: Border.all(
-                  color: center ? VibeDial.lime : VibeDial.faint,
+                  color: Color.lerp(VibeDial.faint, VibeDial.lime, near)!,
                   width: 1.5,
                 ),
               ),
               child: Opacity(
-                opacity: center ? 1 : 0.7,
+                opacity: 0.6 + 0.4 * near,
                 child: Avatar(
                   mxContent: room.avatar,
                   name: name,
@@ -414,9 +499,44 @@ class VibeDialHome extends StatefulWidget {
   State<VibeDialHome> createState() => _VibeDialHomeState();
 }
 
-class _VibeDialHomeState extends State<VibeDialHome> {
+class _VibeDialHomeState extends State<VibeDialHome>
+    with SingleTickerProviderStateMixin {
   bool _spaces = false;
   String _q = '';
+  bool _searching = false;
+
+  /// Everyone as a plain list instead of the rings.
+  bool _listMode = false;
+
+  /// The rings swing into place each time you come here or switch
+  /// Chats / Spaces.
+  late final AnimationController _spin = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  )..forward();
+
+  Animation<double>? _covered;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // back here from a chat: swing again
+    final anim = ModalRoute.of(context)?.secondaryAnimation;
+    if (anim == _covered) return;
+    _covered?.removeStatusListener(_back);
+    _covered = anim?..addStatusListener(_back);
+  }
+
+  void _back(AnimationStatus s) {
+    if (s == AnimationStatus.dismissed && mounted) _spin.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _covered?.removeStatusListener(_back);
+    _spin.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -517,6 +637,30 @@ class _VibeDialHomeState extends State<VibeDialHome> {
                       ),
                       const Spacer(),
                       IconButton(
+                        tooltip: _listMode ? 'Rings' : 'List',
+                        icon: Icon(
+                          _listMode
+                              ? Icons.blur_circular_outlined
+                              : Icons.view_list_outlined,
+                          color: VibeDial.dim,
+                          size: 20,
+                        ),
+                        onPressed: () {
+                          setState(() => _listMode = !_listMode);
+                          if (!_listMode) _spin.forward(from: 0);
+                        },
+                      ),
+                      if (!_searching)
+                        IconButton(
+                          tooltip: 'Search',
+                          icon: const Icon(
+                            Icons.search,
+                            color: VibeDial.dim,
+                            size: 20,
+                          ),
+                          onPressed: () => setState(() => _searching = true),
+                        ),
+                      IconButton(
                         tooltip: 'Settings',
                         icon: const Icon(
                           Icons.settings_outlined,
@@ -528,32 +672,47 @@ class _VibeDialHomeState extends State<VibeDialHome> {
                     ],
                   ),
                 ),
+                if (_searching)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: TextField(
+                    autofocus: true,
+                    onTapOutside: (_) {
+                      FocusManager.instance.primaryFocus?.unfocus();
+                      if (_q.isEmpty) setState(() => _searching = false);
+                    },
                     onChanged: (v) => setState(() => _q = v),
                     style: const TextStyle(fontSize: 16, color: VibeDial.ink),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'Find someone or a space',
-                      hintStyle: TextStyle(color: VibeDial.dim),
-                      prefixIcon: Icon(
+                      hintStyle: const TextStyle(color: VibeDial.dim),
+                      prefixIcon: const Icon(
                         Icons.search,
                         color: VibeDial.dim,
                         size: 20,
                       ),
-                      enabledBorder: UnderlineInputBorder(
+                      enabledBorder: const UnderlineInputBorder(
                         borderSide: BorderSide(color: VibeDial.faint),
                       ),
-                      focusedBorder: UnderlineInputBorder(
+                      focusedBorder: const UnderlineInputBorder(
                         borderSide: BorderSide(color: VibeDial.lime),
+                      ),
+                      suffixIcon: IconButton(
+                        tooltip: 'Close',
+                        icon: const Icon(Icons.close, color: VibeDial.dim),
+                        onPressed: () => setState(() {
+                          _q = '';
+                          _searching = false;
+                        }),
                       ),
                     ),
                   ),
                 ),
                 Expanded(
-                  child: q.isNotEmpty || outer.length > 12
+                  // the rings hold the first 14 outside; the list has all
+                  child: q.isNotEmpty || _listMode
                       ? _list(q.isNotEmpty ? found : [...inner, ...outer], q)
-                      : _rings(inner, outer),
+                      : _rings(inner, outer.take(14).toList()),
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
@@ -604,8 +763,10 @@ class _VibeDialHomeState extends State<VibeDialHome> {
         for (final sp in [false, true])
           GestureDetector(
             onTap: () {
+              if (_spaces == sp) return;
               VibeHaptics.selection();
               setState(() => _spaces = sp);
+              _spin.forward(from: 0);
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 220),
@@ -626,8 +787,13 @@ class _VibeDialHomeState extends State<VibeDialHome> {
     ),
   );
 
-  Widget _rings(List<Room> inner, List<Room> outer) => LayoutBuilder(
+  Widget _rings(List<Room> inner, List<Room> outer) => AnimatedBuilder(
+    animation: _spin,
+    builder: (context, _) => LayoutBuilder(
     builder: (context, box) {
+      // swing: the inner ring turns one way, the outer the other, settling
+      final t = Curves.easeOutCubic.transform(_spin.value);
+      final swing = (1 - t) * 70;
       final w = box.maxWidth;
       final h = box.maxHeight;
       final c = Offset(w / 2, h / 2);
@@ -641,7 +807,7 @@ class _VibeDialHomeState extends State<VibeDialHome> {
           left: p.dx - 50,
           top: p.dy - size / 2,
           width: 100,
-          child: _person(room, size, big),
+          child: Opacity(opacity: t, child: _person(room, size, big)),
         );
       }
 
@@ -662,9 +828,15 @@ class _VibeDialHomeState extends State<VibeDialHome> {
             ),
           Center(child: _switch()),
           for (var k = 0; k < inner.length; k++)
-            place(inner[k], k * 360 / inner.length, r1, 52, true),
+            place(inner[k], swing + k * 360 / inner.length, r1, 52, true),
           for (var k = 0; k < outer.length; k++)
-            place(outer[k], 15 + k * 360 / math.max(outer.length, 1), r2, 36, false),
+            place(
+              outer[k],
+              15 - swing + k * 360 / math.max(outer.length, 1),
+              r2,
+              36,
+              false,
+            ),
           if (inner.isEmpty)
             Positioned(
               left: 0,
@@ -679,6 +851,7 @@ class _VibeDialHomeState extends State<VibeDialHome> {
         ],
       );
     },
+    ),
   );
 
   Widget _list(List<Room> rooms, String q) => Column(
@@ -844,11 +1017,15 @@ class _VibeDialHomeState extends State<VibeDialHome> {
 /// reply makes up to the words it quotes, on the [right] side or the left.
 class VibeDialLine extends CustomPainter {
   final double dotY;
+
+  /// The middle of the quoted line above a reply, where the curve ends.
+  final double hookY;
   final bool hook;
   final bool right;
   final Color hookColor;
   const VibeDialLine({
     required this.dotY,
+    required this.hookY,
     required this.hook,
     required this.right,
     required this.hookColor,
@@ -865,10 +1042,13 @@ class VibeDialLine extends CustomPainter {
         ..strokeWidth = 1,
     );
     if (!hook) return;
+    // from just above the dot, up the line and round into the quoted words
     final s = right ? 1 : -1;
     final path = Path()
-      ..moveTo(x + 4 * s, dotY)
-      ..cubicTo(x + 16 * s, dotY, x + 16 * s, 6, x + 26 * s, 6);
+      ..moveTo(x, dotY - 7)
+      ..lineTo(x, hookY + 6)
+      ..quadraticBezierTo(x, hookY, x + 6 * s, hookY)
+      ..lineTo(x + 13 * s, hookY);
     canvas.drawPath(
       path,
       Paint()
@@ -882,6 +1062,7 @@ class VibeDialLine extends CustomPainter {
   @override
   bool shouldRepaint(VibeDialLine old) =>
       old.dotY != dotY ||
+      old.hookY != hookY ||
       old.hook != hook ||
       old.right != right ||
       old.hookColor != hookColor;

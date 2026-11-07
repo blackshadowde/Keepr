@@ -31,6 +31,9 @@ class VibeDmPane extends StatefulWidget {
   /// The search field (the home screen's search button shows it).
   final bool showSearch;
 
+  /// Closes the search field (its ✕, or tapping away with nothing typed).
+  final VoidCallback? onSearchClose;
+
   /// false: only direct chats. true: only groups and communities.
   final bool spacesMode;
 
@@ -44,6 +47,7 @@ class VibeDmPane extends StatefulWidget {
     required this.onTap,
     required this.onOpen,
     this.showSearch = true,
+    this.onSearchClose,
     this.spacesMode = false,
     this.spaces = const [],
     this.onSpace,
@@ -126,10 +130,27 @@ class _VibeDmPaneState extends State<VibeDmPane> {
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
               child: TextField(
                 controller: _filter,
+                autofocus: widget.onSearchClose != null,
                 onChanged: (_) => setState(() {}),
+                // tapping away with nothing typed puts it away again
+                onTapOutside: (_) {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                  if (_filter.text.isEmpty) widget.onSearchClose?.call();
+                },
                 decoration: InputDecoration(
                   hintText: 'Find a chat',
                   prefixIcon: const Icon(Icons.search),
+                  suffixIcon: widget.onSearchClose == null
+                      ? null
+                      : IconButton(
+                          tooltip: 'Close',
+                          icon: const Icon(Icons.close),
+                          onPressed: () {
+                            _filter.clear();
+                            setState(() {});
+                            widget.onSearchClose!();
+                          },
+                        ),
                   filled: true,
                   fillColor: theme.colorScheme.surfaceContainerLowest,
                   isDense: true,

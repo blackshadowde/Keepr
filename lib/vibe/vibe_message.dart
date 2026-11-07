@@ -1010,6 +1010,7 @@ class VibeMessage extends StatelessWidget {
       return CustomPaint(
         painter: VibeDialLine(
           dotY: dotY,
+          hookY: top + nameH + replyH / 2,
           hook: replying,
           right: ownMessage,
           hookColor: color,
