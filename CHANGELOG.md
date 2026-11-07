@@ -5,7 +5,7 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 
 ## 2026-11-07 ([a7d176a](https://github.com/blackshadowde/keepr/commit/a7d176a))
 
-- Dial: the dial steps aside while the keyboard is up, so the chat keeps its room. Switching chats on the dial now turns: the chat you're in swings away round a point below the screen and the next one swings in from the side you turned to. Opening a chat from all chats turns the same way (all chats swing out as the chat swings in, and back). Long-press a message for a ring of actions round it: the message in a disc in the middle, Reply, Thread, Quote, Edit, Forward, Copy, Save, Info, Delete or Report turning into place round it, and quick reactions above (PENDING)
+- Dial: the dial steps aside while the keyboard is up, so the chat keeps its room. Switching chats on the dial now turns: the chat you're in swings away round a point below the screen and the next one swings in from the side you turned to. Opening a chat from all chats turns the same way (all chats swing out as the chat swings in, and back). Long-press a message for a ring of actions round it: the message in a disc in the middle, Reply, Thread, Quote, Edit, Forward, Copy, Save, Info, Delete or Report turning into place round it, and quick reactions above ([270144d](https://github.com/blackshadowde/keepr/commit/270144d))
 
 - Dial A–Z: hold the dial and letters run round the arc; slide to a letter (a tick per letter) and let go. The dial then holds everyone of that kind from that letter on, A to Z (not just your recent chats); turn or tap to open someone. The lime "A–Z · M ✕" chip on top goes back to your recent chats ([9e0c0a9](https://github.com/blackshadowde/keepr/commit/9e0c0a9))
 
