@@ -5,10 +5,10 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 
 ## 2026-11-07 ([a7d176a](https://github.com/blackshadowde/keepr/commit/a7d176a))
 
-- Home: your profile bar moved to the top, with search beside settings; the separate title and new-chat pencil are gone (the + tile covers new chats). After switching, the bar shows "Chats" or "Spaces" for a moment, then your name again (PENDING)
-- Home rail: the first tile is now the Chats / Spaces switch. Tap it and it grows into both, pick one and it folds back; hold it for locked chats. The extra button beside the title is gone (PENDING)
-- Motion: presses and pills move on a softer spring, so squeezing and growing read as one smooth motion (PENDING)
-- Chat: a person's picture now sits under the last message of their run, and the line grows up from it into each earlier message, until someone else writes (PENDING)
+- Home: your profile bar moved to the top, with search beside settings; the separate title and new-chat pencil are gone (the + tile covers new chats). After switching, the bar shows "Chats" or "Spaces" for a moment, then your name again ([44a8db0](https://github.com/blackshadowde/keepr/commit/44a8db0))
+- Home rail: the first tile is now the Chats / Spaces switch. Tap it and it grows into both, pick one and it folds back; hold it for locked chats. The extra button beside the title is gone ([44a8db0](https://github.com/blackshadowde/keepr/commit/44a8db0))
+- Motion: presses and pills move on a softer spring, so squeezing and growing read as one smooth motion ([44a8db0](https://github.com/blackshadowde/keepr/commit/44a8db0))
+- Chat: a person's picture now sits under the last message of their run, and the line grows up from it into each earlier message, until someone else writes ([44a8db0](https://github.com/blackshadowde/keepr/commit/44a8db0))
 
 - Home: a Chats / Spaces button beside the title. Tap it and it grows into a pill with both; Chats lists only direct chats, Spaces lists only groups and communities (communities open their pane). The title follows the choice ([c96a0f3](https://github.com/blackshadowde/keepr/commit/c96a0f3))
 - Home rail: now your pinned chats and channels, chats with unread messages, then the chats you wrote in last. The first tile switches to Chats (hold it for locked chats); the + tile still joins or creates a community ([c96a0f3](https://github.com/blackshadowde/keepr/commit/c96a0f3))
