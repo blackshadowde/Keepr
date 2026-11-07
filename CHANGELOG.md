@@ -5,7 +5,7 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 
 ## 2026-11-07 ([a7d176a](https://github.com/blackshadowde/keepr/commit/a7d176a))
 
-- Dial A–Z: hold the dial and letters run round the arc; slide to a letter (a tick per letter) and let go. The dial then holds everyone of that kind from that letter on, A to Z (not just your recent chats); turn or tap to open someone. The lime "A–Z · M ✕" chip on top goes back to your recent chats (PENDING)
+- Dial A–Z: hold the dial and letters run round the arc; slide to a letter (a tick per letter) and let go. The dial then holds everyone of that kind from that letter on, A to Z (not just your recent chats); turn or tap to open someone. The lime "A–Z · M ✕" chip on top goes back to your recent chats ([9e0c0a9](https://github.com/blackshadowde/keepr/commit/9e0c0a9))
 
 - Dial: your message's dot on the middle line now shows its state: it glows while being encrypted, pulses while it goes out, turns blue once sent, green once delivered and red if it couldn't be sent. The dots after the text are gone in Dial. The person or group page is now the tree from the mockup: the middle line runs on and Conversation, Shared, Members (groups), About and Actions hang off it left and right. The dial holds pinned chats and your 15 most recent (everyone else is in the rings, list or search), and a flick spins it on a few people ([b8d30b9](https://github.com/blackshadowde/keepr/commit/b8d30b9))
 
