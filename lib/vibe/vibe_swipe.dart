@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 
+import 'package:vibe/vibe/vibe_cascade.dart';
 import 'package:vibe/vibe/vibe_glass.dart';
 import 'package:flutter/gestures.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
@@ -129,9 +130,11 @@ class _SlideOver extends StatelessWidget {
   );
 }
 
-/// A chat opening: it comes up from dim and slightly small while the list's
-/// rows slide away over it, so it feels uncovered rather than pushed in.
-/// Following a finger (swipe open / swipe back) it slides, 1:1.
+/// A chat opening: it is uncovered strip by strip, each strip opening
+/// exactly where a row of the list has slid away (same timing as
+/// [VibeCascadeOut]), so the chat seems to lie under the list. Nothing
+/// fades, so there's no see-through moment or flash. Following a finger
+/// (swipe open / swipe back) it slides, 1:1.
 class _Reveal extends StatelessWidget {
   final PageRoute<dynamic> route;
   final Animation<double> animation;
@@ -149,21 +152,42 @@ class _Reveal extends StatelessWidget {
     builder: (context, child) {
       final gesture = route.navigator?.userGestureInProgress == true;
       final v = animation.value.clamp(0.0, 1.0);
-      // opening: shows from a third of the way in, as the rows clear;
-      // closing: gone before the rows are back
-      final f = gesture
-          ? 1.0
-          : Curves.easeOutCubic.transform(((v - 0.3) / 0.7).clamp(0.0, 1.0));
       // Same widgets every frame, so the chat keeps its state.
       return FractionalTranslation(
         translation: Offset(gesture ? 1 - v : 0, 0),
-        child: Transform.scale(
-          scale: 0.96 + 0.04 * f,
-          child: Opacity(opacity: f, child: child),
+        child: ClipPath(
+          clipper: _Strips(v, all: gesture),
+          child: child,
         ),
       );
     },
   );
+}
+
+/// The part of the chat uncovered so far: one strip per row height, each as
+/// wide as its row has moved.
+class _Strips extends CustomClipper<Path> {
+  final double v;
+  final bool all;
+  const _Strips(this.v, {this.all = false});
+
+  static const _band = 72.0;
+
+  @override
+  Path getClip(Size size) {
+    final full = Path()..addRect(Offset.zero & size);
+    if (all || v >= 1 || size.height <= 0) return full;
+    final path = Path();
+    for (var y = 0.0; y < size.height; y += _band) {
+      final t = vibeCascadeT(v, (y + _band / 2) / size.height);
+      final w = vibeCascadeEdge(t) * size.width;
+      if (w > 0) path.addRect(Rect.fromLTWH(0, y, w, _band + 0.5));
+    }
+    return path;
+  }
+
+  @override
+  bool shouldReclip(_Strips old) => old.v != v || old.all != all;
 }
 
 /// Moves the covered page a little to the left and dims it.

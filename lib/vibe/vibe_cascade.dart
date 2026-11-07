@@ -111,10 +111,7 @@ class _VibeCascadeOutState extends State<VibeCascadeOut> with _ScreenSpot {
       builder: (context, child) {
         final v = anim.value.clamp(0.0, 1.0);
         // top rows first; the last ones start about a third of the way in
-        final d = spot(context, v) * 0.35;
-        final t = Curves.easeInOutCubic.transform(
-          ((v - d) / (1 - d)).clamp(0.0, 1.0),
-        );
+        final t = vibeCascadeT(v, spot(context, v));
         // the same widgets every frame (only the numbers change), so rows
         // keep their state through the motion
         _tick(t);
@@ -127,7 +124,9 @@ class _VibeCascadeOutState extends State<VibeCascadeOut> with _ScreenSpot {
               alignment: Alignment.centerRight,
               child: Opacity(
                 opacity: (1 - t * 1.15).clamp(0.0, 1.0),
-                child: child,
+                // the row is drawn once and the fade reuses that picture,
+                // instead of repainting it every frame
+                child: RepaintBoundary(child: child),
               ),
             ),
           ),
@@ -248,6 +247,19 @@ class _VibeGlitchTextState extends State<VibeGlitchText>
   }
 }
 
+/// How far a row at [spot] (0 top .. 1 bottom of the screen) has gone when
+/// the motion is at [v]: top rows first, the last ones start about a third
+/// of the way in. The chat being uncovered uses the same numbers, so its
+/// strips open exactly where the rows have moved away.
+double vibeCascadeT(double v, double spot) {
+  final d = spot * 0.35;
+  return Curves.easeInOutCubic.transform(((v - d) / (1 - d)).clamp(0.0, 1.0));
+}
+
+/// How far a row's left edge has moved, as a share of its width, at [t]:
+/// it slides 0.85 and shrinks 0.32 towards its right end.
+double vibeCascadeEdge(double t) => (1.17 * t).clamp(0.0, 1.0);
+
 /// Each widget in [children] as its own block (see [VibeCascadeOut]).
 List<Widget> vibeCascadeAll(List<Widget> children) => [
   for (final w in children) VibeCascadeOut(child: w),
@@ -260,8 +272,7 @@ Widget vibeCascadeSwitch(Widget child, Animation<double> animation) {
     parent: animation,
     curve: const Interval(0.35, 1),
   );
-  return VibeCascadeScope(
-    leaving: ReverseAnimation(shown),
-    child: FadeTransition(opacity: shown, child: child),
-  );
+  // no fade over the whole list (that blended two lists and flashed): the
+  // rows themselves leave and arrive block by block
+  return VibeCascadeScope(leaving: ReverseAnimation(shown), child: child);
 }

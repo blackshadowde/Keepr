@@ -5,6 +5,8 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 
 ## 2026-11-07 ([a7d176a](https://github.com/blackshadowde/keepr/commit/a7d176a))
 
+- Block motion, smoother: the chat no longer fades in over the list (that see-through moment caused the flashing). It's uncovered strip by strip, each strip opening exactly where a row has slid away, so it looks like it lies under the list. Chats / Spaces and pane switches no longer fade the whole list either; only the rows move, block by block. Each row is drawn once and reused while it moves, so frames stay smooth (PENDING)
+
 - Block motion: each row gives a tiny tick as it slides out (and as it comes back), so the ripple feels like turning a dial. Follows the haptics setting ([2957f51](https://github.com/blackshadowde/keepr/commit/2957f51))
 
 - Motion, block style: opening a chat, the list's rows (and the profile bar and rail) slide away to the right as solid blocks, shrinking and fading one after another from the top, and the chat comes up from dim behind them; back plays it in reverse. Dragging a chat open or closed with a finger still slides it 1:1 ([38e6f2b](https://github.com/blackshadowde/keepr/commit/38e6f2b))

@@ -324,7 +324,11 @@ class _VibeHomeViewState extends State<VibeHomeView> {
                           fit: StackFit.expand,
                           children: [...previous, ?current],
                         ),
-                        transitionBuilder: vibeCascadeSwitch,
+                        // the start pane has no rows of blocks: it fades
+                        transitionBuilder: (child, animation) =>
+                            child.key == const ValueKey(_startId)
+                            ? FadeTransition(opacity: animation, child: child)
+                            : vibeCascadeSwitch(child, animation),
                         child: selectedId == _startId
                             ? VibeStartPane(
                                 key: const ValueKey(_startId),
