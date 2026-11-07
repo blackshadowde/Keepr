@@ -260,6 +260,23 @@ class _VibeDialBarState extends State<VibeDialBar>
   int _steps = 0;
   static const _step = 56.0; // px of drag per person
   static const _gap = 15.0; // degrees between people
+
+  // A–Z: hold the dial and slide to a letter; let go and the dial holds
+  // everyone of this kind from that letter on (not just the recent ones)
+  static const _abc = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ#';
+  bool _picking = false;
+  int _pick = 0;
+  double _pickX = 0;
+  int _pickBase = 0;
+  String? _letter;
+
+  static String _initial(String name) {
+    final c = name.isEmpty ? '#' : name.characters.first.toUpperCase();
+    return _abc.contains(c) && c != '#' ? c : '#';
+  }
+
+  String _name(Room r) =>
+      r.getLocalizedDisplayname(MatrixLocals(L10n.of(context)));
   late final AnimationController _settle = AnimationController.unbounded(
     vsync: this,
   )..addListener(() => setState(() => _drag = _settle.value));
@@ -282,6 +299,15 @@ class _VibeDialBarState extends State<VibeDialBar>
     final chats = VibeDial.chats(
       widget.room.client,
     ).where((r) => VibeGroups.isGroup(r) == group).toList();
+    if (_letter != null) {
+      // everyone, A to Z (names that don't start with a letter last)
+      String key(Room r) {
+        final n = _name(r).toLowerCase();
+        return _initial(n) == '#' ? '~$n' : n;
+      }
+      chats.sort((a, b) => key(a).compareTo(key(b)));
+      return chats;
+    }
     // the dial is for the people you talk to now: pinned and the 15 most
     // recent; everyone else is a swipe up away (rings, list, search)
     final near = chats.take(15).toList();
@@ -301,7 +327,14 @@ class _VibeDialBarState extends State<VibeDialBar>
       }
     });
     final chats = _chats();
-    final i = chats.indexWhere((r) => r.id == widget.room.id);
+    var i = chats.indexWhere((r) => r.id == widget.room.id);
+    if (_letter != null) {
+      // start at the first name from the letter on
+      final at = _abc.indexOf(_letter!);
+      i = chats.indexWhere((r) => _abc.indexOf(_initial(_name(r))) >= at);
+      if (i < 0) i = chats.length - 1;
+    }
+    if (i < 0) i = 0;
     final turn = -(_drag / _step) * _gap;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -337,6 +370,35 @@ class _VibeDialBarState extends State<VibeDialBar>
       onVerticalDragEnd: (d) {
         if ((d.primaryVelocity ?? 0) < -250) context.go('/rooms');
       },
+      onLongPressStart: (d) {
+        VibeHaptics.medium();
+        setState(() {
+          _picking = true;
+          _pickX = d.localPosition.dx;
+          _pickBase = _abc.indexOf(
+            _letter ?? _initial(_name(widget.room)),
+          );
+          _pick = _pickBase;
+        });
+      },
+      onLongPressMoveUpdate: (d) {
+        final p = (_pickBase + (d.localPosition.dx - _pickX) / 18)
+            .round()
+            .clamp(0, _abc.length - 1);
+        if (p != _pick) {
+          VibeHaptics.selection();
+          setState(() => _pick = p);
+        }
+      },
+      onLongPressEnd: (_) {
+        VibeHaptics.light();
+        setState(() {
+          _picking = false;
+          _letter = _abc[_pick];
+          _drag = 0;
+          _steps = 0;
+        });
+      },
       child: SizedBox(
         height: 140,
         child: LayoutBuilder(
@@ -355,13 +417,56 @@ class _VibeDialBarState extends State<VibeDialBar>
                 Positioned(
                   left: 0,
                   right: 0,
-                  top: 4,
-                  child: Text(
-                    'TURN · SWIPE UP FOR ALL',
-                    textAlign: TextAlign.center,
-                    style: VibeDial.label(size: 8),
-                  ),
+                  top: 0,
+                  child: _letter == null || _picking
+                      ? Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            _picking
+                                ? 'SLIDE TO A LETTER · LET GO'
+                                : 'TURN · HOLD FOR A–Z · SWIPE UP FOR ALL',
+                            textAlign: TextAlign.center,
+                            style: VibeDial.label(size: 8),
+                          ),
+                        )
+                      : Center(
+                          // which letter the dial is on; tap to go back to
+                          // the recent ones
+                          child: GestureDetector(
+                            onTap: () => setState(() => _letter = null),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: VibeDial.lime),
+                              ),
+                              child: Text(
+                                'A–Z · $_letter  ✕',
+                                style: VibeDial.label(
+                                  color: VibeDial.lime,
+                                  size: 9,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                 ),
+                // holding: letters round the arc instead of people
+                if (_picking)
+                  for (var k = -6; k <= 6; k++)
+                    if (_pick + k >= 0 && _pick + k < _abc.length)
+                      _letterAt(
+                        _abc[_pick + k],
+                        angle: k * 11.0,
+                        big: k == 0,
+                        cx: cx,
+                        cy: cy,
+                        r: r - 44,
+                      ),
+                if (!_picking)
                 for (var k = -3; k <= 3; k++)
                   if (i + k >= 0 && i + k < chats.length)
                     _person(
@@ -375,6 +480,43 @@ class _VibeDialBarState extends State<VibeDialBar>
               ],
             );
           },
+        ),
+      ),
+    );
+  }
+
+  Widget _letterAt(
+    String l, {
+    required double angle,
+    required bool big,
+    required double cx,
+    required double cy,
+    required double r,
+  }) {
+    final a = (angle - 90) * math.pi / 180;
+    final s = big ? 50.0 : 26.0;
+    return Positioned(
+      left: cx + r * math.cos(a) - s / 2,
+      top: cy + r * math.sin(a) - s / 2,
+      width: s,
+      height: s,
+      child: Container(
+        alignment: Alignment.center,
+        decoration: big
+            ? BoxDecoration(
+                shape: BoxShape.circle,
+                color: VibeDial.bg,
+                border: Border.all(color: VibeDial.lime, width: 1.5),
+              )
+            : null,
+        child: Text(
+          l,
+          style: TextStyle(
+            fontFamily: VibeDial.mono,
+            fontSize: big ? 22 : 13,
+            fontWeight: big ? FontWeight.w700 : FontWeight.w400,
+            color: big ? VibeDial.lime : VibeDial.dim,
+          ),
         ),
       ),
     );
@@ -400,14 +542,10 @@ class _VibeDialBarState extends State<VibeDialBar>
       left: x - s / 2,
       top: y - s / 2,
       child: GestureDetector(
-        onTap: () => center
+        // the middle: the open chat's page, or open whoever is there
+        onTap: () => center && room.id == widget.room.id
             ? VibeDial.openPerson(context, room)
             : _open(room),
-        onLongPress: () => VibeChatActions.show(
-          context,
-          room,
-          onOpen: () => _open(room),
-        ),
         child: Stack(
           clipBehavior: Clip.none,
           children: [
