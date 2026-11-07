@@ -103,12 +103,13 @@ class ChatView extends StatelessWidget {
               key: Key('chat_page'),
               extendBodyBehindAppBar: true,
               appBar: AppBar(
+                // normal chat view: a floating pill instead of a full bar
                 elevation: 0,
                 scrolledUnderElevation: 0,
                 surfaceTintColor: Colors.transparent,
                 shape: const Border(),
                 // Glass look: frosted bar over the messages
-                flexibleSpace: VibePalette.isGlass
+                flexibleSpace: VibePalette.isGlass && !_pill(controller)
                     ? const VibeGlassBlur(child: SizedBox.expand())
                     : null,
                 actionsIconTheme: IconThemeData(
@@ -116,7 +117,9 @@ class ChatView extends StatelessWidget {
                       ? null
                       : theme.colorScheme.onTertiaryContainer,
                 ),
-                backgroundColor: controller.selectedEvents.isEmpty
+                backgroundColor: _pill(controller)
+                    ? Colors.transparent
+                    : controller.selectedEvents.isEmpty
                     ? accountConfig.wallpaperUrl != null
                           ? Colors.transparent
                           : theme.colorScheme.surface
@@ -153,7 +156,25 @@ class ChatView extends StatelessWidget {
                     : controller.activeThreadId != null
                     ? _ThreadTitle(controller)
                     // pull the name down to dock this chat
-                    : VibeDockPull(child: ChatAppBarTitle(controller)),
+                    // selecting: the count, as before
+                    : !_pill(controller)
+                    ? ChatAppBarTitle(controller)
+                    : VibeDockPull(
+                        child: ChatTitlePill(
+                          controller,
+                          actions: [
+                            IconButton(
+                              icon: const Icon(Icons.search),
+                              tooltip: 'Search this chat',
+                              onPressed: controller.startSearch,
+                            ),
+                            if (!controller.room.isArchived) ...[
+                              VibeLockButton(room: controller.room),
+                              ChatSettingsPopupMenu(controller.room, true),
+                            ],
+                          ],
+                        ),
+                      ),
                 actions: controller.searching
                     ? [
                         // "3 of 12", older / newer match, close
@@ -190,13 +211,9 @@ class ChatView extends StatelessWidget {
                           onPressed: controller.stopSearch,
                         ),
                       ]
+                    : _pill(controller)
+                    ? const []
                     : [
-                  if (!controller.selectMode && controller.activeThreadId == null)
-                    IconButton(
-                      icon: const Icon(Icons.search),
-                      tooltip: 'Search this chat',
-                      onPressed: controller.startSearch,
-                    ),
                   // in a thread: rename / close it, in one menu
                   if (!controller.selectMode &&
                       controller.activeThreadId != null)
@@ -361,10 +378,6 @@ class ChatView extends StatelessWidget {
                             ),
                         ],
                       ),
-                  ] else if (!controller.room.isArchived &&
-                      controller.activeThreadId == null) ...[
-                    VibeLockButton(room: controller.room),
-                    ChatSettingsPopupMenu(controller.room, true),
                   ],
                 ],
                 bottom: PreferredSize(
@@ -683,6 +696,11 @@ class ChatView extends StatelessWidget {
 }
 
 /// The back button shows how many other chats have unread messages.
+/// The plain chat view (not selecting, searching or in a thread) shows its
+/// bar as a floating pill.
+bool _pill(ChatController c) =>
+    !c.selectMode && !c.searching && c.activeThreadId == null;
+
 class _BackUnread extends StatelessWidget {
   final Room room;
   const _BackUnread(this.room);

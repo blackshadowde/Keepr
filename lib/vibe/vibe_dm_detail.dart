@@ -79,7 +79,9 @@ class VibeDmDetail extends StatelessWidget {
           ];
 
     return Material(
-      type: MaterialType.transparency,
+      // full screen, no box: a tint over the wallpaper so the text
+      // reads on light and dark wallpapers alike
+      color: cs.surfaceContainerLow.withValues(alpha: 0.88),
       child: SafeArea(
         bottom: false,
         child: ListView(

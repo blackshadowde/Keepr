@@ -9,12 +9,10 @@ import 'package:vibe/vibe/vibe_mute.dart';
 import 'package:vibe/l10n/l10n.dart';
 import 'package:vibe/vibe/vibe_activity_pill.dart';
 import 'package:vibe/utils/matrix_sdk_extensions/matrix_locals.dart';
-import 'package:vibe/vibe/vibe_add_contact.dart';
 import 'package:vibe/vibe/vibe_chat_actions.dart';
 import 'package:vibe/vibe/vibe_groups.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
 import 'package:vibe/vibe/vibe_archive.dart';
-import 'package:vibe/vibe/vibe_lock.dart';
 import 'package:vibe/vibe/vibe_typing_pen.dart';
 import 'package:vibe/widgets/avatar.dart';
 import 'package:vibe/widgets/matrix.dart';
@@ -160,39 +158,25 @@ class _VibeDmPaneState extends State<VibeDmPane> {
                       for (var i = 0; i < pinned.length; i++)
                         () => dmTile(pinned[i], i + invites.length + 1),
                     ],
-                    () => _SectionLabel(
-                      'Direct messages',
-                      onAdd: () => VibeAddContact.show(context),
-                    ),
+                    // adding lives in the + tile above, not on each label
+                    () => const _SectionLabel('Direct messages'),
                     for (var i = 0; i < others.length; i++)
                       () => dmTile(
                         others[i],
                         i + invites.length + pinned.length + 1,
                       ),
-                    () => _SectionLabel(
-                      'Groups',
-                      onAdd: () => VibeCreateGroupPage.open(context),
-                    ),
+                    () => const _SectionLabel('Groups'),
                     for (var i = 0; i < groups.length; i++)
                       () => dmTile(
                         groups[i],
                         i + invites.length + pinned.length + others.length + 2,
                       ),
-                    // locked chats and the archive, at the end of the list
+                    // the archive, at the end of the list (locked chats:
+                    // long-press the chats tile above)
                     () => Padding(
                       padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
                       child: Row(
                         children: [
-                          TextButton.icon(
-                            onPressed: () => VibeLock.openFolder(
-                              context,
-                              client,
-                              widget.onOpen,
-                            ),
-                            icon: const Icon(Icons.lock_outline, size: 18),
-                            label: const Text('Locked chats'),
-                          ),
-                          if (VibeArchive.archived(client).isNotEmpty)
                             TextButton.icon(
                               onPressed: () => VibeArchive.open(
                                 context,
@@ -225,36 +209,20 @@ class _VibeDmPaneState extends State<VibeDmPane> {
 
 class _SectionLabel extends StatelessWidget {
   final String text;
-  final VoidCallback? onAdd;
-  const _SectionLabel(this.text, {this.onAdd});
+  const _SectionLabel(this.text);
 
   @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 4, 0),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                fontSize: 13.5,
-                fontWeight: FontWeight.w600,
-                color: cs.onSurfaceVariant,
-              ),
-            ),
-          ),
-          if (onAdd != null)
-            IconButton(
-              icon: Icon(Icons.add, color: cs.onSurfaceVariant),
-              tooltip: 'Add contact',
-              onPressed: onAdd,
-            ),
-        ],
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(16, 22, 16, 8),
+    child: Text(
+      text,
+      style: TextStyle(
+        fontSize: 13.5,
+        fontWeight: FontWeight.w600,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
-    );
-  }
+    ),
+  );
 }
 
 class _DmTile extends StatelessWidget {

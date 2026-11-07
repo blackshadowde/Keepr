@@ -3,6 +3,8 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'dart:async';
+
 import 'package:vibe/vibe/vibe_mute.dart';
 import 'package:vibe/config/setting_keys.dart';
 import 'package:vibe/config/themes.dart';
@@ -167,6 +169,131 @@ class ChatAppBarTitle extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The chat's bar as a floating pill: round picture and name. Tap it and it
+/// grows to show search, the lock shield and the menu; tap the picture or
+/// name again for their profile or the chat's details. It folds back by
+/// itself after a few seconds.
+class ChatTitlePill extends StatefulWidget {
+  final ChatController controller;
+  final List<Widget> actions;
+  const ChatTitlePill(this.controller, {required this.actions, super.key});
+
+  @override
+  State<ChatTitlePill> createState() => _ChatTitlePillState();
+}
+
+class _ChatTitlePillState extends State<ChatTitlePill> {
+  bool _open = false;
+  Timer? _fold;
+
+  @override
+  void dispose() {
+    _fold?.cancel();
+    super.dispose();
+  }
+
+  void _toggle() {
+    _fold?.cancel();
+    setState(() => _open = !_open);
+    if (_open) {
+      _fold = Timer(const Duration(seconds: 6), () {
+        if (mounted) setState(() => _open = false);
+      });
+    }
+  }
+
+  void _details() {
+    final room = widget.controller.room;
+    if (widget.controller.isArchived) return;
+    final dmUser = room.directChatMatrixID;
+    if (dmUser != null) {
+      VibeUserSheet.show(
+        context,
+        client: room.client,
+        userId: dmUser,
+        displayName: room.getLocalizedDisplayname(
+          MatrixLocals(L10n.of(context)),
+        ),
+        avatarUrl: room.avatar,
+        currentRoomId: room.id,
+      );
+    } else if (VibeThemes.isThreeColumnMode(context)) {
+      widget.controller.toggleDisplayChatDetailsColumn();
+    } else {
+      context.go('/rooms/${room.id}/details');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final room = widget.controller.room;
+    final name = room.getLocalizedDisplayname(MatrixLocals(L10n.of(context)));
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: AnimatedSize(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
+        alignment: AlignmentDirectional.centerStart,
+        child: Material(
+          color: cs.surfaceContainerHigh.withValues(alpha: 0.9),
+          shape: const StadiumBorder(),
+          clipBehavior: Clip.antiAlias,
+          elevation: 2,
+          shadowColor: Colors.black26,
+          child: Padding(
+            padding: EdgeInsetsDirectional.fromSTEB(4, 4, _open ? 2 : 16, 4),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _open ? _details : _toggle,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      VibeTypingOverlay(
+                        room: room,
+                        child: VibeMuteBadge(
+                          room: room,
+                          child: Avatar(
+                            mxContent: room.avatar,
+                            name: name,
+                            size: 36,
+                            client: room.client,
+                            presenceUserId: room.directChatMatrixID,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: _open ? 110 : 190),
+                        child: Text(
+                          name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (_open) ...[
+                  const SizedBox(width: 2),
+                  ...widget.actions,
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

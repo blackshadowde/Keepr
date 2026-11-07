@@ -247,6 +247,11 @@ class _VibeHomeViewState extends State<VibeHomeView> {
                           room,
                           onOpen: () => setState(() => selectedId = room.id),
                         ),
+                        onLockedChats: () => VibeLock.openFolder(
+                          context,
+                          client,
+                          controller.onChatTap,
+                        ),
                       ),
                     Expanded(
                       // the row above already keeps clear of the status bar
@@ -422,6 +427,7 @@ class _HomeTop extends StatelessWidget {
   final VoidCallback onAdd;
   final void Function(Room room) onSelect;
   final void Function(Room room) onLongPress;
+  final VoidCallback onLockedChats;
   const _HomeTop({
     required this.spaces,
     required this.onSearch,
@@ -429,6 +435,7 @@ class _HomeTop extends StatelessWidget {
     required this.onAdd,
     required this.onSelect,
     required this.onLongPress,
+    required this.onLockedChats,
   });
 
   @override
@@ -516,6 +523,8 @@ class _HomeTop extends StatelessWidget {
               children: [
                 tile(
                   label: 'Chats',
+                  // hold: locked chats
+                  onHold: onLockedChats,
                   color: cs.primary,
                   child: Icon(Icons.chat_bubble_outline_rounded, color: cs.onPrimary),
                 ),
