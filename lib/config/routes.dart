@@ -503,9 +503,6 @@ abstract class AppRoutes {
             sheet: state.matchedLocation.startsWith('/rooms/settings/'),
             // glossy glass: home and chats frost themselves
             frost: state.fullPath != '/rooms' && state.fullPath != '/rooms/:roomid',
-            // the list's rows slide away as blocks, uncovering the chat
-            cascade: state.fullPath == '/rooms',
-            reveal: state.fullPath == '/rooms/:roomid',
             child: child,
           );
   }

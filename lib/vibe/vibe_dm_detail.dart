@@ -26,7 +26,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:matrix/matrix.dart';
 import 'package:vibe/vibe/vibe_threads.dart';
-import 'package:vibe/vibe/vibe_cascade.dart';
 import 'package:vibe/vibe/vibe_tree.dart';
 import 'package:vibe/vibe/vibe_strict.dart';
 import 'package:vibe/vibe/vibe_communities.dart';
@@ -53,11 +52,6 @@ class VibeDmDetail extends StatelessWidget {
     required this.onOpenChat,
     super.key,
   });
-
-  /// Media, files, links, voice messages or starred ([kind] is one of
-  /// those words) as a sheet, for layouts that list them their own way.
-  static Future<void> openShared(BuildContext context, Room room, String kind) =>
-      _DmSheet.open(context, room, _Kind.values.byName(kind));
 
   @override
   Widget build(BuildContext context) {
@@ -94,7 +88,7 @@ class VibeDmDetail extends StatelessWidget {
           padding: EdgeInsets.only(
             bottom: 24 + MediaQuery.paddingOf(context).bottom,
           ),
-          children: vibeCascadeAll([
+          children: [
             VibeTreeTop(
               onBack: onBack,
               onMore: invited
@@ -404,7 +398,7 @@ class VibeDmDetail extends StatelessWidget {
                 ],
               ),
             ],
-          ]),
+          ],
         ),
       ),
     );

@@ -111,11 +111,6 @@ enum AppSettings<T> {
   vibeGlassFollowLauncher<bool>('chat.keepr.glass_follow_launcher', true),
   // Glass look, experimental: sharp wallpaper, frosted panes with edges
   vibeGlassGlossy<bool>('chat.keepr.glass_glossy', false),
-  // Dial look, experimental: no home screen, one line through the chat,
-  // people on a dial
-  vibeDialUi<bool>('chat.keepr.dial_ui', false),
-  // the chat Dial opens on
-  vibeDialLast<String>('chat.keepr.dial_last', ''),
   vibeSaveMedia<bool>('chat.keepr.save_media', false),
   vibeStatusBubble<bool>('chat.keepr.status_bubble', true),
   vibeLowData<bool>('chat.keepr.low_data', false),

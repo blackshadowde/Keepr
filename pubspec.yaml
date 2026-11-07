@@ -111,8 +111,6 @@ flutter:
     - assets/vodozemac/
     - assets/fonts/stickers/
     - assets/fonts/Figtree-OFL.txt
-    - assets/fonts/dial/SpaceGrotesk-OFL.txt
-    - assets/fonts/dial/JetBrainsMono-OFL.txt
   fonts:
     # Figtree (SIL Open Font License, assets/fonts/Figtree-OFL.txt)
     - family: Figtree
@@ -131,24 +129,6 @@ flutter:
         - asset: assets/fonts/Figtree-ExtraBold.ttf
           weight: 800
     # sticker lettering (Google Fonts, OFL / Apache 2.0, licences next to the files)
-    # Dial look (experimental): Space Grotesk and JetBrains Mono (SIL Open
-    # Font License, licences next to the files in assets/fonts/dial)
-    - family: SpaceGrotesk
-      fonts:
-        - asset: assets/fonts/dial/SpaceGrotesk-Regular.ttf
-          weight: 400
-        - asset: assets/fonts/dial/SpaceGrotesk-Medium.ttf
-          weight: 500
-        - asset: assets/fonts/dial/SpaceGrotesk-Bold.ttf
-          weight: 700
-    - family: JetBrainsMono
-      fonts:
-        - asset: assets/fonts/dial/JetBrainsMono-Regular.ttf
-          weight: 400
-        - asset: assets/fonts/dial/JetBrainsMono-Medium.ttf
-          weight: 500
-        - asset: assets/fonts/dial/JetBrainsMono-Bold.ttf
-          weight: 700
     - family: PermanentMarker
       fonts:
         - asset: assets/fonts/stickers/PermanentMarker-Regular.ttf

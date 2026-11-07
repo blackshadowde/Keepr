@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import 'package:vibe/vibe/vibe_tap_icon.dart';
-import 'package:vibe/vibe/vibe_cascade.dart';
 import 'package:vibe/vibe/vibe_mute.dart';
 import 'package:vibe/vibe/vibe_dialog.dart';
 import 'package:vibe/l10n/l10n.dart';
@@ -232,16 +231,16 @@ class _SheetState extends State<_Sheet> {
               type: MaterialType.transparency,
               child: Column(
                 children: [
-                  VibeRiseIn(child: ListTile(
+                  ListTile(
                     leading: Icon(Icons.chat_bubble, color: t1),
                     title: Text(
                       room.isSpace ? 'Open community' : 'Open chat',
                       style: TextStyle(color: t1),
                     ),
                     onTap: () => Navigator.pop(context, 'open'),
-                  )),
+                  ),
                   if (!room.isSpace)
-                  VibeRiseIn(child: ListTile(
+                  ListTile(
                     leading: Icon(
                       locked ? Icons.lock_open : Icons.lock,
                       color: t1,
@@ -257,8 +256,8 @@ class _SheetState extends State<_Sheet> {
                             style: TextStyle(color: t2),
                           ),
                     onTap: () => Navigator.pop(context, 'lock'),
-                  )),
-                  VibeRiseIn(child: ListTile(
+                  ),
+                  ListTile(
                     leading: const Icon(
                       Icons.delete,
                       color: Color(0xFFDA373C),
@@ -268,16 +267,16 @@ class _SheetState extends State<_Sheet> {
                       style: const TextStyle(color: Color(0xFFDA373C)),
                     ),
                     onTap: () => Navigator.pop(context, 'delete'),
-                  )),
+                  ),
                   if (room.isUnread)
-                    VibeRiseIn(child: ListTile(
+                    ListTile(
                       leading: Icon(Icons.mark_chat_read, color: t1),
                       title: Text(
                         'Mark as read',
                         style: TextStyle(color: t1),
                       ),
                       onTap: () => Navigator.pop(context, 'read'),
-                    )),
+                    ),
                 ],
               ),
             ),
@@ -313,7 +312,7 @@ class _RoundAction extends StatelessWidget {
     final ink = VibeSettingsStyle.text(context);
     final bg = on ? ink : grey;
     final fg = on ? (dark ? const Color(0xFF1A191E) : Colors.white) : ink;
-    return VibeRiseIn(child: VibePressable(
+    return VibePressable(
       scale: 0.92,
       child: VibeTapArea(
       child: GestureDetector(
@@ -363,6 +362,6 @@ class _RoundAction extends StatelessWidget {
         ),
       ),
       ),
-    ));
+    );
   }
 }

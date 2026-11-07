@@ -4,7 +4,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import 'package:vibe/vibe/vibe_tap_icon.dart';
-import 'package:vibe/vibe/vibe_cascade.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
 import 'package:vibe/vibe/vibe_connection.dart';
 import 'package:vibe/vibe/vibe_own_profile.dart';
@@ -79,17 +78,7 @@ class VibeUserBar extends StatelessWidget {
                                               AlignmentDirectional.centerStart,
                                           children: [...previous, ?current],
                                         ),
-                                    child: flash != null
-                                        // "Chats" / "Spaces" flickers in
-                                        ? VibeGlitchText(
-                                            flash!,
-                                            key: ValueKey(flash),
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 18,
-                                            ),
-                                          )
-                                        : Text(
+                                    child: Text(
                                       flash ?? name,
                                       key: ValueKey(flash ?? name),
                                       maxLines: 1,

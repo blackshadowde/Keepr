@@ -3,7 +3,6 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import 'package:vibe/vibe/vibe_dial.dart';
 import 'package:vibe/vibe/vibe_glass.dart';
 import 'package:vibe/vibe/vibe_stale_keyboard.dart';
 import 'package:vibe/vibe/vibe_palette.dart';
@@ -49,7 +48,6 @@ class ChatView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    VibeDial.remember(controller.room.id);
     if (controller.room.membership == Membership.invite) {
       showFutureLoadingDialog(
         context: context,
@@ -651,14 +649,6 @@ class ChatView extends StatelessWidget {
                                                   // Hike-style text stickers
                                                   VibeTextStickerBar(controller),
                                                   ChatInputRow(controller),
-                                                  // Dial: the people you talk
-                                                  // to, under the message box
-                                                  if (VibeDial.on)
-                                                    VibeDialBar(
-                                                      room: controller.room,
-                                                      typing:
-                                                          controller.inputFocus,
-                                                    ),
                                                   ChatEmojiPicker(controller),
                                                   // room for the docked chat
                                                   const VibeDockSpace(),

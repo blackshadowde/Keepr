@@ -40,7 +40,6 @@ import 'package:vibe/vibe/vibe_text_size.dart';
 import 'package:vibe/vibe/vibe_swipe_reply.dart';
 import 'package:vibe/vibe/vibe_chunks.dart';
 import 'package:vibe/vibe/vibe_link_preview.dart';
-import 'package:vibe/vibe/vibe_dial.dart';
 import 'package:vibe/vibe/vibe_hot_words.dart';
 
 const Color _ownNameColor = Color(0xFFB5BAC1);
@@ -457,17 +456,9 @@ class VibeMessage extends StatelessWidget {
     // Your messages sit on the other side: avatar and text on the right
     // (left in right-to-left languages).
     final dir = Directionality.of(context);
-    final flip = dir == ui.TextDirection.ltr
-        ? ui.TextDirection.rtl
-        : ui.TextDirection.ltr;
-    // Dial: theirs sit left of the middle line (ending at it), yours right
-    // of it (starting at it).
-    final dial = VibeDial.on;
-    final side = dial
-        ? (ownMessage ? dir : flip)
-        : (ownMessage ? flip : dir);
-    // which edge the text hugs
-    final atEnd = dial ? !ownMessage : ownMessage;
+    final side = ownMessage
+        ? (dir == ui.TextDirection.ltr ? ui.TextDirection.rtl : ui.TextDirection.ltr)
+        : dir;
 
     bool sameGroup(Event? e) =>
         e != null &&
@@ -737,14 +728,14 @@ class VibeMessage extends StatelessWidget {
     }
 
     final body = Column(
-      crossAxisAlignment: atEnd
+      crossAxisAlignment: ownMessage
           ? CrossAxisAlignment.end
           : CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (first && !dial) header(),
+        if (first) header(),
         Align(
-          alignment: atEnd
+          alignment: ownMessage
               ? AlignmentDirectional.centerEnd
               : AlignmentDirectional.centerStart,
           child: Builder(
@@ -758,7 +749,7 @@ class VibeMessage extends StatelessWidget {
                   height: 1.45,
                 ),
                 // your messages: every line lines up to the right edge
-                textAlign: atEnd ? TextAlign.end : null,
+                textAlign: ownMessage ? TextAlign.end : null,
                 // a long message is only as wide as its longest line, so the dots sit right after it
                 textWidthBasis: TextWidthBasis.longestLine,
                 child: VibeChunks.info(displayEvent) != null
@@ -789,8 +780,7 @@ class VibeMessage extends StatelessWidget {
               // Status sits right after the text the whole time:
               // "Encrypting…" → ✓ → blue ✓✓, changing in place. Only
               // failures and file uploads (with Retry / Cancel) go below.
-              // (Dial: the state shows on the dot on the middle line)
-              final ticks = ownMessage && !_statusBelow(event) && !dial;
+              final ticks = ownMessage && !_statusBelow(event);
               if (!ticks && effect == null) return content;
               // Sent/read ticks sit beside the text: after it, or before it
               // on your side so the right edge stays clean.
@@ -928,153 +918,6 @@ class VibeMessage extends StatelessWidget {
       ],
     );
 
-    // Dial: "↳ NAME · quoted words" over a reply, in small mono
-    Widget dialReply() => FutureBuilder<Event?>(
-      future: event.getReplyEvent(timeline),
-      builder: (context, snapshot) {
-        final r = snapshot.data;
-        final who = r == null
-            ? ''
-            : (r.senderId == client.userID
-                      ? 'you'
-                      : r.senderFromMemoryOrFallback.calcDisplayname())
-                  .toUpperCase();
-        final words = VibeQuotePicker.quoteOf(event) ??
-            r
-                ?.getDisplayEvent(timeline)
-                .vibeBodyFallback(
-                  MatrixLocals(L10n.of(context)),
-                  hideReply: true,
-                  hideEdit: true,
-                  plaintextBody: true,
-                  removeMarkdown: true,
-                ) ??
-            '…';
-        return GestureDetector(
-          // tap: jump to the message it answers
-          onTap: r == null ? null : () => scrollToEventId(r.eventId),
-          child: SizedBox(
-          height: 17,
-          child: Text(
-            '↳ $who · $words',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: atEnd ? TextAlign.end : TextAlign.start,
-            style: VibeDial.label(size: 10).copyWith(letterSpacing: 0.4),
-          ),
-          ),
-        );
-      },
-    );
-
-    // Dial: one line down the middle; a dot on it per message (the sender's
-    // initial at the start of a run in groups), theirs to the left, yours
-    // to the right, a small curve up to the words a reply quotes.
-    Widget dialRow() {
-      final group = !event.room.isDirectChat;
-      final name = sender.calcDisplayname();
-      final color = ownMessage
-          ? VibeDial.lime
-          : group
-          ? name.colorScheme.primaryContainer
-          : VibeDial.pink;
-      final tag = group && first && !ownMessage;
-      final lineH = VibeTextSize.message * 1.45;
-      final top = first ? 14.0 : 2.0;
-      final replyH = replying ? 17.0 : 0.0;
-      final nameH = tag ? 16.0 : 0.0;
-      final dotY = top + nameH + replyH + lineH / 2;
-      final content = Column(
-        crossAxisAlignment: ownMessage
-            ? CrossAxisAlignment.start
-            : CrossAxisAlignment.end,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (tag)
-            SizedBox(
-              height: nameH,
-              child: Text(
-                name.toUpperCase(),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: VibeDial.label(color: color, size: 9.5),
-              ),
-            ),
-          if (replying) dialReply(),
-          body,
-          if (last)
-            Padding(
-              padding: const EdgeInsets.only(top: 3),
-              child: Text(
-                vibeTime(event.originServerTs).toUpperCase(),
-                style: VibeDial.label(size: 9),
-              ),
-            ),
-        ],
-      );
-      return CustomPaint(
-        painter: VibeDialLine(
-          dotY: dotY,
-          hookY: top + nameH + replyH / 2,
-          hook: replying,
-          right: ownMessage,
-          hookColor: color,
-        ),
-        child: Padding(
-          padding: EdgeInsets.only(top: top, bottom: last ? 10 : 2),
-          child: Row(
-            textDirection: ui.TextDirection.ltr,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(child: ownMessage ? const SizedBox.shrink() : content),
-              SizedBox(
-                width: 36,
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    top: nameH + replyH + lineH / 2 - (tag ? 10 : 4.5),
-                  ),
-                  child: Center(
-                    child: tag
-                        ? Container(
-                            width: 20,
-                            height: 20,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: VibeDial.bg,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: color, width: 1.5),
-                            ),
-                            child: Text(
-                              name.isEmpty
-                                  ? '?'
-                                  : name.characters.first.toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: color,
-                              ),
-                            ),
-                          )
-                        : ownMessage
-                        ? VibeDialStatusDot(event)
-                        : Container(
-                            width: 9,
-                            height: 9,
-                            decoration: BoxDecoration(
-                              color: group ? color : VibeDial.ink,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                  ),
-                ),
-              ),
-              Expanded(child: ownMessage ? content : const SizedBox.shrink()),
-            ],
-          ),
-        ),
-      );
-    }
-
     return VibeHeartHost(
       event: event,
       timeline: timeline,
@@ -1172,14 +1015,13 @@ class VibeMessage extends StatelessWidget {
                       : null,
                   onDoubleTapDown: (d) => heart.noteTap(d.globalPosition),
                   child: Padding(
-                    // Dial: no gaps, so the middle line runs on unbroken
                     padding: EdgeInsets.fromLTRB(
                       12,
-                      dial ? 0 : (first ? 10 : 0),
+                      first ? 10 : 0,
                       12,
-                      dial ? 0 : (last ? 4 : 0),
+                      last ? 4 : 0,
                     ),
-                    child: dial ? dialRow() : Column(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       mainAxisSize: MainAxisSize.min,
                       children: [

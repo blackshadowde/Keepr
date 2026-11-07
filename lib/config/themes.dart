@@ -3,7 +3,6 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import 'package:vibe/vibe/vibe_dial.dart';
 import 'package:vibe/vibe/vibe_palette.dart';
 import 'package:vibe/config/app_config.dart';
 import 'package:vibe/vibe/vibe_swipe.dart';
@@ -48,10 +47,8 @@ abstract class VibeThemes {
     Color? seed,
   ]) {
     // the Glass look is always dark (light text on the wallpaper)
-    // (Dial is always dark too)
-    final brightness = VibePalette.isGlass || VibeDial.on
-        ? Brightness.dark
-        : requestedBrightness;
+    final brightness =
+        VibePalette.isGlass ? Brightness.dark : requestedBrightness;
     // Vibe: Discord palette unless another look (wallpaper, glass) is on
     final colorScheme = VibePalette.scheme(brightness) ??
         (brightness == Brightness.dark

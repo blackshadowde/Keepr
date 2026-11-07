@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 
-import 'package:vibe/vibe/vibe_cascade.dart';
-import 'package:vibe/vibe/vibe_dial.dart';
 import 'package:vibe/vibe/vibe_glass.dart';
 import 'package:flutter/gestures.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
@@ -39,22 +37,10 @@ class VibePageTransitionsBuilder extends PageTransitionsBuilder {
     // slides over it (like Telegram). Paint-only, so it costs almost nothing.
     // Its own layer: moving / dimming the covered page each frame must not
     // repaint everything on it (that was the stutter when closing a chat).
-    final page = route.settings;
-    // The chat list doesn't drift: its rows slide away as blocks themselves
-    // (VibeCascadeOut), uncovering the chat.
-    final under = page is VibePage && page.cascade
-        ? (VibeDial.on
-              // Dial: all chats turn away like the dial as a chat comes in
-              ? VibeDialTurn(
-                  animation: secondaryAnimation,
-                  out: true,
-                  child: RepaintBoundary(child: child),
-                )
-              : RepaintBoundary(child: child))
-        : _Underneath(
-            animation: secondaryAnimation,
-            child: RepaintBoundary(child: child),
-          );
+    final under = _Underneath(
+      animation: secondaryAnimation,
+      child: RepaintBoundary(child: child),
+    );
     if (route.isFirst) return under;
     if (VibeSwipe.pending && animation.status == AnimationStatus.forward) {
       VibeSwipe.pending = false;
@@ -66,13 +52,11 @@ class VibePageTransitionsBuilder extends PageTransitionsBuilder {
     }
     return _VibeBackSwipe<T>(
       route: route,
-      child: page is VibePage && page.reveal
-          ? _Reveal(route: route, animation: animation, child: under)
-          : _SlideOver(
-              route: route,
-              animation: animation,
-              child: under,
-            ),
+      child: _SlideOver(
+        route: route,
+        animation: animation,
+        child: under,
+      ),
     );
   }
 }
@@ -136,72 +120,6 @@ class _SlideOver extends StatelessWidget {
       );
     },
   );
-}
-
-/// A chat opening: it is uncovered strip by strip, each strip opening
-/// exactly where a row of the list has slid away (same timing as
-/// [VibeCascadeOut]), so the chat seems to lie under the list. Nothing
-/// fades, so there's no see-through moment or flash. Following a finger
-/// (swipe open / swipe back) it slides, 1:1.
-class _Reveal extends StatelessWidget {
-  final PageRoute<dynamic> route;
-  final Animation<double> animation;
-  final Widget child;
-  const _Reveal({
-    required this.route,
-    required this.animation,
-    required this.child,
-  });
-
-  @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-    animation: animation,
-    child: child,
-    builder: (context, child) {
-      final gesture = route.navigator?.userGestureInProgress == true;
-      final v = animation.value.clamp(0.0, 1.0);
-      // Dial: the chat turns in like the dial instead of strips
-      final dial = VibeDial.on && !gesture;
-      // Same widgets every frame, so the chat keeps its state.
-      return FractionalTranslation(
-        translation: Offset(gesture ? 1 - v : 0, 0),
-        child: Transform(
-          alignment: VibeDial.pivot,
-          transform: Matrix4.rotationZ(dial ? VibeDial.turnAngle(v) : 0),
-          child: ClipPath(
-            clipper: _Strips(v, all: gesture || dial),
-            child: child,
-          ),
-        ),
-      );
-    },
-  );
-}
-
-/// The part of the chat uncovered so far: one strip per row height, each as
-/// wide as its row has moved.
-class _Strips extends CustomClipper<Path> {
-  final double v;
-  final bool all;
-  const _Strips(this.v, {this.all = false});
-
-  static const _band = 72.0;
-
-  @override
-  Path getClip(Size size) {
-    final full = Path()..addRect(Offset.zero & size);
-    if (all || v >= 1 || size.height <= 0) return full;
-    final path = Path();
-    for (var y = 0.0; y < size.height; y += _band) {
-      final t = vibeCascadeT(v, (y + _band / 2) / size.height);
-      final w = vibeCascadeEdge(t) * size.width;
-      if (w > 0) path.addRect(Rect.fromLTWH(0, y, w, _band + 0.5));
-    }
-    return path;
-  }
-
-  @override
-  bool shouldReclip(_Strips old) => old.v != v || old.all != all;
 }
 
 /// Moves the covered page a little to the left and dims it.
@@ -275,8 +193,6 @@ class _VibeBackSwipeState<T> extends State<_VibeBackSwipe<T>> {
   void _down(PointerDownEvent e) {
     if (_pointer != null || e.kind == PointerDeviceKind.mouse) return;
     if (!_enabled) return;
-    // Dial: dragging the dial turns it, it doesn't close the chat
-    if (VibeDial.covers(e.position)) return;
     _pointer = e.pointer;
     _start = e.position;
     _decided = false;
@@ -387,18 +303,10 @@ class VibePage<T> extends Page<T> {
   /// Glossy glass: frost the page over the sharp wallpaper (off for the
   /// home screen, whose pane frosts itself, and chats, which do their own).
   final bool frost;
-
-  /// The chat list: its rows slide away as blocks when a chat opens over it.
-  final bool cascade;
-
-  /// A chat: uncovered as the list's rows slide away (see [cascade]).
-  final bool reveal;
   const VibePage({
     required this.child,
     this.sheet = false,
     this.frost = true,
-    this.cascade = false,
-    this.reveal = false,
     super.key,
     super.restorationId,
   });
@@ -423,16 +331,11 @@ class _VibePageRoute<T> extends PageRoute<T>
   @override
   bool get maintainState => true;
 
-  bool get _reveal => (settings as VibePage<T>).reveal;
-
-  // the block motion takes a little longer than a slide
   @override
-  Duration get transitionDuration =>
-      _reveal ? const Duration(milliseconds: 640) : vibePageSpring.duration;
+  Duration get transitionDuration => vibePageSpring.duration;
 
   @override
-  Duration get reverseTransitionDuration =>
-      Duration(milliseconds: _reveal ? 460 : 300);
+  Duration get reverseTransitionDuration => const Duration(milliseconds: 300);
 }
 
 /// A settings page as a pane: it rises to half the screen, then on up to

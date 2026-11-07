@@ -11,7 +11,6 @@ import 'package:vibe/vibe/vibe_activity_pill.dart';
 import 'package:vibe/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:vibe/vibe/vibe_chat_actions.dart';
 import 'package:vibe/vibe/vibe_groups.dart';
-import 'package:vibe/vibe/vibe_cascade.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
 import 'package:vibe/vibe/vibe_archive.dart';
 import 'package:vibe/vibe/vibe_typing_pen.dart';
@@ -31,9 +30,6 @@ class VibeDmPane extends StatefulWidget {
   /// The search field (the home screen's search button shows it).
   final bool showSearch;
 
-  /// Closes the search field (its ✕, or tapping away with nothing typed).
-  final VoidCallback? onSearchClose;
-
   /// false: only direct chats. true: only groups and communities.
   final bool spacesMode;
 
@@ -47,7 +43,6 @@ class VibeDmPane extends StatefulWidget {
     required this.onTap,
     required this.onOpen,
     this.showSearch = true,
-    this.onSearchClose,
     this.spacesMode = false,
     this.spaces = const [],
     this.onSpace,
@@ -130,27 +125,10 @@ class _VibeDmPaneState extends State<VibeDmPane> {
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
               child: TextField(
                 controller: _filter,
-                autofocus: widget.onSearchClose != null,
                 onChanged: (_) => setState(() {}),
-                // tapping away with nothing typed puts it away again
-                onTapOutside: (_) {
-                  FocusManager.instance.primaryFocus?.unfocus();
-                  if (_filter.text.isEmpty) widget.onSearchClose?.call();
-                },
                 decoration: InputDecoration(
                   hintText: 'Find a chat',
                   prefixIcon: const Icon(Icons.search),
-                  suffixIcon: widget.onSearchClose == null
-                      ? null
-                      : IconButton(
-                          tooltip: 'Close',
-                          icon: const Icon(Icons.close),
-                          onPressed: () {
-                            _filter.clear();
-                            setState(() {});
-                            widget.onSearchClose!();
-                          },
-                        ),
                   filled: true,
                   fillColor: theme.colorScheme.surfaceContainerLowest,
                   isDense: true,
@@ -226,24 +204,12 @@ class _VibeDmPaneState extends State<VibeDmPane> {
                   ];
                   // every chat its own pill; the archive one more pill
                   // under them
-                  // Chats <-> Spaces: the old rows leave as blocks, the
-                  // new ones come in
-                  return AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 560),
-                    layoutBuilder: (current, previous) => Stack(
-                      fit: StackFit.expand,
-                      children: [...previous, ?current],
-                    ),
-                    transitionBuilder: vibeCascadeSwitch,
-                    child: CustomScrollView(
-                    key: ValueKey(widget.spacesMode),
+                  return CustomScrollView(
                     cacheExtent: 600,
                     slivers: [
                       SliverList.builder(
                         itemCount: rows.length,
-                        // each row a block: slides away when a chat opens
-                        itemBuilder: (context, i) =>
-                            VibeCascadeOut(child: rows[i]()),
+                        itemBuilder: (context, i) => rows[i](),
                       ),
                       SliverToBoxAdapter(
                         child: Padding(
@@ -253,7 +219,6 @@ class _VibeDmPaneState extends State<VibeDmPane> {
                             10,
                             20 + MediaQuery.paddingOf(context).bottom,
                           ),
-                          child: VibeCascadeOut(
                           child: VibePressable(
                             child: Material(
                               color: theme.colorScheme.surfaceContainerLow
@@ -297,11 +262,10 @@ class _VibeDmPaneState extends State<VibeDmPane> {
                                 ),
                               ),
                             ),
-                          )),
+                          ),
                         ),
                       ),
                     ],
-                  ),
                   );
                 },
               ),

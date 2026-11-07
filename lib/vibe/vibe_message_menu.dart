@@ -3,11 +3,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import 'dart:math' as math;
-
 import 'package:vibe/vibe/vibe_event_body.dart';
-import 'package:vibe/vibe/vibe_cascade.dart';
-import 'package:vibe/vibe/vibe_dial.dart';
 import 'package:vibe/vibe/vibe_palette.dart';
 import 'package:vibe/vibe/vibe_haptics.dart';
 import 'package:vibe/vibe/vibe_new_hint.dart';
@@ -35,8 +31,6 @@ abstract class VibeMessageMenu {
     ChatController controller,
     Event event,
   ) {
-    // Dial: a ring of actions round the message instead of a sheet
-    if (VibeDial.on) return _Pie.show(context, controller, event);
     final cs = Theme.of(context).colorScheme;
     return showVibeSheet<void>(
       sheetAnimationStyle: vibeSheetStyle,
@@ -171,7 +165,7 @@ class _Menu extends StatelessWidget {
       VoidCallback onTap, {
       Color? color,
       String? subtitle,
-    }) => VibeRiseIn(child: InkWell(
+    }) => InkWell(
       onTap: () {
         VibeHaptics.selection();
         onTap();
@@ -208,7 +202,7 @@ class _Menu extends StatelessWidget {
           ],
         ),
       ),
-    ));
+    );
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -434,282 +428,3 @@ const Map<String, String> _quickEmojis = {
 /// An animated emoji, like Vibgram's animated reactions. Loaded once from
 /// Google's Noto Animated Emoji and kept in the image cache; shows the plain
 /// emoji while loading, offline, or in Low data mode.
-
-
-/// Dial's long-press menu: the message in a disc in the middle, its actions
-/// on a ring round it (they turn into place like the dial), quick reactions
-/// above. Tap outside to close.
-class _Pie extends StatefulWidget {
-  final ChatController controller;
-  final Event event;
-  const _Pie({required this.controller, required this.event});
-
-  static Future<void> show(
-    BuildContext context,
-    ChatController controller,
-    Event event,
-  ) {
-    VibeHaptics.medium();
-    return showGeneralDialog<void>(
-      context: context,
-      useRootNavigator: true,
-      barrierDismissible: true,
-      barrierLabel: 'Close',
-      barrierColor: Colors.black.withValues(alpha: 0.72),
-      transitionDuration: const Duration(milliseconds: 420),
-      pageBuilder: (ctx, anim, _) => _Pie(controller: controller, event: event),
-    );
-  }
-
-  @override
-  State<_Pie> createState() => _PieState();
-}
-
-class _PieAct {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final bool danger;
-  const _PieAct(this.icon, this.label, this.onTap, {this.danger = false});
-}
-
-class _PieState extends State<_Pie> {
-  @override
-  Widget build(BuildContext context) {
-    final controller = widget.controller;
-    final event = widget.event;
-    // the sheet's own actions, closing this ring instead of the sheet
-    final m = _Menu(controller: controller, event: event, sheetContext: context);
-    final i18n = MatrixLocals(L10n.of(context));
-    final name = event.senderFromMemoryOrFallback.calcDisplayname(i18n: i18n);
-    final body = event.getDisplayEvent(controller.timeline!).body;
-    controller.selectedEvents
-      ..clear()
-      ..add(event);
-    final canRedact = controller.canRedactSelectedEvents;
-    controller.selectedEvents.clear();
-    final own = event.senderId == event.room.client.userID;
-    final canEdit =
-        !controller.isArchived &&
-        own &&
-        event.type == EventTypes.Message &&
-        !event.redacted &&
-        const {
-          MessageTypes.Text,
-          MessageTypes.Notice,
-          MessageTypes.Emote,
-        }.contains(event.messageType) &&
-        event.status != EventStatus.error &&
-        event.status != EventStatus.sending;
-    final canSend = event.room.canSendDefaultMessages;
-    final text = const {
-      MessageTypes.Text,
-      MessageTypes.Notice,
-      MessageTypes.Emote,
-    }.contains(event.messageType);
-    final starred = VibeStarred.isStarred(event.room.id, event.eventId);
-    final acts = <_PieAct>[
-      if (canSend)
-        _PieAct(Icons.reply, 'Reply', () {
-          m._close();
-          controller.replyAction(replyTo: event);
-        }),
-      if (canSend && controller.activeThreadId == null)
-        _PieAct(VibeThreads.icon, 'Thread', () {
-          m._close();
-          controller.createThread(event);
-        }),
-      if (canSend && text)
-        _PieAct(Icons.format_quote_rounded, 'Quote', () {
-          m._close();
-          controller.quotePartAction(event);
-        }),
-      if (canEdit) _PieAct(Icons.edit_outlined, 'Edit', m._edit),
-      _PieAct(
-        Icons.shortcut,
-        'Forward',
-        () => m._withSelection(controller.forwardEventsAction),
-      ),
-      _PieAct(Icons.copy_outlined, 'Copy', () {
-        m._close();
-        controller.selectedEvents
-          ..clear()
-          ..add(event);
-        controller.copyEventsAction();
-        controller.selectedEvents.clear();
-      }),
-      _PieAct(starred ? Icons.bookmark : Icons.bookmark_border, 'Save', () {
-        m._close();
-        VibeStarred.toggle(event.room.id, event.eventId);
-      }),
-      _PieAct(Icons.info_outline, 'Info', () {
-        m._close();
-        controller.showEventInfo(event);
-      }),
-      if (canRedact)
-        _PieAct(
-          Icons.block,
-          'Delete',
-          () => m._withSelection(controller.redactEventsAction),
-          danger: true,
-        ),
-      if (!own)
-        _PieAct(
-          Icons.flag_outlined,
-          'Report',
-          () => m._withSelection(controller.reportEventAction),
-          danger: true,
-        ),
-    ];
-    final anim = ModalRoute.of(context)!.animation!;
-    final outer = acts.where((a) => !a.danger).toList();
-    final inner = <_PieAct>[
-      if (canSend)
-        for (final e in _quickEmojis.keys.take(3))
-          _PieAct(Icons.circle, e, () => m._react(context, e)),
-      if (canSend)
-        _PieAct(
-          Icons.add_reaction_outlined,
-          'More',
-          () => m._moreEmojis(context),
-        ),
-      ...acts.where((a) => a.danger),
-    ];
-    // (a Material so text gets the app's style, not the plain fallback)
-    return Material(
-      type: MaterialType.transparency,
-      child: LayoutBuilder(
-        builder: (context, box) {
-          const r1 = 150.0, b1 = 62.0; // the big band
-          const r2 = 84.0, b2 = 54.0; // the small one inside it
-          final pad = MediaQuery.paddingOf(context);
-          // the bands curve round a point just below-right of the finger
-          final a = VibeDial.lastDown ?? box.biggest.center(Offset.zero);
-          final c = Offset(
-            (a.dx + 70).clamp(r1 + b1 / 2 + 8, box.maxWidth - 8),
-            (a.dy + 70).clamp(r1 + b1 / 2 + pad.top + 8, box.maxHeight - pad.bottom - 8),
-          );
-          return AnimatedBuilder(
-            animation: anim,
-            builder: (context, _) {
-              final t = Curves.easeOutCubic.transform(anim.value);
-              List<Widget> band(List<_PieAct> items, double r, double b, double from, double to) {
-                final step = items.length < 2 ? 0.0 : (to - from) / (items.length - 1);
-                return [
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: CustomPaint(
-                        painter: _Band(c, r, b, from - 12, (to - from + 24) * t),
-                      ),
-                    ),
-                  ),
-                  for (var i = 0; i < items.length; i++)
-                    () {
-                      // each one turns into place along the band
-                      final show = ((t * (items.length + 2) - i) / 2).clamp(0.0, 1.0);
-                      final deg = from + step * i - (1 - show) * 20;
-                      final p = c + Offset(r * math.cos(deg * math.pi / 180), r * math.sin(deg * math.pi / 180));
-                      final act = items[i];
-                      final emoji = act.icon == Icons.circle;
-                      return Positioned(
-                        left: p.dx - 22,
-                        top: p.dy - 22,
-                        width: 44,
-                        height: 44,
-                        child: Opacity(
-                          opacity: show,
-                          child: Tooltip(
-                            message: act.label,
-                            child: InkResponse(
-                              radius: 24,
-                              onTap: () {
-                                VibeHaptics.selection();
-                                act.onTap();
-                              },
-                              child: Center(
-                                child: emoji
-                                    ? Text(act.label, style: const TextStyle(fontSize: 24))
-                                    : Icon(act.icon, size: 24, color: act.danger ? _red : VibeDial.ink),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }(),
-                ];
-              }
-
-              return Stack(
-                children: [
-                  Positioned.fill(
-                    child: GestureDetector(behavior: HitTestBehavior.opaque, onTap: m._close),
-                  ),
-                  // what you pressed, above the bands
-                  Positioned(
-                    left: 20,
-                    right: 20,
-                    top: (c.dy - r1 - b1 / 2 - 64).clamp(pad.top + 8, box.maxHeight),
-                    child: Opacity(
-                      opacity: t,
-                      child: Text(
-                        '${name.toUpperCase()} · $body',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: VibeDial.label(color: own ? VibeDial.lime : VibeDial.dim, size: 10),
-                      ),
-                    ),
-                  ),
-                  ...band(outer, r1, b1, 168, 282),
-                  ...band(inner, r2, b2, 172, 278),
-                ],
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-}
-
-/// One curved band of the long-press menu: a thick arc round [c].
-class _Band extends CustomPainter {
-  final Offset c;
-  final double r;
-  final double width;
-  final double from;
-  final double sweep;
-  const _Band(this.c, this.r, this.width, this.from, this.sweep);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (sweep <= 0) return;
-    final rect = Rect.fromCircle(center: c, radius: r);
-    final a = from * math.pi / 180;
-    final s = sweep * math.pi / 180;
-    canvas.drawArc(
-      rect,
-      a,
-      s,
-      false,
-      Paint()
-        ..color = VibeDial.card
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = width
-        ..strokeCap = StrokeCap.round,
-    );
-    canvas.drawArc(
-      rect.inflate(width / 2),
-      a,
-      s,
-      false,
-      Paint()
-        ..color = VibeDial.faint
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_Band old) => old.sweep != sweep || old.c != c;
-}

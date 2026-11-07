@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import 'package:vibe/vibe/vibe_dial.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:vibe/config/setting_keys.dart';
 import 'package:vibe/vibe/vibe_typing_style.dart';
@@ -234,30 +233,6 @@ class _VibeStylePageState extends State<VibeStylePage> {
             ),
             if (ThemeController.of(context).look == VibeLook.glass)
               const VibeGlassSettings(),
-            // Dial: a whole new layout, experimental; restarts into it
-            SwitchListTile.adaptive(
-              title: Row(
-                children: [
-                  const Flexible(child: Text('Dial')),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Experimental',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: theme.colorScheme.tertiary,
-                    ),
-                  ),
-                ],
-              ),
-              subtitle: const Text(
-                'A new look: no home screen, one line through each chat, and '
-                'the people you talk to on a dial. Keepr restarts into it; '
-                'switch it off here to come back.',
-              ),
-              value: VibeDial.on,
-              onChanged: (v) => VibeDial.setOn(context, v),
-            ),
             Divider(color: theme.dividerColor),
             ListTile(
               title: Text(
