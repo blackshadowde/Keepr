@@ -11,6 +11,7 @@ import 'package:vibe/utils/stream_extension.dart';
 import 'package:vibe/vibe/vibe_archive.dart';
 import 'package:vibe/vibe/vibe_chat_actions.dart';
 import 'package:vibe/vibe/vibe_communities.dart';
+import 'package:vibe/vibe/vibe_cascade.dart';
 import 'package:vibe/vibe/vibe_lock.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
 import 'package:vibe/vibe/vibe_dm_detail.dart';
@@ -313,29 +314,18 @@ class _VibeHomeViewState extends State<VibeHomeView> {
                         frame: false,
                         child: ClipRect(
                         child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 280),
-                        reverseDuration: const Duration(milliseconds: 240),
-                        // the list moves right while a person or community
-                        // slides in from the left, and back again
+                        duration: const Duration(milliseconds: 560),
+                        // the list's rows leave as blocks, then the person
+                        // or community pane's sections come in (and back)
                         layoutBuilder: (current, previous) => Stack(
                           fit: StackFit.expand,
                           children: [...previous, ?current],
                         ),
-                        transitionBuilder: (child, anim) {
-                          final curved = CurvedAnimation(
-                            parent: anim,
-                            curve: Curves.easeOutCubic,
-                            reverseCurve: Curves.easeInCubic,
-                          );
-                          final fromRight = child.key == const ValueKey('list');
-                          return SlideTransition(
-                            position: Tween<Offset>(
-                              begin: Offset(fromRight ? 1 : -1, 0),
-                              end: Offset.zero,
-                            ).animate(curved),
-                            child: child,
-                          );
-                        },
+                        // the start pane has no rows of blocks: it fades
+                        transitionBuilder: (child, animation) =>
+                            child.key == const ValueKey(_startId)
+                            ? FadeTransition(opacity: animation, child: child)
+                            : vibeCascadeSwitch(child, animation),
                         child: selectedId == _startId
                             ? VibeStartPane(
                                 key: const ValueKey(_startId),

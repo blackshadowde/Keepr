@@ -11,6 +11,7 @@ import 'package:vibe/vibe/vibe_activity_pill.dart';
 import 'package:vibe/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:vibe/vibe/vibe_chat_actions.dart';
 import 'package:vibe/vibe/vibe_groups.dart';
+import 'package:vibe/vibe/vibe_cascade.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
 import 'package:vibe/vibe/vibe_archive.dart';
 import 'package:vibe/vibe/vibe_typing_pen.dart';
@@ -204,12 +205,24 @@ class _VibeDmPaneState extends State<VibeDmPane> {
                   ];
                   // every chat its own pill; the archive one more pill
                   // under them
-                  return CustomScrollView(
+                  // Chats <-> Spaces: the old rows leave as blocks, the
+                  // new ones come in
+                  return AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 560),
+                    layoutBuilder: (current, previous) => Stack(
+                      fit: StackFit.expand,
+                      children: [...previous, ?current],
+                    ),
+                    transitionBuilder: vibeCascadeSwitch,
+                    child: CustomScrollView(
+                    key: ValueKey(widget.spacesMode),
                     cacheExtent: 600,
                     slivers: [
                       SliverList.builder(
                         itemCount: rows.length,
-                        itemBuilder: (context, i) => rows[i](),
+                        // each row a block: slides away when a chat opens
+                        itemBuilder: (context, i) =>
+                            VibeCascadeOut(child: rows[i]()),
                       ),
                       SliverToBoxAdapter(
                         child: Padding(
@@ -219,6 +232,7 @@ class _VibeDmPaneState extends State<VibeDmPane> {
                             10,
                             20 + MediaQuery.paddingOf(context).bottom,
                           ),
+                          child: VibeCascadeOut(
                           child: VibePressable(
                             child: Material(
                               color: theme.colorScheme.surfaceContainerLow
@@ -262,10 +276,11 @@ class _VibeDmPaneState extends State<VibeDmPane> {
                                 ),
                               ),
                             ),
-                          ),
+                          )),
                         ),
                       ),
                     ],
+                  ),
                   );
                 },
               ),

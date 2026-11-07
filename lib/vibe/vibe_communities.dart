@@ -9,6 +9,7 @@ import 'package:vibe/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:vibe/vibe/vibe_dm_detail.dart';
 import 'package:vibe/vibe/vibe_groups.dart';
 import 'package:vibe/vibe/vibe_threads.dart';
+import 'package:vibe/vibe/vibe_cascade.dart';
 import 'package:vibe/vibe/vibe_tree.dart';
 import 'package:vibe/vibe/vibe_user_sheet.dart';
 import 'package:vibe/vibe/vibe_haptics.dart';
@@ -654,7 +655,7 @@ class _VibeCommunityPaneState extends State<VibeCommunityPane> {
           padding: EdgeInsets.only(
             bottom: 24 + MediaQuery.paddingOf(context).bottom,
           ),
-          children: [
+          children: vibeCascadeAll([
             VibeTreeTop(
               onBack: widget.onBack,
               // the community's own settings
@@ -861,7 +862,7 @@ class _VibeCommunityPaneState extends State<VibeCommunityPane> {
                     ),
                 ],
               ),
-          ],
+          ]),
         ),
       ),
     );

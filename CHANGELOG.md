@@ -5,6 +5,8 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 
 ## 2026-11-07 ([a7d176a](https://github.com/blackshadowde/keepr/commit/a7d176a))
 
+- Brought back from the rollback, on its own: switching Chats / Spaces, and opening or closing a person or community pane, move the rows as blocks (the old rows slide away, then the new ones come in). Opening a chat is unchanged (it slides in as before) (PENDING)
+
 - Rolled back to how Keepr was right after "every chat its own pill" (9062de0): the block motion, strip reveal, row haptics, the Dial look and its fixes, and the later small fixes made along with them (follow new messages, search close) are all taken out. Every file except this changelog is exactly as it was then; the entries below stay as a record ([1f3adc8](https://github.com/blackshadowde/keepr/commit/1f3adc8))
 
 - Chat: a new message now brings the chat down to it when you're at or near the newest messages, and always when it's one you sent; it used to stay where it was ([f18c303](https://github.com/blackshadowde/keepr/commit/f18c303))
