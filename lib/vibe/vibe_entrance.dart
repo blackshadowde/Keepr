@@ -104,7 +104,7 @@ class VibeGrowOut extends StatelessWidget {
           ((p - 0.15) / 0.85).clamp(0.0, 1.0),
         );
         return Transform(
-          alignment: left ? Alignment.bottomLeft : Alignment.bottomRight,
+          alignment: left ? Alignment.centerLeft : Alignment.centerRight,
           transform: Matrix4.diagonal3Values(
             (0.08 + 0.92 * w).clamp(0.0, 1.2),
             (0.3 + 0.7 * h).clamp(0.0, 1.2),

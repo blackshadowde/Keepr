@@ -539,56 +539,66 @@ class _HomeTop extends StatelessWidget {
         children: [
           // your profile bar sits on top: name (or "Chats" / "Spaces" for
           // a moment after switching), search and settings
-          VibeUserBar(top: true, flash: flash, onSearch: onSearch),
-          SizedBox(
-            height: 56,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(20, 4, 10, 4),
+          VibeUserRow(flash: flash, onSearch: onSearch),
+          // Chats / Spaces with their unread counts, + at the end
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),
+            child: Row(
               children: [
-                // tap: grows into Chats / Spaces; hold: locked chats
-                Padding(
-                  padding: const EdgeInsets.only(right: 10),
-                  child: _ModePill(
-                    chatsUnread: chatsUnread,
-                    spacesUnread: spacesUnread,
-                    spaces: spacesMode,
-                    onChange: onMode,
-                    onHold: onLockedChats,
-                  ),
+                _ModePill(
+                  chatsUnread: chatsUnread,
+                  spacesUnread: spacesUnread,
+                  spaces: spacesMode,
+                  onChange: onMode,
+                  onHold: onLockedChats,
                 ),
-                for (final r in quick)
-                  tile(
-                    label: r.getLocalizedDisplayname(),
-                    onTap: () => onOpenChat(r),
-                    onHold: () => onLongPress(r),
-                    dot: r.notificationCount > 0 || r.markedUnread,
-                    color: Colors.transparent,
-                    child: Avatar(
-                      mxContent: r.avatar,
-                      name: r.getLocalizedDisplayname(),
-                      size: 48,
-                      client: r.client,
-                      presenceUserId: r.directChatMatrixID,
-                    ),
-                  ),
-                tile(
+                const Spacer(),
+                Semantics(
                   label: 'Join or create a community',
-                  onTap: onAdd,
-                  color: Colors.transparent,
-                  child: Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: cs.outline),
+                  button: true,
+                  child: Material(
+                    color: cs.surfaceContainerHigh,
+                    shape: const CircleBorder(),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      onTap: onAdd,
+                      child: SizedBox.square(
+                        dimension: 44,
+                        child: Icon(Icons.add_rounded, color: cs.onSurface),
+                      ),
                     ),
-                    child: Icon(Icons.add, color: cs.onSurfaceVariant),
                   ),
                 ),
               ],
             ),
           ),
+          // pinned chats as pictures, when there are any
+          if (quick.isNotEmpty)
+            SizedBox(
+              height: 56,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.fromLTRB(16, 4, 10, 4),
+                children: [
+                  for (final r in quick)
+                    tile(
+                      label: r.getLocalizedDisplayname(),
+                      onTap: () => onOpenChat(r),
+                      onHold: () => onLongPress(r),
+                      dot: r.notificationCount > 0 || r.markedUnread,
+                      color: Colors.transparent,
+                      child: Avatar(
+                        mxContent: r.avatar,
+                        name: r.getLocalizedDisplayname(),
+                        size: 48,
+                        client: r.client,
+                        presenceUserId: r.directChatMatrixID,
+                        hideOffline: true,
+                      ),
+                    ),
+                ],
+              ),
+            ),
           const SizedBox(height: 6),
         ],
       ),
@@ -618,107 +628,56 @@ class _ModePill extends StatefulWidget {
 }
 
 class _ModePillState extends State<_ModePill> {
-  bool _open = false;
-
-  static IconData _icon(bool spaces) =>
-      spaces ? Icons.workspaces_outline : Icons.chat_bubble_rounded;
-
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     Widget seg(bool sp) {
       final on = sp == widget.spaces;
-      return GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          setState(() => _open = false);
-          widget.onChange(sp);
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOut,
-          height: 42,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: on ? cs.primary : Colors.transparent,
-            borderRadius: BorderRadius.circular(11),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(_icon(sp), size: 18, color: on ? cs.onPrimary : cs.onSurfaceVariant),
-              const SizedBox(width: 6),
-              Text(
-                sp ? 'Spaces' : 'Chats',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: on ? cs.onPrimary : cs.onSurfaceVariant,
-                ),
+      final n = sp ? widget.spacesUnread : widget.chatsUnread;
+      return Padding(
+        padding: const EdgeInsets.only(right: 8),
+        child: VibePressable(
+          scale: 0.94,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => widget.onChange(sp),
+            onLongPress: sp ? null : widget.onHold,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOut,
+              height: 44,
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              decoration: BoxDecoration(
+                color: on ? cs.primary : cs.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(22),
               ),
-              // how many of each are unread
-              if ((sp ? widget.spacesUnread : widget.chatsUnread) > 0) ...[
-                const SizedBox(width: 6),
-                _Count(
-                  sp ? widget.spacesUnread : widget.chatsUnread,
-                  inverted: on,
-                ),
-              ],
-            ],
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    sp ? 'Spaces' : 'Chats',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: on ? FontWeight.w700 : FontWeight.w600,
+                      color: on ? cs.onPrimary : cs.onSurfaceVariant,
+                    ),
+                  ),
+                  // how many of each are unread
+                  if (n > 0) ...[
+                    const SizedBox(width: 8),
+                    _Count(n, inverted: on),
+                  ],
+                ],
+              ),
+            ),
           ),
         ),
       );
     }
 
-    return VibePressable(
-      scale: 0.94,
-      child: AnimatedSize(
-        duration: vibePillSpring.duration,
-        curve: vibePillSpring,
-        alignment: AlignmentDirectional.centerStart,
-        child: _open
-            ? Container(
-                height: 48,
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  color: cs.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [seg(false), seg(true)],
-                ),
-              )
-            : GestureDetector(
-                onTap: () => setState(() => _open = true),
-                onLongPress: widget.onHold,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: cs.primary,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Icon(
-                        _icon(widget.spaces),
-                        color: cs.onPrimary,
-                        semanticLabel: widget.spaces ? 'Spaces' : 'Chats',
-                      ),
-                    ),
-                    // everything unread, chats and spaces together
-                    if (widget.chatsUnread + widget.spacesUnread > 0)
-                      Positioned(
-                        right: -5,
-                        top: -5,
-                        child: _Count(widget.chatsUnread + widget.spacesUnread),
-                      ),
-                  ],
-                ),
-              ),
-      ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [seg(false), seg(true)],
     );
   }
 }
@@ -738,7 +697,7 @@ class _Count extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 5),
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: inverted ? cs.onPrimary : const Color(0xFFF23F43),
+        color: inverted ? cs.onPrimary : cs.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(9),
       ),
       child: Text(
@@ -746,7 +705,7 @@ class _Count extends StatelessWidget {
         style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w700,
-          color: inverted ? cs.primary : Colors.white,
+          color: inverted ? cs.primary : cs.onSurface,
         ),
       ),
     );

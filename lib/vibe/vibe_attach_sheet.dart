@@ -353,7 +353,8 @@ class _AttachSheetState extends State<_AttachSheet> {
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
                         _Action(
-                          icon: Icons.photo_library,
+                          icon: Icons.photo_library_rounded,
+                          color: const Color(0xFF8B6CFF),
                           label: 'Photos',
                           active: true,
                           onTap: VibeUpdater.fromPlay
@@ -365,12 +366,14 @@ class _AttachSheetState extends State<_AttachSheet> {
                           ),
                         ),
                         _Action(
-                          icon: Icons.contacts,
+                          icon: Icons.person_rounded,
+                          color: const Color(0xFF2F8CFF),
                           label: 'Contacts',
                           onTap: _contacts,
                         ),
                         _Action(
-                          icon: Icons.attach_file,
+                          icon: Icons.insert_drive_file_rounded,
+                          color: const Color(0xFFFF9F2E),
                           label: 'Files',
                           onTap: () {
                             Navigator.of(context).pop();
@@ -380,7 +383,8 @@ class _AttachSheetState extends State<_AttachSheet> {
                           },
                         ),
                         _Action(
-                          icon: Icons.poll_outlined,
+                          icon: Icons.bar_chart_rounded,
+                          color: const Color(0xFF14B88F),
                           label: 'Poll',
                           onTap: () {
                             Navigator.of(context).pop();
@@ -390,7 +394,8 @@ class _AttachSheetState extends State<_AttachSheet> {
                           },
                         ),
                         _Action(
-                          icon: Icons.location_on,
+                          icon: Icons.location_on_rounded,
+                          color: const Color(0xFFFF4F6D),
                           label: 'Location',
                           onTap: () {
                             Navigator.of(context).pop();
@@ -419,11 +424,13 @@ class _Action extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool active;
+  final Color color;
   final VoidCallback onTap;
 
   const _Action({
     required this.icon,
     required this.label,
+    required this.color,
     required this.onTap,
     this.active = false,
   });
@@ -431,26 +438,51 @@ class _Action extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final color = active ? cs.onSurface : cs.onSurfaceVariant;
-    return InkWell(
-      borderRadius: BorderRadius.circular(18),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: color, size: 30),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontSize: 15,
-                fontWeight: active ? FontWeight.w600 : FontWeight.w500,
+    // each action its own bright colour, a white icon in a round tile
+    return VibePressable(
+      scale: 0.9,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color.lerp(color, Colors.white, 0.18)!,
+                      color,
+                    ],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.35),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Icon(icon, color: Colors.white, size: 26),
               ),
-            ),
-          ],
+              const SizedBox(height: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: active ? cs.onSurface : cs.onSurfaceVariant,
+                  fontSize: 12.5,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

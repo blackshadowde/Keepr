@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:matrix/matrix.dart';
 import 'package:vibe/config/setting_keys.dart';
 import 'package:vibe/vibe/vibe_status.dart';
@@ -122,6 +124,82 @@ class VibeTypingStyle {
     try {
       await r.client.setRoomStateWithKey(r.id, type, me, want);
     } catch (_) {}
+  }
+
+  static StreamSubscription<Event>? _sub;
+  static const _toldKey = 'keepr.typing_told';
+
+  static Map<String, String> _told() {
+    try {
+      final s = AppSettings.store.getString(_toldKey);
+      if (s != null) return Map<String, String>.from(jsonDecode(s) as Map);
+    } catch (_) {}
+    return {};
+  }
+
+  /// When someone sets a new typing indicator in a direct chat with you:
+  /// a notification, once per new indicator, asking you to set yours.
+  static void watch(Client client) {
+    _sub?.cancel();
+    _sub = client.onTimelineEvent.stream.listen((e) async {
+      if (e.type != type || e.senderId == client.userID) return;
+      if (!e.room.isDirectChat) return;
+      final s = VibeTypingStyle.fromContent(e.content);
+      if (!s.isCustom) return;
+      final told = _told();
+      final sig = jsonEncode(s.toContent());
+      if (told[e.senderId] == sig) return;
+      told[e.senderId] = sig;
+      await AppSettings.store.setString(_toldKey, jsonEncode(told));
+      final name = e.senderFromMemoryOrFallback.calcDisplayname();
+      final look = '${s.emojis.join()} $name ${s.text}'.trim();
+      try {
+        await FlutterLocalNotificationsPlugin().show(
+          id: 'typing_${e.senderId}'.hashCode,
+          title: '$name has a new typing indicator',
+          body: mine().isCustom
+              ? look
+              : '$look  ·  Set yours so they see it when you type',
+          payload: '${client.clientName}|${e.room.id}|',
+          notificationDetails: const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'keepr_typing',
+              'Typing indicators',
+              importance: Importance.defaultImportance,
+            ),
+          ),
+        );
+      } catch (_) {}
+    });
+  }
+
+  /// Opening a chat with someone who has a typing indicator while you don't:
+  /// offer to set yours (once per person).
+  static void offer(BuildContext context, Room room) {
+    final other = room.directChatMatrixID;
+    if (other == null || mine().isCustom) return;
+    final theirs = of(room, other);
+    if (theirs == null) return;
+    final key = 'offered:$other';
+    final told = _told();
+    if (told[key] != null) return;
+    told[key] = '1';
+    AppSettings.store.setString(_toldKey, jsonEncode(told));
+    final name = room.unsafeGetUserFromMemoryOrFallback(other).calcDisplayname();
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 8),
+        content: Text(
+          '$name types with ${theirs.emojis.join()} "${theirs.text}". '
+          'Set your own?',
+        ),
+        action: SnackBarAction(
+          label: 'Set yours',
+          onPressed: () => VibeTypingStylePage.open(context),
+        ),
+      ),
+    );
   }
 
   static VibeTypingStyle random() {

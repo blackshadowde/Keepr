@@ -3,6 +3,7 @@
 import 'package:vibe/vibe/vibe_event_body.dart';
 import 'package:vibe/vibe/vibe_view_once.dart';
 import 'package:vibe/vibe/vibe_live_location.dart';
+import 'package:vibe/vibe/vibe_typing_style.dart';
 import 'package:vibe/vibe/vibe_member_tags.dart';
 import 'dart:async';
 
@@ -103,6 +104,7 @@ class _VibeActivityHostState extends State<VibeActivityHost> {
     VibeSendLater.start(c);
     VibeViewOnce.start(c);
     VibeLive.start(c);
+    VibeTypingStyle.watch(c);
     Future.delayed(const Duration(seconds: 3), () {
       if (c.isLogged()) VibeWhatsNew.maybeShow();
     });

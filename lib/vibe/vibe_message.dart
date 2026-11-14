@@ -3,7 +3,6 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/services.dart';
@@ -884,8 +883,11 @@ class VibeMessage extends StatelessWidget {
                       left: picLeft,
                       top: first ? 20 : 6,
                       bottom: last ? 20 : 6,
-                      pic: last ? avatarSize : null,
-                      gap: nestGap,
+                      // every bubble of a run reaches to the picture's
+                      // middle, so their edges line up; the last one
+                      // curves in round the picture
+                      reach: avatarSize / 2 + nestGap,
+                      cut: last,
                     ),
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
@@ -963,8 +965,10 @@ class VibeMessage extends StatelessWidget {
                     ? Row(
                         mainAxisSize: MainAxisSize.min,
                         textDirection: side,
-                        // the picture at the bottom; the bubble flows into it
-                        crossAxisAlignment: CrossAxisAlignment.end,
+                        // the picture sits in the bubble's curve
+                        crossAxisAlignment: bubble
+                            ? CrossAxisAlignment.center
+                            : CrossAxisAlignment.end,
                         children: [
                           pic(),
                           const SizedBox(width: nestGap),
@@ -1411,9 +1415,9 @@ class _ReplyCurve extends CustomPainter {
   bool shouldRepaint(covariant _ReplyCurve old) => old.color != color;
 }
 
-/// A bubble's solid shape, corners tighter where bubbles stack. With [pic],
-/// the bottom corner next to the picture flows into it with a soft inward
-/// curve, so a run of bubbles looks like it comes out of the picture:
+/// A bubble's solid shape, corners tighter where bubbles stack. It reaches
+/// [reach] past its box towards the picture, so every bubble of a run lines
+/// up; with [cut] (the last one) that end curves in round the picture:
 /// O)____) for theirs, (____(O for yours.
 class _BubblePainter extends CustomPainter {
   final Color color;
@@ -1423,70 +1427,53 @@ class _BubblePainter extends CustomPainter {
 
   /// Corner sizes on the picture's side.
   final double top, bottom;
-
-  /// The picture's size when it sits beside this bubble.
-  final double? pic;
-  final double gap;
+  final double reach;
+  final bool cut;
   const _BubblePainter({
     required this.color,
     required this.left,
     required this.top,
     required this.bottom,
-    this.pic,
-    this.gap = 3,
+    this.reach = 0,
+    this.cut = false,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     const r = Radius.circular(20);
-    final t = Radius.circular(top);
-    final d = pic;
-    // mirrored for a picture on the right: draw as if it's on the left
-    if (!left) {
-      canvas.save();
-      canvas.translate(size.width, 0);
-      canvas.scale(-1, 1);
-    }
+    final t = Radius.circular(top), b = Radius.circular(bottom);
     var path = Path()
       ..addRRect(
         RRect.fromRectAndCorners(
-          Offset.zero & size,
-          topLeft: t,
-          bottomLeft: d == null ? Radius.circular(bottom) : Radius.zero,
-          topRight: r,
-          bottomRight: r,
+          Rect.fromLTRB(
+            left ? -reach : 0,
+            0,
+            size.width + (left ? 0 : reach),
+            size.height,
+          ),
+          topLeft: left ? t : r,
+          bottomLeft: left ? b : r,
+          topRight: left ? r : t,
+          bottomRight: left ? r : b,
         ),
       );
-    if (d != null) {
-      // the picture's centre, left of the bubble, level with its bottom
-      final ring = d / 2 + gap;
-      final c = Offset(-ring, size.height - d / 2);
-      // a small circle tangent to the bubble's edge and the ring round the
-      // picture gives the inward curve where the bubble meets it
-      final f = (math.min(8.0, (c.dy - 2) * (c.dy - 2) / (4 * ring)))
-          .clamp(1.0, 8.0);
-      final fy = c.dy - 2 * math.sqrt(ring * f);
-      // where the small circle touches the ring
-      final fc = Offset(-f, fy);
-      final tp = fc + (c - fc) * (f / (ring + f));
-      final neck = Path()
-        ..moveTo(1, fy)
-        ..lineTo(tp.dx, tp.dy)
-        ..lineTo(c.dx, c.dy)
-        ..lineTo(c.dx, size.height)
-        ..lineTo(1, size.height)
-        ..close();
-      final bites = Path()
-        ..addOval(Rect.fromCircle(center: c, radius: ring))
-        ..addOval(Rect.fromCircle(center: fc, radius: f));
+    if (cut && reach > 0) {
+      // the picture's centre is on the reached edge, halfway down
       path = Path.combine(
-        PathOperation.union,
+        PathOperation.difference,
         path,
-        Path.combine(PathOperation.difference, neck, bites),
+        Path()..addOval(
+          Rect.fromCircle(
+            center: Offset(
+              left ? -reach : size.width + reach,
+              size.height / 2,
+            ),
+            radius: reach,
+          ),
+        ),
       );
     }
     canvas.drawPath(path, Paint()..color = color);
-    if (!left) canvas.restore();
   }
 
   @override
@@ -1495,5 +1482,6 @@ class _BubblePainter extends CustomPainter {
       old.left != left ||
       old.top != top ||
       old.bottom != bottom ||
-      old.pic != pic;
+      old.reach != reach ||
+      old.cut != cut;
 }

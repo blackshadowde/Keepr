@@ -172,3 +172,127 @@ class VibeUserBar extends StatelessWidget {
     );
   }
 }
+
+/// Home's top row: your picture, name and status (or connection), then
+/// round search and settings buttons. Flat, no pill around it.
+class VibeUserRow extends StatelessWidget {
+  /// Shown in place of your name for a moment ("Chats", "Spaces").
+  final String? flash;
+  final VoidCallback? onSearch;
+  const VibeUserRow({this.flash, this.onSearch, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final client = Matrix.of(context).client;
+    Widget round(Widget icon, String tip, VoidCallback onTap) => Padding(
+      padding: const EdgeInsets.only(left: 8),
+      child: Material(
+        color: cs.surfaceContainerHigh,
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Tooltip(
+            message: tip,
+            child: SizedBox.square(
+              dimension: 44,
+              child: Center(
+                child: IconTheme(
+                  data: IconThemeData(color: cs.onSurface, size: 22),
+                  child: icon,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
+      child: VibeOwnProfileBuilder(
+        client: client,
+        builder: (context, profile) {
+          final name = profile?.displayName ?? client.userID?.localpart ?? '';
+          return Row(
+            children: [
+              Avatar(
+                mxContent: profile?.avatarUrl,
+                name: name,
+                size: 46,
+                client: client,
+                onTap: () => VibeOwnProfile.show(context, client),
+                presenceUserId: client.userID,
+                presenceBackgroundColor: cs.surface,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => VibeStatusSheet.show(context, client),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 260),
+                        layoutBuilder: (current, previous) => Stack(
+                          alignment: AlignmentDirectional.centerStart,
+                          children: [...previous, ?current],
+                        ),
+                        child: Text(
+                          flash ?? name,
+                          key: ValueKey(flash ?? name),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 19,
+                            fontWeight: FontWeight.w700,
+                            color: cs.onSurface,
+                          ),
+                        ),
+                      ),
+                      VibeConnectionBuilder(
+                        client: client,
+                        builder: (context, conn) => StreamBuilder(
+                          stream: client.onSync.stream,
+                          builder: (context, _) {
+                            final st = VibeStatus.mine(client);
+                            final custom = st != null && st.active;
+                            return Text(
+                              custom
+                                  ? '${st.emoji} ${st.text}'.trim()
+                                  : conn.label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: custom ? cs.onSurfaceVariant : conn.color,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (onSearch != null)
+                round(const Icon(Icons.search_rounded), 'Search', onSearch!),
+              round(
+                const VibeUpdateDot(
+                  child: VibeTapIcon(
+                    kind: VibeTap.spin,
+                    child: Icon(Icons.settings_rounded),
+                  ),
+                ),
+                'Settings',
+                () => context.go('/rooms/settings'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}

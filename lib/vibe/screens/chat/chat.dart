@@ -534,6 +534,10 @@ class ChatController extends State<ChatPageWithRoom>
     VibeChatDock.opened(widget.room.id);
     // my own typing indicator, for direct chats that don't have it yet
     VibeTypingStyle.shareIn(widget.room);
+    // they have a typing indicator and you don't: offer yours
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) VibeTypingStyle.offer(context, widget.room);
+    });
     // direct chats with strict encryption: the quicker key rhythm
     VibeStrict.upgradeDirect(widget.room);
     // measure the text box (with the docked strip's room under it) once the
