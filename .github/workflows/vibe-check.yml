@@ -63,3 +63,14 @@ jobs:
           gh api "repos/${GITHUB_REPOSITORY}/check-runs" --input check.json > /dev/null
           echo "$COUNT issues reported"
 
+
+  # The post-quantum Rust module (ML-KEM-768 via libcrux), built and
+  # tested on its own.
+  pq:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: packages/keepr_pq/rust
+    steps:
+      - uses: actions/checkout@v4
+      - run: cargo test --release
