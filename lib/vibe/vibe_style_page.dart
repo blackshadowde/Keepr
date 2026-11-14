@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'package:vibe/vibe/buddy/vibe_buddy.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:vibe/config/setting_keys.dart';
 import 'package:vibe/vibe/vibe_typing_style.dart';
@@ -331,6 +332,13 @@ class _VibeStylePageState extends State<VibeStylePage> {
               subtitle: const Text('What people see while you type'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => VibeTypingStylePage.open(context),
+            ),
+            ListTile(
+              leading: const Icon(Icons.pets_rounded),
+              title: const Text('Typing buddy'),
+              subtitle: const Text('Name, outfits, on or off'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => VibeBuddyPage.open(context),
             ),
 
           ],

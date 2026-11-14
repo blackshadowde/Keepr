@@ -3,6 +3,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'package:vibe/vibe/buddy/vibe_buddy_bar.dart';
 import 'package:vibe/vibe/vibe_glass.dart';
 import 'package:vibe/vibe/vibe_stale_keyboard.dart';
 import 'package:vibe/vibe/vibe_palette.dart';
@@ -657,6 +658,8 @@ class ChatView extends StatelessWidget {
                                                 children: [
                                                   // Hike-style text stickers
                                                   VibeTextStickerBar(controller),
+                                                  // the typing buddy
+                                                  VibeBuddyBar(controller),
                                                   ChatInputRow(controller),
                                                   ChatEmojiPicker(controller),
                                                   // room for the docked chat

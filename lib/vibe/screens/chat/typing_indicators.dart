@@ -3,6 +3,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'package:vibe/vibe/buddy/vibe_buddy.dart';
 import 'dart:math' as math;
 
 import 'package:vibe/vibe/screens/chat/chat.dart';
@@ -42,6 +43,8 @@ class TypingIndicators extends StatelessWidget {
         final style = who == null
             ? null
             : VibeTypingStyle.of(controller.room, who.id);
+        // their typing buddy visits, if they have one showing
+        final buddy = who == null ? null : VibeBuddy.of(controller.room, who.id);
 
         return AnimatedContainer(
           duration: _duration,
@@ -64,7 +67,14 @@ class TypingIndicators extends StatelessWidget {
                   children: [
                     // typing: the dots sit inside a circle where their
                     // picture goes; the message grows out of it
-                    if (typing && style == null)
+                    if (typing && buddy != null)
+                      VibeBuddyFace(
+                        size: 26,
+                        color: buddy.color,
+                        outfit: buddy.outfit,
+                        mood: BuddyMood.happy,
+                      )
+                    else if (typing && style == null)
                       Container(
                         width: 30,
                         height: 30,

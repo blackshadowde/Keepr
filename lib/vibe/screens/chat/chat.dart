@@ -10,6 +10,7 @@ import 'package:vibe/vibe/vibe_quote.dart';
 import 'package:vibe/vibe/vibe_threads.dart';
 import 'package:vibe/vibe/vibe_chat_dock.dart';
 import 'package:vibe/vibe/vibe_strict.dart';
+import 'package:vibe/vibe/buddy/vibe_buddy.dart';
 import 'package:vibe/vibe/vibe_pq.dart';
 import 'package:vibe/vibe/vibe_typing_style.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart'
@@ -914,6 +915,10 @@ class ChatController extends State<ChatPageWithRoom>
       );
     }
     if (sendController.text.trim().isEmpty) return;
+    // the buddy asks first if it looks like a password or card number
+    if (!await VibeBuddy.allowSend(context, sendController.text)) return;
+    if (!mounted) return;
+    VibeBuddy.sent.value++;
     VibeHaptics.light();
     _storeInputTimeoutTimer?.cancel();
     final prefs = Matrix.of(context).store;
