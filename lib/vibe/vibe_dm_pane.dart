@@ -91,8 +91,11 @@ class _VibeDmPaneState extends State<VibeDmPane> {
     final joined = visible
         .where((r) => r.membership != Membership.invite)
         .toList();
-    final pinned = joined.where((r) => r.isFavourite).toList();
-    final others = joined.where((r) => !r.isFavourite).toList();
+    // pinned chats live in the row at the top, not in the list (unless
+    // you're searching)
+    final others = q.isEmpty
+        ? joined.where((r) => !r.isFavourite).toList()
+        : joined;
 
     Widget dmTile(Room r, int index) => VibeStagger(
       key: ValueKey('dm_${r.id}'),
@@ -163,17 +166,12 @@ class _VibeDmPaneState extends State<VibeDmPane> {
                           ),
                         ),
                     ],
-                    if (pinned.isNotEmpty) ...[
-                      () => _SectionLabel('Pinned'),
-                      for (var i = 0; i < pinned.length; i++)
-                        () => dmTile(pinned[i], i + invites.length + 1),
-                    ],
                     if (spaces.isNotEmpty) ...[
                       () => const _SectionLabel('Communities'),
                       for (var i = 0; i < spaces.length; i++)
                         () => VibeStagger(
                           key: ValueKey('sp_${spaces[i].id}'),
-                          index: i + invites.length + pinned.length + 1,
+                          index: i + invites.length + 1,
                           child: VibePressable(
                             scale: 0.97,
                             child: _DmTile(
@@ -200,7 +198,7 @@ class _VibeDmPaneState extends State<VibeDmPane> {
                     for (var i = 0; i < others.length; i++)
                       () => dmTile(
                         others[i],
-                        i + invites.length + pinned.length + spaces.length + 1,
+                        i + invites.length + spaces.length + 1,
                       ),
                   ];
                   // every chat its own pill; the archive one more pill
