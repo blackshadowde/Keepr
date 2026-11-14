@@ -3,10 +3,11 @@
 An extra lock on direct chats between two Keepr users, so that messages
 recorded today can't be read later by a quantum computer ("harvest now,
 decrypt later"). Groups, servers and communities stay on normal Matrix
-encryption with strict key rotation (every 10 messages or every hour).
+encryption with strict key rotation (a fresh key for every message).
 
-Status: plan only, nothing built yet. Start after Keepr is in production on
-Google Play. Steps are checked off as they land.
+Status: built for text messages, edits and replies in direct chats (keys:
+ML-KEM-768 from libcrux; messages: AES-256-GCM and HKDF-SHA256 from
+RustCrypto). Photos and files, key backup and groups come later.
 
 ## Why an extra layer is needed
 

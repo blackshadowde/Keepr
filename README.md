@@ -1,168 +1,170 @@
+[![Latest release](https://img.shields.io/github/v/release/blackshadowde/Keepr?label=release)](https://github.com/blackshadowde/Keepr/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/blackshadowde/Keepr/total)](https://github.com/blackshadowde/Keepr/releases)
+[![Security scans](https://github.com/blackshadowde/Keepr/actions/workflows/vibe-security.yml/badge.svg)](https://github.com/blackshadowde/Keepr/actions/workflows/vibe-security.yml)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0--or--later-blue)](LICENSE)
+[![Built on Matrix](https://img.shields.io/badge/built%20on-Matrix-000000?logo=matrix&logoColor=white)](https://matrix.org)
+
 <p align="center">
-  <img src="vibe-icon.png" width="120" alt="Keepr logo">
+  <img src="vibe-icon.png" width="112" alt="Keepr">
 </p>
 
 <h1 align="center">Keepr</h1>
 
 <p align="center">
-  <b>An end-to-end encrypted messenger with servers and channels, built on Matrix.</b><br>
-  Android · iPhone · Web. No phone number. No ads. Open source.
+  A private messenger for the people you talk to every day.<br>
+  End-to-end encrypted, no phone number, no ads, open source.
 </p>
 
 <p align="center">
-  <a href="https://github.com/blackshadowde/Keepr/releases/latest"><b>⬇ Android APK</b></a>
-  ·
-  <a href="#iphone"><b>iPhone (AltStore / SideStore)</b></a>
-  ·
-  <a href="https://get-keepr.github.io"><b>Website</b></a>
-  ·
-  <a href="#support-vibe">❤ Support Keepr</a>
+  <a href="https://github.com/blackshadowde/Keepr/releases/latest"><img src="https://raw.githubusercontent.com/Kunzisoft/Github-badge/main/get-it-on-github.png" alt="Get it on GitHub" height="60"></a>
+  <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/blackshadowde/Keepr"><img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="60"></a>
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/hero.png" alt="Keepr: your servers, Matrix privacy. Home and chat screens on two phones." width="100%">
+  <a href="https://get-keepr.github.io">Website</a> ·
+  <a href="#iphone">iPhone</a> ·
+  <a href="https://blackshadowde.github.io/Keepr/">Web app</a> ·
+  <a href="CHANGELOG.md">Changelog</a> ·
+  <a href="PRIVACY.md">Privacy</a>
 </p>
 
-<p align="center">
-  <img src="docs/screenshots/home.png" width="19%" alt="Home: chats rail and direct messages">
-  <img src="docs/screenshots/chat.png" width="19%" alt="Chat with a music link card and the strict encryption shield">
-  <img src="docs/screenshots/start.png" width="19%" alt="Start something: chat, group or community">
-  <img src="docs/screenshots/strict.png" width="19%" alt="Strict encryption introduction">
-  <img src="docs/screenshots/profile.png" width="19%" alt="Edit profile with the listening-to status">
-</p>
+Keepr is a chat app for Android, iPhone and the web. It runs on [Matrix](https://matrix.org), an open and decentralised network, so your account lives on a server you choose and you can talk to people on any other Matrix server.
 
----
+## Contents
 
-## Why Keepr
+- [Screenshots](#screenshots)
+- [Features](#features)
+- [Security](#security)
+- [Install](#install)
+- [Verifying a download](#verifying-a-download)
+- [Building](#building)
+- [Contributing](#contributing)
+- [Supporting Keepr](#supporting-keepr)
+- [Copyright and license](#copyright-and-license)
 
-Keepr is a private chat app for family and friends. It runs on [Matrix](https://matrix.org), the open, decentralised chat network, so you can talk to anyone on any Matrix server, like matrix.org, Unredacted or Mozilla, and no single company owns your account.
+## Screenshots
 
-The layout: a rail of profile pictures on the left, your DMs in the middle, and chats that slide over the top.
+| | | | | |
+|-|-|-|-|-|
+| <img src="docs/screenshots/home.png" width="160" alt="Home"> | <img src="docs/screenshots/chat.png" width="160" alt="Chat"> | <img src="docs/screenshots/start.png" width="160" alt="Start a chat, group or community"> | <img src="docs/screenshots/strict.png" width="160" alt="Strict encryption"> | <img src="docs/screenshots/profile.png" width="160" alt="Profile"> |
 
 ## Features
 
-**Privacy first**
-- 🛡 **Strict encryption:** a fresh message key for every single message (Matrix's default is one key for 100 messages or a week), so a leaked key unlocks almost nothing. On for new chats; the lock turns into a shield. Element and other Matrix apps still read the chat.
-- End-to-end encrypted chats, verification and recovery key backup
-- Up to date with the latest Matrix SDK (14.2) and encryption library (vodozemac 0.9)
+**Messaging**
+- Direct chats, groups and communities with channels and threads
+- Replies, quotes of part of a message, edits, reactions, polls and pinned messages
+- View once messages and media
+- Voice messages, photos, videos and files, including large files sent in parts
+- Location sharing, live location for a set time, and check-in
+- Encrypted voice and video calls
+- Scheduled messages and disappearing messages
 
-**Chat**
-- Replies with curved lines and swipe-to-reply
-- Animated reactions for every emoji
-- Starred messages, pinned chats, edits and read receipts
-- Media slideshow for every photo and video in a chat
-- Share phone contacts and Matrix contacts
-- Send big files in parts (Keepr to Keepr)
-- 🎵 **Music link cards** for Spotify, YouTube Music, Apple Music, JioSaavn, SoundCloud and more
-- 📞 Encrypted **voice and video calls** inside the app (Element Call)
+**Everyday**
+- Custom status with an end time, and the other person's local time in a chat
+- Locked chats behind your fingerprint, with hidden notifications
+- Low data mode
+- A typing buddy that reacts to the chat, kept entirely on your phone
+- Themes that follow your phone's colours
 
-**Start something**
-- One illustrated screen behind the **+**: start a chat, a group or a community, join with an invite link, or browse public groups and communities
-- Add people by their Matrix ID with name suggestions as you type
+**Accounts and notifications**
+- Any Matrix server, or create an account in the app
+- Notifications through a direct connection to your server or through ntfy, with no Google services required
+- Key backup and recovery with a recovery key
 
-**Made for real life**
-- 💭 **Custom status** with "Clear after", e.g. "📚 Studying · until 4 PM"
-- 🕓 **Their time:** see the other person's local time in a bubble at the top of the chat
-- 🗓 **Send later:** schedule a message for their morning
-- ⏱ **Disappearing messages** per chat, from 1 hour to 90 days
-- 📶 **Low data mode:** photos load only when tapped, smaller uploads
-- 🔒 **Lock chats** behind your fingerprint, with hidden notifications
+## Security
 
-**Your choice**
-- 🌐 Pick any Matrix server, or create an account right in the app
-- 🔔 Notifications through a **direct connection** to your server, or **built-in without Google** (ntfy). No Firebase
-- 💾 Keep media on your phone and save photos to your gallery
-- 🎨 Dark palette, Figtree font, haptics and 120 Hz animations
+- **End-to-end encryption.** Messages and files are encrypted with Olm and Megolm through [vodozemac](https://github.com/matrix-org/vodozemac). Your server stores only encrypted data.
+- **Strict key rotation.** New chats use a fresh Megolm key for every message, so a single leaked key exposes as little as possible. Other Matrix apps can still read these chats.
+- **Post-quantum direct chats.** When every device in a direct chat runs Keepr, text messages get a second layer inside the Matrix encryption: a chat key exchanged with ML-KEM-768 (FIPS 203) and messages sealed with AES-256-GCM. ML-KEM comes from [libcrux](https://github.com/cryspen/libcrux), a formally verified implementation; AES-GCM and HKDF come from [RustCrypto](https://github.com/RustCrypto). If any device uses another app, Keepr falls back to normal encryption so nothing becomes unreadable. Details: [docs/post-quantum.md](docs/post-quantum.md).
+- **No tracking.** Keepr has no analytics and no ads. Push notifications carry only a room and event ID, never message text. Every service Keepr contacts is listed in [PRIVACY.md](PRIVACY.md).
 
-## Download and install
+Found a vulnerability? Please report it privately as described in [SECURITY.md](SECURITY.md).
 
-1. Open the [latest release](https://github.com/blackshadowde/Keepr/releases/latest) on your Android phone.
-2. Tap **`Keepr-x.y.z.apk`** to download it.
-3. Open the file. If Android asks, allow **Install unknown apps** for your browser.
-4. Sign in with your Matrix account, or tap **Create account**.
+## Install
 
-To update, install the new APK over the old one, or tap **Check for updates** in Settings > About. Your chats stay.
+### Android
 
-Works on 64-bit Android phones (almost every phone from the last 7+ years).
+Download `Keepr-x.y.z.apk` from the [latest release](https://github.com/blackshadowde/Keepr/releases/latest) and open it. Android 10 or newer on a 64-bit phone is required.
 
-### Obtainium (automatic updates from GitHub)
-
-[Obtainium](https://obtainium.imranr.dev) installs Keepr directly from this repository's releases and updates it: in Obtainium tap **Add app** and enter `https://github.com/blackshadowde/Keepr`, or open [obtainium://add/https://github.com/blackshadowde/Keepr](obtainium://add/https://github.com/blackshadowde/Keepr) on your phone.
+To get updates automatically, add `https://github.com/blackshadowde/Keepr` in [Obtainium](https://obtainium.imranr.dev). You can also check for updates in Settings > About.
 
 ### iPhone
 
-Keepr for iPhone installs with [SideStore](https://sidestore.io) or [AltStore](https://altstore.io), and updates show up there automatically.
+Keepr for iPhone installs through [SideStore](https://sidestore.io) or [AltStore](https://altstore.io). Add this source, then install Keepr from it:
 
-1. Add this source in SideStore or AltStore (Sources > +):
-   `https://raw.githubusercontent.com/blackshadowde/Keepr/Vibe/altstore.json`
-2. Install **Keepr** from the source.
-
-Already have Keepr? Settings > About > **Get updates in SideStore** adds the source in one tap.
+```
+https://raw.githubusercontent.com/blackshadowde/Keepr/Vibe/altstore.json
+```
 
 ### Web
 
-Keepr also runs in the browser: [blackshadowde.github.io/Keepr](https://blackshadowde.github.io/Keepr/).
+Keepr runs in the browser at [blackshadowde.github.io/Keepr](https://blackshadowde.github.io/Keepr/).
 
-## Support Keepr
+## Verifying a download
 
-Keepr is free, with no ads and no tracking. If you'd like to help pay for its development:
+Every release is built by GitHub Actions from this repository, and the build logs are public. The release notes list the APK's SHA-256 and a [VirusTotal](https://www.virustotal.com) report. To check a file yourself:
+
+```sh
+sha256sum Keepr-x.y.z.apk
+```
+
+The weekly security workflow runs [MobSF](https://github.com/MobSF/Mobile-Security-Framework-MobSF) against the OWASP MASVS (0 of 432 known trackers), OSV-Scanner on every dependency, and CodeQL on the build workflows. Reports are attached to each run.
+
+## Building
+
+Keepr is a Flutter app. You need:
+
+- Flutter (the version is in [`.tool_versions.yaml`](.tool_versions.yaml))
+- Rust, for the encryption libraries (installed with [rustup](https://rustup.rs))
+- The Android SDK and NDK, or Xcode for iPhone
+
+```sh
+git clone https://github.com/blackshadowde/Keepr.git
+cd Keepr
+flutter pub get
+flutter run
+```
+
+The post-quantum module is a small Rust crate in [`packages/keepr_pq`](packages/keepr_pq). Its tests run with `cargo test` in `packages/keepr_pq/rust`.
+
+GitHub Actions workflows:
+
+| Workflow | What it does |
+| --- | --- |
+| Keepr check | Analyzes the code and tests the Rust module, about 3 minutes |
+| Keepr build | Debug APK for testing |
+| Keepr release | Signed APK; optionally publishes a GitHub release |
+| Keepr iOS | Unsigned IPA; optionally updates the AltStore source |
+| Keepr web | Builds the web app and deploys it to GitHub Pages |
+| Keepr security scans | MobSF, OSV-Scanner and CodeQL |
+
+Release signing uses these repository secrets:
+
+| Secret | Purpose |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | Signing keystore, base64 encoded |
+| `ANDROID_KEYSTORE_PASSWORD` | Keystore password |
+| `VT_API_KEY` | VirusTotal API key (optional) |
+
+Keep the keystore backed up outside the repository. Without it, installed copies can't be updated.
+
+## Contributing
+
+Bug reports and ideas are welcome in [Issues](https://github.com/blackshadowde/Keepr/issues). Please search for an existing issue first. For code changes, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Supporting Keepr
+
+Keepr is free and has no ads. If you'd like to support its development, you can donate by UPI:
 
 <p align="center">
-  <img src="docs/donate-upi.png" width="220" alt="UPI QR code for donations"><br>
-  <b>UPI:</b> <code>ashish.boddu@ybl</code>
+  <img src="docs/donate-upi.png" width="200" alt="UPI QR code"><br>
+  <code>ashish.boddu@ybl</code>
 </p>
 
-Thank you! ❤
+## Copyright and license
 
-## Privacy
+Copyright © 2026 Keepr contributors.
 
-- Messages and files are end-to-end encrypted. Your server only stores scrambled data.
-- Keepr has no analytics and no ads.
-- Push notifications only carry a room and event ID, never message text.
-- Your account lives on the Matrix server you choose.
+Keepr is licensed under the [GNU Affero General Public License v3.0 or later](LICENSE). It started from [FluffyChat](https://github.com/krille-chan/fluffychat) by Christian Kußowski and contributors (AGPL-3.0-or-later), whose copyright notices are kept in the source.
 
-Every server Keepr talks to, and what it sees, is listed in [PRIVACY.md](PRIVACY.md).
-
-## How every release is checked
-
-1. **Built in public:** GitHub Actions builds each APK from this repository's source; the build log is public.
-2. **Scanned automatically:** the release workflow uploads the APK to [VirusTotal](https://www.virustotal.com) (about 70 antivirus engines) and adds the result and report link to the release notes.
-3. **Fingerprint you can check:** the release notes list the APK's SHA-256. VirusTotal's report shows the SHA-256 of the file it scanned; when they match, it's the same file.
-4. **Every change listed:** [CHANGELOG.md](CHANGELOG.md) lists each change with the commit that made it.
-5. **Security scans** (the *Keepr security scans* workflow, on every change and weekly): [MobSF](https://github.com/MobSF/Mobile-Security-Framework-MobSF) checks the APK against the OWASP mobile standard (MASVS) and finds **0 of 432 known trackers**; OSV-Scanner checks every library for known security holes; CodeQL checks the build workflows. Each run's page lists the findings, with the full MobSF report (PDF) under Artifacts.
-
-To check a download yourself: `sha256sum Keepr-x.y.z.apk` (or `certutil -hashfile Keepr-x.y.z.apk SHA256` on Windows) and compare with the release notes.
-
-## For developers
-
-Builds run on GitHub Actions, so no local setup is needed.
-
-- **Keepr build:** debug build for testing (Actions > Keepr build)
-- **Keepr release:** signed APK. Tick **Publish** to create a public GitHub Release.
-- **Keepr iOS (unsigned IPA):** iPhone build. Tick **Publish for AltStore / SideStore** to create an `ios-v…` release and update `altstore.json`.
-- **Keepr web:** builds the web app and deploys it to GitHub Pages.
-- **Keepr check:** code check only, about 3 minutes.
-
-Version numbers are `major.minor` from `pubspec.yaml` plus the build number, e.g. `2.0.41`.
-
-Release secrets (Settings > Secrets and variables > Actions):
-
-| Secret | What it is |
-| --- | --- |
-| `ANDROID_KEYSTORE_BASE64` | base64 of the signing keystore |
-| `ANDROID_KEYSTORE_PASSWORD` | keystore password |
-| `VT_API_KEY` | VirusTotal API key (optional): scans each release and adds the report to its notes |
-
-Keep the keystore backed up outside the repository. Without it, installed apps can't be updated.
-
-## Credits and licence
-
-Keepr is a modified version of [FluffyChat](https://github.com/krille-chan/fluffychat) by Christian Kußowski and contributors, licensed under **AGPL-3.0-or-later**. Keepr keeps that licence (see `LICENSE`) and FluffyChat's copyright notices. Keepr's changes, from October 2026 onwards, are in this repository's history and [CHANGELOG.md](CHANGELOG.md).
-
-Bundled third-party material: the Figtree typeface and the sticker fonts Bangers, Caveat Brush, Lobster and Pacifico (SIL Open Font License 1.1), Luckiest Guy and Permanent Marker (Apache 2.0), FluffyChat's call and notification sounds, and Matrix's verification emoji list (Apache 2.0). Every library's licence is listed in the app under About → Open-source licences.
-
-Matrix is an open standard from the [Matrix.org Foundation](https://matrix.org).
-
-Keepr is an independent project, not affiliated with or endorsed by any other app or company. Names such as Matrix, Element and Spotify belong to their owners.
-
-<sub>Keywords: Matrix client, Android messenger, iPhone Matrix app, servers and channels, end-to-end encryption, E2EE, private messenger, no phone number, FluffyChat fork, Flutter.</sub>
+Bundled fonts and assets keep their own licenses, listed in [LICENSES](LICENSES) and in the app under About > Open-source licences. Matrix is an open standard from the [Matrix.org Foundation](https://matrix.org). Other names belong to their owners.
