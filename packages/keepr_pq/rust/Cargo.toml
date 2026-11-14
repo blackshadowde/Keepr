@@ -13,6 +13,11 @@ crate-type = ["staticlib", "cdylib"]
 # functional correctness, secret independence); the one Signal uses.
 libcrux-ml-kem = { version = "=0.0.11", default-features = false, features = ["mlkem768"] }
 getrandom = "0.3"
+# AES-256-GCM and HKDF-SHA256 from RustCrypto (aes-gcm was audited by
+# NCC Group).
+aes-gcm = "0.10"
+hkdf = "0.12"
+sha2 = "0.10"
 
 [profile.release]
 opt-level = 3
