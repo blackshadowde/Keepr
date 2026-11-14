@@ -491,7 +491,8 @@ class VibeMessage extends StatelessWidget {
     final showReactionPicker =
         singleSelected && event.room.canSendDefaultMessages;
     final enterThread = this.enterThread;
-    const avatarSize = 40.0;
+    // a small round picture beside each bubble
+    const avatarSize = 28.0;
 
     final sentReactions = <String>{};
     if (singleSelected) {
@@ -528,7 +529,10 @@ class VibeMessage extends StatelessWidget {
       }
       // the picture sits at the bottom of a run; the line grows up from it
       if (!last) return const SizedBox(width: avatarSize);
-      return FutureBuilder<User?>(
+      // level with the bubble, under the name line when there is one
+      return Padding(
+        padding: EdgeInsets.only(top: first ? 24 : 2),
+        child: FutureBuilder<User?>(
         future: event.fetchSenderUser(),
         builder: (context, snapshot) {
           final user = snapshot.data ?? sender;
@@ -547,6 +551,7 @@ class VibeMessage extends StatelessWidget {
             ),
           );
         },
+      ),
       );
     }
 
@@ -780,8 +785,34 @@ class VibeMessage extends StatelessWidget {
               // Status sits right after the text the whole time:
               // "Encrypting…" → ✓ → blue ✓✓, changing in place. Only
               // failures and file uploads (with Retry / Cancel) go below.
+              // text sits in a rounded bubble beside the round picture;
+              // photos, stickers, big emoji and cards stay as they are
+              final bubble = displayEvent.type == EventTypes.Message &&
+                  const {
+                    MessageTypes.Text,
+                    MessageTypes.Notice,
+                    MessageTypes.Emote,
+                  }.contains(displayEvent.messageType) &&
+                  !(bigEmojis && displayEvent.onlyEmotes) &&
+                  VibeChunks.info(displayEvent) == null &&
+                  !VibeLinkPreview.onlyLink(displayEvent);
+              final Widget shown = !bubble
+                  ? content
+                  : Container(
+                      padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+                      decoration: BoxDecoration(
+                        color: ownMessage
+                            ? cs.primary.withValues(alpha: 0.22)
+                            : cs.surfaceContainerHigh,
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(
+                          color: cs.outlineVariant.withValues(alpha: 0.5),
+                        ),
+                      ),
+                      child: content,
+                    );
               final ticks = ownMessage && !_statusBelow(event);
-              if (!ticks && effect == null) return content;
+              if (!ticks && effect == null) return shown;
               // Sent/read ticks sit beside the text: after it, or before it
               // on your side so the right edge stays clean.
               return Row(
@@ -789,7 +820,7 @@ class VibeMessage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 textDirection: side,
                 children: [
-                  Flexible(child: content),
+                  Flexible(child: shown),
                   if (effect != null)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 1),
@@ -1031,25 +1062,12 @@ class VibeMessage extends StatelessWidget {
                         // earlier message of that run
                         Stack(
                           children: [
-                            if (!last && !longPressSelect)
-                              Positioned.fill(
-                                child: CustomPaint(
-                                  painter: _GroupLine(
-                                    first: first,
-                                    last: last,
-                                    mirror: side == ui.TextDirection.rtl,
-                                    elbow: VibeTextSize.message * 0.725,
-                                    color: theme.colorScheme.onSurfaceVariant
-                                        .withValues(alpha: 0.35),
-                                  ),
-                                ),
-                              ),
                             Row(
                               textDirection: side,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 avatar(),
-                                const SizedBox(width: 12),
+                                const SizedBox(width: 6),
                                 Expanded(child: body),
                               ],
                             ),

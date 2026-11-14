@@ -36,15 +36,15 @@ class _VibeEntranceState extends State<VibeEntrance>
     if (!widget.animate) return;
     final c = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 420),
+      duration: const Duration(milliseconds: 620),
     );
     _c = c;
     _size = CurvedAnimation(
       parent: c,
       curve: const Interval(0.0, 0.85, curve: Curves.easeOutCubic),
     );
-    // glides up out of the typing box and settles, no bounce (like Vibe X)
-    _pop = CurvedAnimation(parent: c, curve: Curves.easeOutCubic);
+    // the liquid swell runs on its own curves (see _Pop)
+    _pop = CurvedAnimation(parent: c, curve: Curves.linear);
     _fade = CurvedAnimation(
       parent: c,
       curve: const Interval(0.0, 0.55, curve: Curves.easeOut),
@@ -97,14 +97,18 @@ class _Pop extends AnimatedWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Liquid: the bubble swells out of the corner where the typing circle
+    // was, wide first and then tall, overshooting a little like a drop
+    // pulling free, then settles to its shape.
     final p = (listenable as Animation<double>).value;
-    return Transform.translate(
-      offset: Offset(0, (1 - p) * 26),
-      child: Transform.scale(
-        scale: 0.96 + 0.04 * p,
-        alignment: alignment,
-        child: child,
-      ),
+    final w = const ElasticOutCurve(0.7).transform((p * 1.15).clamp(0.0, 1.0));
+    final h = const ElasticOutCurve(0.6).transform(
+      ((p - 0.08) / 0.92).clamp(0.0, 1.0),
+    );
+    return Transform(
+      alignment: alignment,
+      transform: Matrix4.diagonal3Values(0.18 + 0.82 * w, 0.18 + 0.82 * h, 1),
+      child: child,
     );
   }
 }

@@ -46,7 +46,7 @@ class TypingIndicators extends StatelessWidget {
         return AnimatedContainer(
           duration: _duration,
           curve: Curves.easeOut,
-          height: typing ? 26 : 0,
+          height: typing ? 36 : 0,
           alignment: Alignment.centerLeft,
           clipBehavior: Clip.hardEdge,
           decoration: const BoxDecoration(),
@@ -62,16 +62,29 @@ class TypingIndicators extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (who != null) ...[
+                    // typing: the dots sit inside a round bubble, where their
+                    // picture goes; the message grows out of it
+                    if (typing && style == null)
+                      Container(
+                        width: 44,
+                        height: 30,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerHigh,
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: const _VibeTypingDots(),
+                      ),
+                    if (who != null && style != null) ...[
                       Avatar(
-                        size: 20,
+                        size: 24,
                         mxContent: who.avatarUrl,
                         name: who.calcDisplayname(),
-                        borderRadius: BorderRadius.circular(10),
                       ),
                       const SizedBox(width: 8),
                     ],
-                    if (typing && style == null) const _VibeTypingDots(),
                     if (style != null && who != null) ...[
                       if (style.emojis.isNotEmpty) ...[
                         VibeTypingEmojis(style),
