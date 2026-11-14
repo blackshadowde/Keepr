@@ -41,6 +41,8 @@ dependencies:
   flutter_secure_storage: ^11.0.0
   flutter_shortcuts_new: ^2.0.0
   flutter_vodozemac: ^0.9.0
+  keepr_pq:
+    path: packages/keepr_pq
   flutter_web_auth_2: ^5.0.3
   geolocator: ^14.0.3
   go_router: ^17.3.0
