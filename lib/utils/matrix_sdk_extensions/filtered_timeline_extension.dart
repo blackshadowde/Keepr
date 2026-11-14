@@ -52,7 +52,12 @@ extension IsStateExtension on Event {
   }.contains(type);
 
   bool get isKnownHiddenStates =>
-      {PollEventContent.responseType, 'chat.keepr.viewed'}.contains(type) ||
+      {
+        PollEventContent.responseType,
+        'chat.keepr.viewed',
+        'chat.keepr.pq_share',
+        'chat.keepr.pq_key',
+      }.contains(type) ||
       type.startsWith('m.key.verification.') ||
       _isSilentMemberUpdate;
 

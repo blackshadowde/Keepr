@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import 'package:matrix/matrix.dart';
+import 'package:vibe/vibe/vibe_pq.dart';
 
 /// A message's one-line text (notifications, chat list, replies), with
 /// Vibe's text stickers called stickers: they're sent as pictures with a
@@ -47,6 +48,7 @@ extension VibeEventBody on Event {
     bool plaintextBody = false,
     bool removeMarkdown = false,
   }) async {
+    await VibePq.ensure(this);
     final sticker = _vibeSticker(i18n);
     if (sticker != null) return sticker;
     // names come from memory: load the sender (and who removed it) first
@@ -74,6 +76,18 @@ extension VibeEventBody on Event {
     bool plaintextBody = false,
     bool removeMarkdown = false,
   }) {
+    // a post-quantum message: its own words, once the chat key is here
+    final opened = VibePq.open(this);
+    if (!identical(opened, this)) {
+      return opened.vibeBodyFallback(
+        i18n,
+        withSenderNamePrefix: withSenderNamePrefix,
+        hideReply: hideReply,
+        hideEdit: hideEdit,
+        plaintextBody: plaintextBody,
+        removeMarkdown: removeMarkdown,
+      );
+    }
     final sticker = _vibeSticker(i18n);
     if (sticker != null) return sticker;
     final body = calcLocalizedBody(

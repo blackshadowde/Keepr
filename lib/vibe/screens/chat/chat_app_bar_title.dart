@@ -3,6 +3,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'package:vibe/vibe/vibe_pq.dart';
 import 'dart:async';
 
 import 'package:vibe/vibe/vibe_motion.dart';
@@ -280,14 +281,36 @@ class _ChatTitlePillState extends State<ChatTitlePill> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                                // new messages get the post-quantum layer
+                                if (VibePq.on(room))
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 5),
+                                    child: Tooltip(
+                                      message: 'Post-quantum encryption',
+                                      child: Icon(
+                                        Icons.enhanced_encryption_rounded,
+                                        size: 15,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                             // connecting: •-•-• with a running light; then
                             // their local time (direct chats)

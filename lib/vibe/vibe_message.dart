@@ -14,6 +14,7 @@ import 'package:vibe/vibe/vibe_quote.dart';
 import 'package:vibe/vibe/vibe_entrance.dart';
 import 'package:vibe/vibe/vibe_view_once.dart';
 import 'package:vibe/vibe/vibe_live_location.dart';
+import 'package:vibe/vibe/vibe_pq.dart';
 import 'package:vibe/vibe/vibe_effects.dart';
 import 'package:vibe/vibe/vibe_emoji_sheet.dart';
 import 'package:vibe/vibe/vibe_haptics.dart';
@@ -515,7 +516,8 @@ class VibeMessage extends StatelessWidget {
     final last =
         threadView || hasReply(previousEvent) || !sameGroup(previousEvent);
 
-    final displayEvent = event.getDisplayEvent(timeline);
+    // edits of a post-quantum message are wrapped too
+    final displayEvent = VibePq.open(event.getDisplayEvent(timeline));
     final sender = event.senderFromMemoryOrFallback;
     final hasReactions = event.hasAggregatedEvents(
       timeline,

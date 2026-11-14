@@ -272,7 +272,7 @@ class ChatController extends State<ChatPageWithRoom>
             (e) =>
                 e.type == EventTypes.Message &&
                 !e.redacted &&
-                e
+                VibePq.open(e)
                     .calcUnlocalizedBody(hideReply: true, plaintextBody: true)
                     .toLowerCase()
                     .contains(text),
@@ -957,8 +957,9 @@ class ChatController extends State<ChatPageWithRoom>
     } else {
       // ignore: unawaited_futures
       final isCommand = sendController.text.startsWith('/');
-      room
-          .sendTextEvent(
+      // direct chats where everyone uses Keepr: post-quantum layer
+      VibePq.sendText(
+            room,
             _withQuote(sendController.text),
             inReplyTo: replyEvent,
             editEventId: editEvent?.eventId,
@@ -1233,11 +1234,11 @@ class ChatController extends State<ChatPageWithRoom>
   String _getSelectedEventString() {
     var copyString = '';
     if (selectedEvents.length == 1) {
-      return selectedEvents.first.getDisplayEvent(timeline!).body;
+      return VibePq.open(selectedEvents.first.getDisplayEvent(timeline!)).body;
     }
     for (final event in selectedEvents) {
       if (copyString.isNotEmpty) copyString += '\n\n';
-      copyString += event.getDisplayEvent(timeline!).body;
+      copyString += VibePq.open(event.getDisplayEvent(timeline!)).body;
     }
     return copyString;
   }

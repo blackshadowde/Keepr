@@ -26,3 +26,59 @@ external int keeprPqDecapsulate(
   Pointer<Uint8> ct,
   Pointer<Uint8> ss,
 );
+
+@Native<Int32 Function(Pointer<Uint8>, Size)>(symbol: 'keepr_pq_random')
+external int keeprPqRandom(Pointer<Uint8> out, int len);
+
+@Native<
+  Int32 Function(Pointer<Uint8>, Size, Pointer<Uint8>, Size, Pointer<Uint8>)
+>(symbol: 'keepr_pq_hkdf')
+external int keeprPqHkdf(
+  Pointer<Uint8> ikm,
+  int ikmLen,
+  Pointer<Uint8> info,
+  int infoLen,
+  Pointer<Uint8> out,
+);
+
+@Native<
+  Int32 Function(
+    Pointer<Uint8>,
+    Pointer<Uint8>,
+    Size,
+    Pointer<Uint8>,
+    Size,
+    Pointer<Uint8>,
+    Pointer<Uint8>,
+  )
+>(symbol: 'keepr_pq_seal')
+external int keeprPqSeal(
+  Pointer<Uint8> key,
+  Pointer<Uint8> aad,
+  int aadLen,
+  Pointer<Uint8> pt,
+  int ptLen,
+  Pointer<Uint8> nonce,
+  Pointer<Uint8> ct,
+);
+
+@Native<
+  Int32 Function(
+    Pointer<Uint8>,
+    Pointer<Uint8>,
+    Size,
+    Pointer<Uint8>,
+    Pointer<Uint8>,
+    Size,
+    Pointer<Uint8>,
+  )
+>(symbol: 'keepr_pq_open')
+external int keeprPqOpen(
+  Pointer<Uint8> key,
+  Pointer<Uint8> aad,
+  int aadLen,
+  Pointer<Uint8> nonce,
+  Pointer<Uint8> ct,
+  int ctLen,
+  Pointer<Uint8> pt,
+);

@@ -3,6 +3,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'package:vibe/vibe/vibe_pq.dart';
 import 'package:vibe/vibe/vibe_event_body.dart';
 import 'package:vibe/vibe/vibe_slash.dart';
 import 'package:vibe/vibe/vibe_haptics.dart';
@@ -95,8 +96,6 @@ class Message extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     if (!{
       EventTypes.Message,
       EventTypes.Sticker,
@@ -114,6 +113,18 @@ class Message extends StatelessWidget {
       return StateMessage(event);
     }
 
+    // a post-quantum message opens once its chat key is here
+    if (event.content[VibePq.wrapKey] != null) {
+      return ValueListenableBuilder<int>(
+        valueListenable: VibePq.changed,
+        builder: (context, _, _) => _message(context, VibePq.open(event)),
+      );
+    }
+    return _message(context, event);
+  }
+
+  Widget _message(BuildContext context, Event event) {
+    final theme = Theme.of(context);
     // Vibe: the samurai also plays when the other person deletes a message
     // for everyone (the row shows the message until his cut is done)
     VibeSlash.remember(event);
