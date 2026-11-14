@@ -8,7 +8,9 @@
 # Compile Vodozemac for web
 version=$(yq ".dependencies.flutter_vodozemac" < pubspec.yaml)
 version=$(printf "%s" "$version" | tr -d '"^')
-git clone https://github.com/famedly/dart-vodozemac.git -b ${version} .vodozemac
+# Newer dart-vodozemac tags carry a "v" prefix (v0.9.1), older ones do not.
+git clone https://github.com/famedly/dart-vodozemac.git -b "v${version}" .vodozemac ||
+  git clone https://github.com/famedly/dart-vodozemac.git -b "${version}" .vodozemac
 cd .vodozemac
 cargo install flutter_rust_bridge_codegen
 flutter_rust_bridge_codegen build-web --dart-root dart --rust-root $(readlink -f rust) --release
