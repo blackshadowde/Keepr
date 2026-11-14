@@ -5,6 +5,7 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 
 ## 2026-11-15
 
+- Post-quantum (groundwork): ML-KEM-768 (FIPS 203) from libcrux, the formally verified implementation Signal uses, built into the app for phones. Each device makes its own post-quantum key pair once, keeps it in secure storage, and shares the public key in direct chats signed with its device key; other Keepr apps only accept keys whose signature checks out. Settings > Encryption > Technical details shows "Post-quantum key: ML-KEM-768 · working" after a live check on the phone. Messages don't use it yet ([12c3f067d](https://github.com/blackshadowde/keepr/commit/12c3f067d))
 - Home: the top is your picture, name and status (Online in green) with round Search and Settings buttons; under it Chats and Spaces side by side as pills with their unread counts, and a round + at the end. Hold Chats for locked chats. Pinned chats show as pictures under that row when you have any ([d601d9fd0](https://github.com/blackshadowde/keepr/commit/d601d9fd0))
 - Chat bubbles: back to the picture sitting in the curve of the last bubble, and now every bubble of a run reaches the same edge, so the run lines up ([d601d9fd0](https://github.com/blackshadowde/keepr/commit/d601d9fd0))
 - Typing indicators: when someone sets a new one in a chat with you, you get a notification showing it (asking you to set yours if you haven't); opening the chat offers Set yours once ([d601d9fd0](https://github.com/blackshadowde/keepr/commit/d601d9fd0))
