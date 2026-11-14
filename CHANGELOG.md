@@ -5,7 +5,7 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 
 ## 2026-11-14
 
-- Chat: ⋯ in the chat bar now opens the person or group page with the chat's settings on it (Search, Mute, Chat wallpaper on glass, Encryption, Disappearing messages, Scheduled messages, Leave) instead of a separate menu. Photo stacks: swipe the top photo left or right to flip through them (with a 2/5 counter); tap opens the one on top. Swiping on a stack no longer closes the chat (PENDING)
+- Chat: ⋯ in the chat bar now opens the person or group page with the chat's settings on it (Search, Mute, Chat wallpaper on glass, Encryption, Disappearing messages, Scheduled messages, Leave) instead of a separate menu. Photo stacks: swipe the top photo left or right to flip through them (with a 2/5 counter); tap opens the one on top. Swiping on a stack no longer closes the chat ([9f5997c](https://github.com/blackshadowde/keepr/commit/9f5997c))
 
 - Chat: text messages sit in rounded bubbles (yours tinted with the theme colour) beside a small round picture; photos, stickers, big emoji and cards stay as they were. While someone types, the dots sit inside a round bubble, and a new message swells out of that corner like a drop pulling free (wide first, then tall, a little overshoot) before settling to its shape, instead of sliding in. The line that ran down each person's run is gone ([93997a1](https://github.com/blackshadowde/keepr/commit/93997a1))
 
