@@ -317,9 +317,8 @@ abstract class VibePq {
       threadRootEventId: threadRootEventId,
     );
     final me = r.client.userID;
-    final to = (parseCommands && text.startsWith('/')) || me == null
-        ? null
-        : recipients(r);
+    if (me == null || (parseCommands && text.startsWith('/'))) return plain();
+    final to = recipients(r);
     if (to == null) return plain();
     final ({String id, String share, Uint8List key})? s;
     try {
