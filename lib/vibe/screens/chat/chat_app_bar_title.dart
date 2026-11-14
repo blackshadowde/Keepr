@@ -276,14 +276,44 @@ class _ChatTitlePillState extends State<ChatTitlePill> {
                       const SizedBox(width: 10),
                       ConstrainedBox(
                         constraints: BoxConstraints(maxWidth: _open ? 110 : 190),
-                        child: Text(
-                          name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            // connecting: •-•-• with a running light; then
+                            // their local time (direct chats)
+                            StreamBuilder(
+                              stream: room.client.onSyncStatus.stream,
+                              builder: (context, _) {
+                                final status =
+                                    room.client.onSyncStatus.value ??
+                                    const SyncStatusUpdate(
+                                      SyncStatus.waitingForResponse,
+                                    );
+                                final syncing =
+                                    !(room.client.onSync.value != null &&
+                                        status.status != SyncStatus.error &&
+                                        room.client.prevBatch != null);
+                                final dmUser = room.directChatMatrixID;
+                                return VibeConnectBar(
+                                  syncing: syncing,
+                                  label: status.calcLocalizedString(context),
+                                  idle: dmUser != null
+                                      ? VibeTheirTime(room: room, userId: dmUser)
+                                      : const SizedBox.shrink(),
+                                );
+                              },
+                            ),
+                          ],
                         ),
                       ),
                     ],

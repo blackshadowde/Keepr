@@ -722,7 +722,16 @@ class _BackUnread extends StatelessWidget {
         backgroundColor: const Color(0xFFF23F43),
         textColor: Colors.white,
         offset: const Offset(-6, 6),
-        child: const BackButton(),
+        // a round backdrop so it reads over the messages, like the pill
+        child: Material(
+          color: Theme.of(context).colorScheme.surfaceContainerHigh
+              .withValues(alpha: 0.9),
+          shape: const CircleBorder(),
+          clipBehavior: Clip.antiAlias,
+          elevation: 2,
+          shadowColor: Colors.black26,
+          child: const BackButton(),
+        ),
       );
     },
   );
