@@ -173,6 +173,9 @@ abstract class VibePq {
 
   static final _keys = <String, Uint8List>{};
   static final _opened = <String, Map<String, Object?>>{};
+
+  /// Messages shown opened (their text must never be copied out).
+  static final _openedIds = <String>{};
   static final _fetching = <String>{};
 
   /// Chat keys that couldn't be found lately (not asked again for a minute).
@@ -309,6 +312,9 @@ abstract class VibePq {
     bool parseCommands = true,
     String? threadRootEventId,
   }) async {
+    // a reply carries a copy of what it answers: for a post-quantum message
+    // that copy is only the placeholder, never its words
+    inReplyTo = safeReply(inReplyTo);
     Future<String?> plain() => r.sendTextEvent(
       text,
       inReplyTo: inReplyTo,
@@ -361,6 +367,22 @@ abstract class VibePq {
     );
   }
 
+  static Event? safeReply(Event? e) {
+    if (e == null) return null;
+    if (e.content[wrapKey] == null && !_openedIds.contains(e.eventId)) {
+      return e;
+    }
+    return Event(
+      content: {'msgtype': MessageTypes.Text, 'body': fallback},
+      type: EventTypes.Message,
+      eventId: e.eventId,
+      senderId: e.senderId,
+      originServerTs: e.originServerTs,
+      room: e.room,
+      status: e.status,
+    );
+  }
+
   static String _unescape(String s) => s
       .replaceAll('&lt;', '<')
       .replaceAll('&gt;', '>')
@@ -380,6 +402,8 @@ abstract class VibePq {
       return e;
     }
     final rel = e.content['m.relates_to'];
+    if (_openedIds.length > 5000) _openedIds.clear();
+    _openedIds.add(e.eventId);
     return Event(
       content: {...inner, 'm.relates_to': ?rel},
       type: e.type,

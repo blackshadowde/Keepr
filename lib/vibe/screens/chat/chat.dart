@@ -943,9 +943,11 @@ class ChatController extends State<ChatPageWithRoom>
 
     final effect = sendEffect;
     sendEffect = null;
+    // effects ride on a plain message, so not in post-quantum chats yet
     if (effect != null &&
         editEvent == null &&
-        !sendController.text.startsWith('/')) {
+        !sendController.text.startsWith('/') &&
+        !VibePq.on(room)) {
       // ignore: unawaited_futures
       VibeEffects.send(
         room,

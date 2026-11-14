@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'package:vibe/vibe/vibe_pq.dart';
 import 'package:vibe/vibe/vibe_view_once.dart';
 import 'dart:math' as math;
 
@@ -240,7 +241,7 @@ abstract class VibeEffects {
     }
     return room.sendEvent(
       content,
-      inReplyTo: inReplyTo,
+      inReplyTo: VibePq.safeReply(inReplyTo),
       threadRootEventId: threadRootEventId,
     );
   }
