@@ -47,6 +47,11 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
   int _hop = 0, _wiggle = 0;
   double _gaze = 0;
   bool _sleepy = false;
+
+  /// When you last scrolled (so scrolling keeps it awake without a flood).
+  int _lastScroll = 0;
+  String? _lastEventId;
+  bool _toldAsleep = false;
   bool _pq = false;
 
   String _last = '';
@@ -69,7 +74,9 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
     c.sendController.addListener(_onText);
     VibeBuddy.sent.addListener(_onSent);
     VibeBuddy.changed.addListener(_refresh);
-    _wake();
+    c.scrollController.addListener(_onScroll);
+    _lastEventId = room.lastEvent?.eventId;
+    _activity();
     _pqTimer = Timer.periodic(const Duration(seconds: 30), (_) => _checkPq());
     _checkPq();
     final other = room.directChatMatrixID;
@@ -89,6 +96,12 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
       // they start typing: it looks up and waves
       var typing = false;
       _sync = room.client.onSync.stream.listen((_) {
+        // a new message keeps it awake (it sleeps through them at night)
+        final last = room.lastEvent?.eventId;
+        if (last != _lastEventId) {
+          _lastEventId = last;
+          _activity();
+        }
         final now = room.typingUsers.any((u) => u.id == other);
         if (now && !typing && mounted) {
           _show(BuddyMood.happy, BuddyProp.wave, 1600);
@@ -104,6 +117,8 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
     c.sendController.removeListener(_onText);
     VibeBuddy.sent.removeListener(_onSent);
     VibeBuddy.changed.removeListener(_refresh);
+    c.scrollController.removeListener(_onScroll);
+    VibeBuddy.dozing.value = false;
     for (final t in [_flashTimer, _hintTimer, _idle, _deleteReset, _pqTimer]) {
       t?.cancel();
     }
@@ -113,7 +128,15 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
   }
 
   void _refresh() {
+    if (!VibeBuddy.on) VibeBuddy.dozing.value = false;
     if (mounted) setState(() {});
+  }
+
+  void _onScroll() {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (now - _lastScroll < 2000) return;
+    _lastScroll = now;
+    _activity();
   }
 
   void _checkPq() {
@@ -124,6 +147,8 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
   Future<void> _afterOpen() async {
     if (!mounted) return;
     VibeBuddy.shareIn(room, Theme.of(context).colorScheme.primary);
+    // after midnight it's asleep until you pet it
+    if (VibeBuddy.night) _setSleep(true);
     // a draft waiting from last time
     if (c.sendController.text.trim().isNotEmpty) {
       _say(const _Hint('Your draft is still here', Icons.edit_note_rounded),
@@ -155,7 +180,16 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
 
   void _onText() {
     final text = c.sendController.text;
-    _wake();
+    _activity();
+    // typing at night doesn't wake it; say so once
+    if (_sleepy && text.trim().isNotEmpty && !_toldAsleep) {
+      _toldAsleep = true;
+      _say(
+        _Hint('${VibeBuddy.name} is asleep. Pet it to wake it',
+            Icons.bedtime_outlined, () => _tap()),
+        seconds: 5,
+      );
+    }
     if (text.length < _last.length) {
       _deleted += _last.length - text.length;
       _deleteReset?.cancel();
@@ -304,14 +338,26 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
 
   // ---- moods and hints ----
 
-  void _wake() {
+  /// Something happened: it stays (or wakes) up, and dozes off again after
+  /// a quiet while (a minute and a half by day, half a minute at bedtime,
+  /// a minute after midnight). After midnight only petting wakes it.
+  void _activity({bool pet = false}) {
     _idle?.cancel();
-    if (_sleepy) setState(() => _sleepy = false);
-    _idle = Timer(const Duration(seconds: 45), () {
-      if (mounted && c.sendController.text.isEmpty) {
-        setState(() => _sleepy = true);
-      }
+    if (_sleepy && (pet || !VibeBuddy.night)) _setSleep(false);
+    final quiet = VibeBuddy.night
+        ? 60
+        : VibeBuddy.bedtime
+        ? 30
+        : 90;
+    _idle = Timer(Duration(seconds: quiet), () {
+      if (mounted && c.sendController.text.isEmpty) _setSleep(true);
     });
+  }
+
+  void _setSleep(bool v) {
+    if (!mounted) return;
+    if (_sleepy != v) setState(() => _sleepy = v);
+    VibeBuddy.dozing.value = v && VibeBuddy.on;
   }
 
   void _show(BuddyMood mood, BuddyProp? prop, int ms) {
@@ -332,7 +378,6 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
 
   void _say(_Hint h, {BuddyMood? mood, BuddyProp? prop, int seconds = 4}) {
     if (!mounted) return;
-    _wake();
     _hintTimer?.cancel();
     setState(() => _hint = h);
     if (mood != null) _show(mood, prop, seconds * 1000);
@@ -345,13 +390,21 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
 
   void _tap() {
     VibeHaptics.light();
-    _wake();
+    final wasAsleep = _sleepy;
+    _activity(pet: true);
     setState(() => _wiggle++);
+    if (wasAsleep) {
+      // a stretch and a smile; the chat brightens
+      _say(const _Hint("I'm up", Icons.wb_sunny_outlined),
+          mood: BuddyMood.happy, prop: BuddyProp.wave, seconds: 2);
+      return;
+    }
     _show(BuddyMood.giggle, null, 1200);
   }
 
   void _tickle() {
     VibeHaptics.medium();
+    _activity(pet: true);
     setState(() => _wiggle++);
     Future.delayed(const Duration(milliseconds: 350), () {
       if (mounted) setState(() => _wiggle++);
@@ -444,8 +497,11 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
   Widget build(BuildContext context) {
     if (!VibeBuddy.on) return const SizedBox.shrink();
     final cs = Theme.of(context).colorScheme;
-    final mood =
-        _flash ?? (_sleepy ? BuddyMood.sleepy : _typingMood);
+    // bedtime: tired unless your words say otherwise
+    final awake = VibeBuddy.bedtime && _typingMood == BuddyMood.idle
+        ? BuddyMood.tired
+        : _typingMood;
+    final mood = _flash ?? (_sleepy ? BuddyMood.sleepy : awake);
     final prop = _flashProp ?? (_pq ? BuddyProp.shield : BuddyProp.none);
     final hint = _hint;
     return SizedBox(

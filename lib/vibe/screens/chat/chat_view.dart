@@ -532,7 +532,11 @@ class ChatView extends StatelessWidget {
                                 ),
                             child: GestureDetector(
                               onTap: controller.clearSingleSelectedEvent,
-                              child: ChatEventList(controller: controller),
+                              // dull while the buddy sleeps, bright when
+                              // it's awake
+                              child: VibeBuddyDim(
+                                child: ChatEventList(controller: controller),
+                              ),
                             ),
                           ),
                         ),

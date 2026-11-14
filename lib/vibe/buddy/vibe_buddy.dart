@@ -16,7 +16,17 @@ import 'package:vibe/widgets/adaptive_dialogs/show_ok_cancel_alert_dialog.dart';
 /// happens on this phone; only whether it's on, its name, colour and
 /// outfit are shared in direct chats, so the other person's Keepr can show
 /// it in your typing circle.
-enum BuddyMood { idle, happy, love, worried, sleepy, puzzled, cover, giggle }
+enum BuddyMood {
+  idle,
+  happy,
+  love,
+  worried,
+  sleepy,
+  tired,
+  puzzled,
+  cover,
+  giggle,
+}
 
 enum BuddyProp { none, shield, paper, wave }
 
@@ -51,6 +61,18 @@ abstract class VibeBuddy {
 
   /// Fires when its settings change.
   static final changed = ValueNotifier<int>(0);
+
+  /// True while the buddy sleeps: the chat goes dull until it wakes.
+  static final dozing = ValueNotifier<bool>(false);
+
+  /// Midnight to 6 am: it sleeps unless you pet it awake.
+  static bool get night {
+    final h = DateTime.now().hour;
+    return h < 6;
+  }
+
+  /// 10 pm to midnight: bedtime, it's tired and nods off quickly.
+  static bool get bedtime => DateTime.now().hour >= 22;
 
   static bool get on => AppSettings.store.getBool(_on) ?? true;
   static String get name => AppSettings.store.getString(_name) ?? 'Mochi';
@@ -469,6 +491,27 @@ class _BuddyPainter extends CustomPainter {
             Offset(exs[0] + ew * 0.5, ey - eh * 0.82), brow);
         canvas.drawLine(Offset(exs[1] + ew * 0.7, ey - eh * 0.62),
             Offset(exs[1] - ew * 0.5, ey - eh * 0.82), brow);
+      case BuddyMood.tired:
+        // heavy lids: half shut, drooping a little lower now and then
+        final droop = 0.45 + 0.25 * (0.5 + 0.5 * math.sin(wave * math.pi * 2));
+        for (final x in exs) {
+          openEye(x, look: gaze);
+          final lid = Rect.fromLTWH(
+            x - ew * 0.75,
+            ey - eh * 0.62,
+            ew * 1.5,
+            eh * 1.2 * droop,
+          );
+          canvas.drawRect(lid, Paint()..color = Color.lerp(color, Colors.white, 0.28)!);
+          canvas.drawLine(
+            Offset(x - ew * 0.6, lid.bottom),
+            Offset(x + ew * 0.6, lid.bottom),
+            Paint()
+              ..color = ink.withValues(alpha: 0.6)
+              ..strokeWidth = w * 0.025
+              ..strokeCap = StrokeCap.round,
+          );
+        }
       case BuddyMood.puzzled:
         openEye(exs[0], scale: 1.12, look: gaze);
         openEye(exs[1], scale: 0.78, look: gaze);
@@ -522,6 +565,17 @@ class _BuddyPainter extends CustomPainter {
           Rect.fromCenter(center: mc, width: w * 0.06, height: h * 0.06),
           Paint()..color = ink,
         );
+      case BuddyMood.tired:
+        // a slow yawn in the middle of each breath
+        final y = (0.5 + 0.5 * math.sin(wave * math.pi * 2 - 1.2)).clamp(0.0, 1.0);
+        canvas.drawOval(
+          Rect.fromCenter(
+            center: mc + Offset(0, h * 0.02),
+            width: w * (0.07 + 0.06 * y),
+            height: h * (0.05 + 0.12 * y),
+          ),
+          Paint()..color = ink,
+        );
       case BuddyMood.love:
       case BuddyMood.cover:
       case BuddyMood.idle:
@@ -547,7 +601,30 @@ class _BuddyPainter extends CustomPainter {
 
     _outfit(canvas, w, h, ink);
     _prop(canvas, w, h, hand, ink);
+    if (mood == BuddyMood.sleepy) _zzz(canvas, w, h, ink);
     canvas.restore();
+  }
+
+  /// Little z's drifting up while it sleeps.
+  void _zzz(Canvas canvas, double w, double h, Color ink) {
+    for (var i = 0; i < 3; i++) {
+      final t = (wave + i / 3) % 1;
+      final tp = TextPainter(
+        text: TextSpan(
+          text: 'z',
+          style: TextStyle(
+            fontSize: w * (0.18 + 0.12 * t),
+            fontWeight: FontWeight.w800,
+            color: Color.lerp(color, Colors.white, 0.4)!.withValues(
+              alpha: (1 - t) * 0.9,
+            ),
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, Offset(w * (0.8 + 0.25 * t), -h * 0.05 - h * 0.6 * t));
+      tp.dispose();
+    }
   }
 
   void _outfit(Canvas canvas, double w, double h, Color ink) {
@@ -844,6 +921,52 @@ class _VibeBuddyPageState extends State<VibeBuddyPage> {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The chat behind the buddy: dull and dim while it sleeps, bright when
+/// it's awake (a slow fade between the two). The chat keeps its state
+/// (scroll position and all) when the filter comes and goes.
+class VibeBuddyDim extends StatefulWidget {
+  final Widget child;
+  const VibeBuddyDim({required this.child, super.key});
+
+  @override
+  State<VibeBuddyDim> createState() => _VibeBuddyDimState();
+}
+
+class _VibeBuddyDimState extends State<VibeBuddyDim> {
+  final _key = GlobalKey();
+
+  static List<double> _matrix(double t) {
+    // less colour and a little darker as t goes to 1
+    final s = 1 - 0.55 * t, b = 1 - 0.22 * t;
+    const r = 0.2126, g = 0.7152, bl = 0.0722;
+    return [
+      (r + (1 - r) * s) * b, g * (1 - s) * b, bl * (1 - s) * b, 0, 0,
+      r * (1 - s) * b, (g + (1 - g) * s) * b, bl * (1 - s) * b, 0, 0,
+      r * (1 - s) * b, g * (1 - s) * b, (bl + (1 - bl) * s) * b, 0, 0,
+      0, 0, 0, 1, 0,
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final child = KeyedSubtree(key: _key, child: widget.child);
+    return ValueListenableBuilder<bool>(
+      valueListenable: VibeBuddy.dozing,
+      builder: (context, dozing, _) => TweenAnimationBuilder<double>(
+        tween: Tween(end: dozing ? 1 : 0),
+        duration: const Duration(milliseconds: 1200),
+        curve: Curves.easeInOut,
+        builder: (context, t, _) => t <= 0.001
+            ? child
+            : ColorFiltered(
+                colorFilter: ColorFilter.matrix(_matrix(t)),
+                child: child,
+              ),
       ),
     );
   }
