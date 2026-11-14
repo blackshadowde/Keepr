@@ -10,6 +10,7 @@ import 'package:vibe/vibe/vibe_quote.dart';
 import 'package:vibe/vibe/vibe_threads.dart';
 import 'package:vibe/vibe/vibe_chat_dock.dart';
 import 'package:vibe/vibe/vibe_strict.dart';
+import 'package:vibe/vibe/vibe_pq.dart';
 import 'package:vibe/vibe/vibe_typing_style.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart'
     hide Priority;
@@ -534,6 +535,8 @@ class ChatController extends State<ChatPageWithRoom>
     VibeChatDock.opened(widget.room.id);
     // my own typing indicator, for direct chats that don't have it yet
     VibeTypingStyle.shareIn(widget.room);
+    // this device's post-quantum key, for direct chats
+    VibePq.publishIn(widget.room);
     // they have a typing indicator and you don't: offer yours
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) VibeTypingStyle.offer(context, widget.room);

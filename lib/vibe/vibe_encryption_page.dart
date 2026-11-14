@@ -7,6 +7,7 @@ import 'package:vibe/vibe/vibe_motion.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:matrix/encryption.dart';
+import 'package:vibe/vibe/vibe_pq.dart';
 
 class VibeEncryptionPage extends StatefulWidget {
   const VibeEncryptionPage({super.key});
@@ -59,8 +60,11 @@ class _VibeEncryptionPageState extends State<VibeEncryptionPage> {
     if (ok == true && mounted) await _open('/backup?reset=true');
   }
 
-  void _technical(dynamic state) {
+  Future<void> _technical(dynamic state) async {
     final client = Matrix.of(context).client;
+    // runs ML-KEM once on this phone, so this shows it really works here
+    final pq = await VibePq.selfTest(client);
+    if (!mounted) return;
     String safe(String Function() f) {
       try {
         return f();
@@ -75,6 +79,7 @@ class _VibeEncryptionPageState extends State<VibeEncryptionPage> {
       ('Device key', safe(() => client.fingerprintKey)),
       ('Identity key', safe(() => client.identityKey)),
       ('Encryption', safe(() => client.encryptionEnabled ? 'Enabled' : 'Off')),
+      ('Post-quantum key', pq),
       (
         'Cross-signing',
         safe(() => state.crossSigningEnabled == true ? 'Enabled' : 'Not ready'),
