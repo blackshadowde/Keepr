@@ -437,8 +437,8 @@ const vibeTour = (
       'Privacy',
       'Direct chats change their key even more often.',
       [
-        VibeTourItem(Icons.key_rounded, 'A fresh key every 3 messages',
-            'With strict encryption, direct chats get a new key every 3 messages or 5 minutes. Groups keep every 10 messages or an hour.', VibeDemo.dmKeys),
+        VibeTourItem(Icons.key_rounded, 'A fresh key for every message',
+            'With strict encryption, every message gets its own new key, in direct chats and groups alike.', VibeDemo.dmKeys),
         VibeTourItem(Icons.translate_rounded, 'Keepr in every language',
             'Every translation now says Keepr, and invites point to Keepr\'s website.'),
       ],

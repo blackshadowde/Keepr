@@ -245,6 +245,12 @@ class _VibeHomeViewState extends State<VibeHomeView> {
           final joinedRooms = rooms.where(
             (r) => r.membership == Membership.join,
           );
+          bool unread(Room r) => r.notificationCount > 0 || r.markedUnread;
+          final chatsUnread = joinedRooms
+              .where((r) => !VibeGroups.isGroup(r) && unread(r))
+              .length;
+          final spacesUnread =
+              joinedRooms.where((r) => VibeGroups.isGroup(r) && unread(r)).length;
           for (final r in joinedRooms.where((r) => r.isFavourite)) {
             add(r);
           }
@@ -276,6 +282,8 @@ class _VibeHomeViewState extends State<VibeHomeView> {
                     if (selectedId == null)
                       _HomeTop(
                         quick: quick,
+                        chatsUnread: chatsUnread,
+                        spacesUnread: spacesUnread,
                         spacesMode: _spacesMode,
                         flash: _flash,
                         onMode: _setMode,
@@ -453,6 +461,10 @@ class _RoomListBuilderState extends State<_RoomListBuilder> {
 class _HomeTop extends StatelessWidget {
   /// Pinned, unread and recent chats for the rail.
   final List<Room> quick;
+
+  /// Unread direct chats, and unread groups / channels / communities.
+  final int chatsUnread;
+  final int spacesUnread;
   final bool spacesMode;
   final ValueChanged<bool> onMode;
   final void Function(Room room) onOpenChat;
@@ -463,6 +475,8 @@ class _HomeTop extends StatelessWidget {
   final VoidCallback onLockedChats;
   const _HomeTop({
     required this.quick,
+    required this.chatsUnread,
+    required this.spacesUnread,
     required this.spacesMode,
     required this.onMode,
     required this.onOpenChat,
@@ -540,6 +554,8 @@ class _HomeTop extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(right: 10),
                   child: _ModePill(
+                    chatsUnread: chatsUnread,
+                    spacesUnread: spacesUnread,
                     spaces: spacesMode,
                     onChange: onMode,
                     onHold: onLockedChats,
@@ -591,7 +607,11 @@ class _ModePill extends StatefulWidget {
   final bool spaces;
   final ValueChanged<bool> onChange;
   final VoidCallback onHold;
+  final int chatsUnread;
+  final int spacesUnread;
   const _ModePill({
+    required this.chatsUnread,
+    required this.spacesUnread,
     required this.spaces,
     required this.onChange,
     required this.onHold,
@@ -640,6 +660,14 @@ class _ModePillState extends State<_ModePill> {
                   color: on ? cs.onPrimary : cs.onSurfaceVariant,
                 ),
               ),
+              // how many of each are unread
+              if ((sp ? widget.spacesUnread : widget.chatsUnread) > 0) ...[
+                const SizedBox(width: 6),
+                _Count(
+                  sp ? widget.spacesUnread : widget.chatsUnread,
+                  inverted: on,
+                ),
+              ],
             ],
           ),
         ),
@@ -668,20 +696,62 @@ class _ModePillState extends State<_ModePill> {
             : GestureDetector(
                 onTap: () => setState(() => _open = true),
                 onLongPress: widget.onHold,
-                child: Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: cs.primary,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(
-                    _icon(widget.spaces),
-                    color: cs.onPrimary,
-                    semanticLabel: widget.spaces ? 'Spaces' : 'Chats',
-                  ),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: cs.primary,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(
+                        _icon(widget.spaces),
+                        color: cs.onPrimary,
+                        semanticLabel: widget.spaces ? 'Spaces' : 'Chats',
+                      ),
+                    ),
+                    // everything unread, chats and spaces together
+                    if (widget.chatsUnread + widget.spacesUnread > 0)
+                      Positioned(
+                        right: -5,
+                        top: -5,
+                        child: _Count(widget.chatsUnread + widget.spacesUnread),
+                      ),
+                  ],
                 ),
               ),
+      ),
+    );
+  }
+}
+
+/// A small unread count: red, or white on the selected segment.
+class _Count extends StatelessWidget {
+  final int n;
+  final bool inverted;
+  const _Count(this.n, {this.inverted = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      constraints: const BoxConstraints(minWidth: 18),
+      height: 18,
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: inverted ? cs.onPrimary : const Color(0xFFF23F43),
+        borderRadius: BorderRadius.circular(9),
+      ),
+      child: Text(
+        n > 99 ? '99+' : '$n',
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: inverted ? cs.primary : Colors.white,
+        ),
       ),
     );
   }

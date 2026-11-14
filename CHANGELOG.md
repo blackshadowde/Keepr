@@ -5,6 +5,10 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 
 ## 2026-11-14
 
+- Strict encryption: every single message now gets a fresh key, in direct chats and groups alike (it was every 3 messages or 5 minutes in direct chats, every 10 messages or an hour in groups). Strict chats move over the next time you open them, if you're allowed to change the chat's settings. Each new key is shared with everyone's devices, so big groups do a little more work per message. The website and FAQ say the same now (PENDING)
+- Polls: a Poll button in the attach menu. The poll is a card in the chat: the question, each answer as a rounded row that fills with its share of votes (with the faces of who picked it and the percentage), radio buttons or checkboxes when more than one answer is allowed, and End poll for whoever started it. Making one is a matching sheet: the question, numbered answers, add / remove answers, whether answers show before the end, and more than one answer (PENDING)
+- Home: the Chats / Spaces tile shows how many chats are unread; opened, each side shows its own count (PENDING)
+
 - Home: pinned chats now show only in the row at the top, no longer also in a Pinned section of the list (they still turn up when you search) ([a8e5a4f](https://github.com/blackshadowde/keepr/commit/a8e5a4f))
 
 - Chat bar: the pill shows the connection status again under the name (•-•-• with a running light while connecting, green once connected), then their local time in direct chats. The back arrow sits on a round backdrop like the pill. Home: the row at the top shows only pinned chats and chats with unread messages, each once (it also showed chats you'd written in last) ([d00788d](https://github.com/blackshadowde/keepr/commit/d00788d))

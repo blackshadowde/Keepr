@@ -86,86 +86,156 @@ class _StartPollBottomSheetState extends State<StartPollBottomSheet> {
   @override
   Widget build(BuildContext context) {
     const maxAnswers = 10;
+    final cs = Theme.of(context).colorScheme;
+    InputDecoration field(String hint, {Widget? suffix, Widget? prefix}) =>
+        InputDecoration(
+          hintText: hint,
+          counter: const SizedBox.shrink(),
+          filled: true,
+          fillColor: cs.surfaceContainerHigh,
+          prefixIcon: prefix,
+          suffixIcon: suffix,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
+        );
     return Scaffold(
       appBar: AppBar(
         leading: CloseButton(onPressed: Navigator.of(context).pop),
-        title: Text(L10n.of(context).startPoll),
+        title: Text(
+          L10n.of(context).startPoll,
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
       ),
       body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
+          // the question
           TextField(
             controller: _bodyController,
             minLines: 2,
             maxLines: 4,
             maxLength: 1024,
+            autofocus: true,
             onChanged: _updateCanCreate,
-            decoration: InputDecoration(
-              hintText: L10n.of(context).pollQuestion,
-              counter: const SizedBox.shrink(),
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+            decoration: field(L10n.of(context).pollQuestion),
+          ),
+          const SizedBox(height: 18),
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 8),
+            child: Text(
+              'Answers',
+              style: TextStyle(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+                color: cs.onSurfaceVariant,
+              ),
             ),
           ),
-          const Divider(height: 32),
-          ..._answers.map(
-            (answerController) => Padding(
-              padding: const EdgeInsets.only(bottom: 16.0),
+          // the answers, numbered
+          for (var i = 0; i < _answers.length; i++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
               child: TextField(
-                controller: answerController,
+                key: ObjectKey(_answers[i]),
+                controller: _answers[i],
                 onChanged: _updateCanCreate,
                 maxLength: 64,
-                decoration: InputDecoration(
-                  counter: const SizedBox.shrink(),
-                  hintText: L10n.of(context).answerOption,
-                  suffixIcon: _answers.length == 2
+                decoration: field(
+                  L10n.of(context).answerOption,
+                  prefix: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: CircleAvatar(
+                      radius: 11,
+                      backgroundColor: cs.primary.withValues(alpha: 0.18),
+                      child: Text(
+                        '${i + 1}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: cs.primary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  suffix: _answers.length == 2
                       ? null
                       : IconButton(
-                          icon: const Icon(Icons.cancel_outlined),
+                          tooltip: 'Remove',
+                          icon: const Icon(Icons.close_rounded),
                           onPressed: () => setState(() {
-                            _answers.remove(answerController..dispose());
+                            _answers.remove(_answers[i]..dispose());
+                            _updateCanCreate();
                           }),
                         ),
                 ),
               ),
             ),
-          ),
           Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              icon: const Icon(Icons.add_outlined),
+            alignment: AlignmentDirectional.centerStart,
+            child: FilledButton.tonalIcon(
+              icon: const Icon(Icons.add_rounded),
               onPressed: _answers.length < maxAnswers
                   ? () => setState(() {
                       _answers.add(TextEditingController());
+                      _updateCanCreate();
                     })
                   : null,
               label: Text(L10n.of(context).addAnswerOption),
             ),
           ),
-          const Divider(height: 32),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Switch.adaptive(
-              value: _pollKind == PollKind.disclosed,
-              onChanged: (allow) => setState(() {
-                _pollKind = allow ? PollKind.disclosed : PollKind.undisclosed;
-              }),
+          const SizedBox(height: 18),
+          Material(
+            color: cs.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(18),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                SwitchListTile.adaptive(
+                  value: _pollKind == PollKind.disclosed,
+                  onChanged: (allow) => setState(() {
+                    _pollKind = allow
+                        ? PollKind.disclosed
+                        : PollKind.undisclosed;
+                  }),
+                  title: Text(L10n.of(context).answersVisible),
+                ),
+                SwitchListTile.adaptive(
+                  value: _allowMultipleAnswers,
+                  onChanged: (allow) => setState(() {
+                    _allowMultipleAnswers = allow;
+                  }),
+                  title: Text(L10n.of(context).allowMultipleAnswers),
+                ),
+              ],
             ),
-            title: Text(L10n.of(context).answersVisible),
           ),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Switch.adaptive(
-              value: _allowMultipleAnswers,
-              onChanged: (allow) => setState(() {
-                _allowMultipleAnswers = allow;
-              }),
+          const SizedBox(height: 22),
+          SizedBox(
+            height: 52,
+            child: FilledButton(
+              onPressed: !isLoading && _canCreate ? _createPoll : null,
+              style: FilledButton.styleFrom(shape: const StadiumBorder()),
+              child: isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Text(
+                      L10n.of(context).startPoll,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
             ),
-            title: Text(L10n.of(context).allowMultipleAnswers),
-          ),
-          ElevatedButton(
-            onPressed: !isLoading && _canCreate ? _createPoll : null,
-            child: isLoading
-                ? const LinearProgressIndicator()
-                : Text(L10n.of(context).startPoll),
           ),
         ],
       ),

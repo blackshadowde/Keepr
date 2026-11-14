@@ -59,7 +59,7 @@
 
   if (reduce || !window.gsap || !window.ScrollTrigger) {
     $$('.sl').forEach((l, i) => (l.style.opacity = i === 3 ? 1 : 0));
-    blocks.forEach((b, i) => { b.classList.add('k'); b.style.color = keyColors[Math.floor(i / 10)]; });
+    blocks.forEach((b, i) => { b.classList.add('k'); b.style.color = keyColors[i % keyColors.length]; });
     typed.textContent = link;
     return;
   }
@@ -108,7 +108,7 @@
     .to(lines[2], { opacity: 0, y: -20, duration: 0.3 }, 3.2)
     .fromTo(lines[3], { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.3 }, 3.4)
     .to({}, { duration: 0.4 });
-  // fill the key blocks as you scroll, a new colour every 10 messages
+  // fill the key blocks as you scroll, a new colour for every message
   ScrollTrigger.create({
     trigger: '.strict', start: 'top top', end: 'bottom bottom',
     onUpdate: (s) => {
@@ -116,7 +116,7 @@
       blocks.forEach((b, i) => {
         const on = i < n;
         b.classList.toggle('k', on);
-        b.style.color = on ? keyColors[Math.floor(i / 10)] : '';
+        b.style.color = on ? keyColors[i % keyColors.length] : '';
       });
     },
   });

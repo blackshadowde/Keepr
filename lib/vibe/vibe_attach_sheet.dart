@@ -380,6 +380,16 @@ class _AttachSheetState extends State<_AttachSheet> {
                           },
                         ),
                         _Action(
+                          icon: Icons.poll_outlined,
+                          label: 'Poll',
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            c.onAddPopupMenuButtonSelected(
+                              AddPopupMenuActions.poll,
+                            );
+                          },
+                        ),
+                        _Action(
                           icon: Icons.location_on,
                           label: 'Location',
                           onTap: () {

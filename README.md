@@ -42,7 +42,7 @@ The layout: a rail of profile pictures on the left, your DMs in the middle, and 
 ## Features
 
 **Privacy first**
-- 🛡 **Strict encryption:** a fresh message key every 10 messages or every hour (Matrix's default is 100 messages or a week), so a leaked key unlocks almost nothing. On for new chats; the lock turns into a shield. Element and other Matrix apps still read the chat.
+- 🛡 **Strict encryption:** a fresh message key for every single message (Matrix's default is one key for 100 messages or a week), so a leaked key unlocks almost nothing. On for new chats; the lock turns into a shield. Element and other Matrix apps still read the chat.
 - End-to-end encrypted chats, verification and recovery key backup
 - Up to date with the latest Matrix SDK (14.2) and encryption library (vodozemac 0.9)
 
