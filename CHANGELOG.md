@@ -5,7 +5,7 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 
 ## 2026-11-14
 
-- Home: pinned chats now show only in the row at the top, no longer also in a Pinned section of the list (they still turn up when you search) (PENDING)
+- Home: pinned chats now show only in the row at the top, no longer also in a Pinned section of the list (they still turn up when you search) ([a8e5a4f](https://github.com/blackshadowde/keepr/commit/a8e5a4f))
 
 - Chat bar: the pill shows the connection status again under the name (•-•-• with a running light while connecting, green once connected), then their local time in direct chats. The back arrow sits on a round backdrop like the pill. Home: the row at the top shows only pinned chats and chats with unread messages, each once (it also showed chats you'd written in last) ([d00788d](https://github.com/blackshadowde/keepr/commit/d00788d))
 
