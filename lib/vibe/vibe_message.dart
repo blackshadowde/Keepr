@@ -793,7 +793,7 @@ class VibeMessage extends StatelessWidget {
                     MessageTypes.Notice,
                     MessageTypes.Emote,
                   }.contains(displayEvent.messageType) &&
-                  !(bigEmojis && displayEvent.onlyEmotes) &&
+                  !displayEvent.onlyEmotes &&
                   VibeChunks.info(displayEvent) == null &&
                   !VibeLinkPreview.onlyLink(displayEvent);
               final Widget shown = !bubble
@@ -1329,52 +1329,3 @@ class _SendingPainter extends CustomPainter {
   bool shouldRepaint(covariant _SendingPainter old) => old.t != t || old.fold != fold || old.color != color;
 }
 
-/// The line that grows up from a picture (under the last message of a run)
-/// and curves into each earlier message of that run. Drawn on every row but
-/// the last. [mirror]: the picture is on the right (yours).
-class _GroupLine extends CustomPainter {
-  final bool first;
-  final bool last;
-  final bool mirror;
-  final double elbow;
-  final Color color;
-  const _GroupLine({
-    required this.first,
-    required this.last,
-    required this.mirror,
-    required this.elbow,
-    required this.color,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const x0 = 20.0; // middle of the 40px picture column
-    const r = 10.0; // how round the curve is
-    const end = 46.0; // stops just before the text
-    double fx(double x) => mirror ? size.width - x : x;
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-    if (last) return; // the picture's own row
-    final path = Path()
-      // up from the row below: to the top for a middle message, to the
-      // curve for the first one
-      ..moveTo(fx(x0), size.height)
-      ..lineTo(fx(x0), first ? elbow + r : 0);
-    if (!first) path.moveTo(fx(x0), elbow + r);
-    path
-      ..quadraticBezierTo(fx(x0), elbow, fx(x0 + r), elbow)
-      ..lineTo(fx(end), elbow);
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(_GroupLine old) =>
-      old.first != first ||
-      old.last != last ||
-      old.mirror != mirror ||
-      old.elbow != elbow ||
-      old.color != color;
-}
