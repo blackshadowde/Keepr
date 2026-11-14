@@ -4,6 +4,8 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:matrix/matrix.dart';
+import 'package:vibe/vibe/vibe_swipe.dart';
+import 'package:vibe/vibe/vibe_haptics.dart';
 import 'package:vibe/utils/date_time_extension.dart';
 import 'package:vibe/vibe/vibe_media_viewer.dart';
 import 'package:vibe/widgets/avatar.dart';
@@ -13,7 +15,7 @@ import 'package:vibe/widgets/mxc_image.dart';
 /// show as one stack: the first photo on top, cards tucked behind it tilted a
 /// little. Tap to swipe through them. Display only: the photos are still
 /// separate messages.
-class VibePhotoStack extends StatelessWidget {
+class VibePhotoStack extends StatefulWidget {
   /// Oldest first.
   final List<Event> events;
 
@@ -33,6 +35,27 @@ class VibePhotoStack extends StatelessWidget {
       e.messageType == MessageTypes.Image &&
       !e.redacted &&
       e.inReplyToEventId(includingFallback: false) == null;
+
+  @override
+  State<VibePhotoStack> createState() => _VibePhotoStackState();
+}
+
+class _VibePhotoStackState extends State<VibePhotoStack> {
+  /// The photo on top; swipe the stack to flip through.
+  int _i = 0;
+  double _dx = 0;
+
+  List<Event> get events => widget.events;
+  void Function(Event)? get onLongPress => widget.onLongPress;
+
+  void _flip(int by) {
+    VibeHaptics.selection();
+    setState(() {
+      _i = (_i + by) % events.length;
+      if (_i < 0) _i += events.length;
+      _dx = 0;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -111,27 +134,86 @@ class VibePhotoStack extends StatelessWidget {
                         ),
                       ),
                     ),
-                  GestureDetector(
-                    onTap: () => VibeMediaViewer.open(context, events, 0),
+                  // swipe the top photo away to flip to the next (or back)
+                  VibeNoBackSwipe(
+                    child: GestureDetector(
+                    onTap: () => VibeMediaViewer.open(context, events, _i),
                     onLongPress: onLongPress == null
                         ? null
-                        : () => onLongPress!(events.first),
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: cs.surface,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: radius,
-                        child: MxcImage(
-                          event: events.first,
-                          fit: BoxFit.cover,
-                          width: w,
-                          height: h,
+                        : () => onLongPress!(events[_i]),
+                    onHorizontalDragUpdate: (d) =>
+                        setState(() => _dx += d.delta.dx),
+                    onHorizontalDragEnd: (d) {
+                      final v = d.primaryVelocity ?? 0;
+                      if (_dx < -50 || v < -300) {
+                        _flip(1);
+                      } else if (_dx > 50 || v > 300) {
+                        _flip(-1);
+                      } else {
+                        setState(() => _dx = 0);
+                      }
+                    },
+                    child: AnimatedSlide(
+                      offset: Offset(_dx / w, 0),
+                      duration: Duration(milliseconds: _dx == 0 ? 220 : 0),
+                      curve: Curves.easeOutCubic,
+                      child: Transform.rotate(
+                        angle: _dx / w * 0.25,
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 260),
+                          switchInCurve: Curves.easeOutBack,
+                          transitionBuilder: (child, a) => ScaleTransition(
+                            scale: Tween(begin: 0.9, end: 1.0).animate(a),
+                            child: FadeTransition(opacity: a, child: child),
+                          ),
+                          child: Container(
+                            key: ValueKey(_i),
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              color: cs.surface,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Stack(
+                              children: [
+                                ClipRRect(
+                                  borderRadius: radius,
+                                  child: MxcImage(
+                                    event: events[_i],
+                                    fit: BoxFit.cover,
+                                    width: w,
+                                    height: h,
+                                  ),
+                                ),
+                                // which one of how many
+                                Positioned(
+                                  right: 8,
+                                  bottom: 8,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black54,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      '${_i + 1}/${events.length}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),
+                  ),
                   ),
                 ],
               ),

@@ -25,7 +25,7 @@ import 'package:vibe/vibe/vibe_peek.dart';
 import 'package:vibe/vibe/vibe_lock_button.dart';
 import 'package:vibe/vibe/vibe_starred.dart';
 import 'package:vibe/vibe/vibe_status.dart';
-import 'package:vibe/widgets/chat_settings_popup_menu.dart';
+import 'package:vibe/vibe/vibe_dm_detail.dart';
 import 'package:vibe/widgets/future_loading_dialog.dart';
 import 'package:vibe/widgets/matrix.dart';
 import 'package:vibe/widgets/mxc_image.dart';
@@ -170,7 +170,16 @@ class ChatView extends StatelessWidget {
                             ),
                             if (!controller.room.isArchived) ...[
                               VibeLockButton(room: controller.room),
-                              ChatSettingsPopupMenu(controller.room, true),
+                              // ⋯: the person / group page with the chat's
+                              // settings, all in one
+                              IconButton(
+                                tooltip: 'More',
+                                icon: const Icon(Icons.more_vert),
+                                onPressed: () => VibeDmDetail.openFromChat(
+                                  context,
+                                  controller.room,
+                                ),
+                              ),
                             ],
                           ],
                         ),

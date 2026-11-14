@@ -32,6 +32,11 @@ import 'package:vibe/vibe/vibe_strict.dart';
 import 'package:vibe/vibe/vibe_communities.dart';
 import 'package:vibe/vibe/vibe_chat_actions.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:vibe/widgets/future_loading_dialog.dart';
+import 'package:vibe/widgets/adaptive_dialogs/show_ok_cancel_alert_dialog.dart';
+import 'package:vibe/vibe/vibe_glass.dart';
+import 'package:vibe/vibe/vibe_send_later.dart';
+import 'package:vibe/vibe/vibe_disappearing.dart';
 
 final RegExp _urlRegex = RegExp(r'https?://\S+');
 
@@ -47,12 +52,33 @@ class VibeDmDetail extends StatelessWidget {
   final VoidCallback onBack;
   final VoidCallback onOpenChat;
 
+  /// Opened from the chat's ⋯: also the chat's own settings (search,
+  /// mute, encryption, disappearing and scheduled messages, leave).
+  final bool settings;
+
   const VibeDmDetail({
     required this.room,
     required this.onBack,
     required this.onOpenChat,
+    this.settings = false,
     super.key,
   });
+
+  /// The chat's ⋯: this page with its settings, over the chat.
+  static void openFromChat(BuildContext context, Room room) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (ctx) => Scaffold(
+          body: VibeDmDetail(
+            room: room,
+            settings: true,
+            onBack: () => Navigator.of(ctx).pop(),
+            onOpenChat: () => Navigator.of(ctx).pop(),
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -362,6 +388,7 @@ class VibeDmDetail extends StatelessWidget {
                   ],
                 ),
               ],
+              if (settings) _ChatSettings(room: room),
               VibeTreeSection(
                 title: 'About',
                 children: [
@@ -1225,3 +1252,110 @@ class _DmSheetState extends State<_DmSheet> {
   }
 }
 
+
+
+/// The chat's own settings, as a section of the page (from its ⋯).
+class _ChatSettings extends StatefulWidget {
+  final Room room;
+  const _ChatSettings({required this.room});
+
+  @override
+  State<_ChatSettings> createState() => _ChatSettingsState();
+}
+
+class _ChatSettingsState extends State<_ChatSettings> {
+  Room get room => widget.room;
+
+  Future<void> _leave() async {
+    final l10n = L10n.of(context);
+    final router = GoRouter.of(context);
+    final ok = await showOkCancelAlertDialog(
+      context: context,
+      title: l10n.areYouSure,
+      message: l10n.archiveRoomDescription,
+      okLabel: l10n.leave,
+      cancelLabel: l10n.cancel,
+      isDestructive: true,
+    );
+    if (ok != OkCancelResult.ok || !mounted) return;
+    final result = await showFutureLoadingDialog(
+      context: context,
+      future: () => room.leave(),
+    );
+    if (result.error == null) router.go('/rooms');
+  }
+
+  Future<void> _mute() async {
+    final muted = VibeMute.isMuted(room);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await VibeMute.set(room, !muted);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(muted ? 'Notifications on' : 'Muted'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('$e')));
+    }
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final muted = VibeMute.isMuted(room);
+    final scheduled = VibeSendLater.forRoom(room.id).length;
+    return VibeTreeSection(
+      title: 'Chat settings',
+      children: [
+        VibeTreeRow(
+          icon: Icons.search_rounded,
+          label: 'Search',
+          onTap: () => context.go('/rooms/${room.id}/search'),
+        ),
+        VibeTreeRow(
+          icon: muted
+              ? Icons.notifications_active_outlined
+              : Icons.notifications_off_outlined,
+          label: muted ? 'Unmute notifications' : 'Mute notifications',
+          onTap: _mute,
+        ),
+        if (VibePalette.isGlass)
+          VibeTreeRow(
+            icon: Icons.wallpaper_outlined,
+            label: 'Chat wallpaper',
+            onTap: () => VibeGlassChat.choose(context, room),
+          ),
+        VibeTreeRow(
+          icon: Icons.lock_outline_rounded,
+          label: L10n.of(context).encryption,
+          onTap: () => context.go('/rooms/${room.id}/encryption'),
+        ),
+        VibeTreeRow(
+          icon: Icons.timer_outlined,
+          label: 'Disappearing messages',
+          meta: VibeDisappearing.label(VibeDisappearing.of(room)?.duration),
+          onTap: () async {
+            await VibeDisappearing.pick(context, room);
+            if (mounted) setState(() {});
+          },
+        ),
+        VibeTreeRow(
+          icon: Icons.schedule_send_outlined,
+          label: 'Scheduled messages',
+          meta: scheduled == 0 ? null : '$scheduled',
+          onTap: () => VibeSendLater.showList(context, room),
+        ),
+        VibeTreeRow(
+          icon: Icons.logout_rounded,
+          label: L10n.of(context).leave,
+          color: cs.error,
+          iconColor: cs.error,
+          onTap: _leave,
+        ),
+      ],
+    );
+  }
+}

@@ -193,6 +193,8 @@ class _VibeBackSwipeState<T> extends State<_VibeBackSwipe<T>> {
   void _down(PointerDownEvent e) {
     if (_pointer != null || e.kind == PointerDeviceKind.mouse) return;
     if (!_enabled) return;
+    // something under the finger swipes sideways itself (a photo stack)
+    if (VibeNoBackSwipe._claimed == e.pointer) return;
     _pointer = e.pointer;
     _start = e.position;
     _decided = false;
@@ -613,4 +615,21 @@ class _SheetPageState extends State<_SheetPage>
       },
     );
   }
+}
+
+
+/// Wrap something that swipes sideways itself (a photo stack): a swipe that
+/// starts on it doesn't close the page.
+class VibeNoBackSwipe extends StatelessWidget {
+  final Widget child;
+  const VibeNoBackSwipe({required this.child, super.key});
+
+  static int? _claimed;
+
+  @override
+  Widget build(BuildContext context) => Listener(
+    // reached before the page's own listener (it sits further out)
+    onPointerDown: (e) => _claimed = e.pointer,
+    child: child,
+  );
 }
