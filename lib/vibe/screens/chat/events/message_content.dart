@@ -39,6 +39,9 @@ class MessageContent extends StatelessWidget {
   final bool selected;
   final Set<String> bigEmojis;
 
+  /// Leave out a quote at the start (it shows on the reply line instead).
+  final bool hideQuote;
+
   const MessageContent(
     this.event, {
     this.onInfoTab,
@@ -49,6 +52,7 @@ class MessageContent extends StatelessWidget {
     required this.borderRadius,
     required this.selected,
     required this.bigEmojis,
+    this.hideQuote = false,
   });
 
   @override
@@ -180,6 +184,17 @@ class MessageContent extends StatelessWidget {
             var html = AppSettings.renderHtml.value && event.isRichMessage
                 ? event.formattedText
                 : event.body.replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+            if (hideQuote) {
+              html = html
+                  .replaceFirstMapped(
+                    RegExp(
+                      r'^(\s*<mx-reply>.*?</mx-reply>)?\s*<blockquote>.*?</blockquote>\s*',
+                      dotAll: true,
+                    ),
+                    (m) => m[1] ?? '',
+                  )
+                  .replaceFirst(RegExp(r'^(&gt; [^\n]*\n?)+\n*'), '');
+            }
             if (event.messageType == MessageTypes.Emote) {
               html = '* $html';
             }

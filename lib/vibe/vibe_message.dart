@@ -296,11 +296,13 @@ bool _statusBelow(Event e) =>
     e.status == EventStatus.error ||
     (e.status == EventStatus.sending && e.fileSendingStatus != null);
 
-/// Sending / sent (single tick) / read (two blue ticks) indicator.
+/// Message status as a small word: Encrypting, Sent, Delivered.
 class _StatusBits extends StatelessWidget {
   final Event event;
   final Timeline timeline;
-  const _StatusBits(this.event, this.timeline);
+  /// Text colour (inside a bubble); the theme's dim colour otherwise.
+  final Color? ink;
+  const _StatusBits(this.event, this.timeline, {this.ink});
 
   @override
   Widget build(BuildContext context) {
@@ -342,24 +344,13 @@ class _StatusBits extends StatelessWidget {
         ],
       );
     }
-    if (status == EventStatus.sending) {
-      final offline =
-          event.room.client.onSyncStatus.value?.status == SyncStatus.error;
-      final label = switch (event.fileSendingStatus) {
-        null when offline => 'Waiting for connection…',
-        null => event.room.encrypted ? 'Encrypting…' : 'Sending…',
+    if (status == EventStatus.sending && event.fileSendingStatus != null) {
+      final label = switch (event.fileSendingStatus!) {
         FileSendingStatus.generatingThumbnail =>
           L10n.of(context).generatingThumbnail,
         FileSendingStatus.encrypting => L10n.of(context).encrypting,
         FileSendingStatus.uploading => L10n.of(context).uploading,
       };
-      if (event.fileSendingStatus == null) {
-        if (offline) return Text(label, style: TextStyle(fontSize: 12, color: dim));
-        // Encrypting: a line runs between two dots; then it folds into one
-        // dot that pulses while the message goes out.
-        final ink = theme.brightness == Brightness.dark ? dim : const Color(0xFF111214);
-        return VibeSendingDots(encrypting: event.room.encrypted, color: ink);
-      }
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -369,15 +360,13 @@ class _StatusBits extends StatelessWidget {
             dimension: 11,
             child: CircularProgressIndicator(strokeWidth: 1.4, color: dim),
           ),
-          if (event.fileSendingStatus != null) ...[
-            const SizedBox(width: 10),
-            _MiniAction(
-              icon: Icons.close,
-              label: 'Cancel',
-              color: theme.colorScheme.error,
-              onTap: () => event.cancelSend(),
-            ),
-          ],
+          const SizedBox(width: 10),
+          _MiniAction(
+            icon: Icons.close,
+            label: 'Cancel',
+            color: theme.colorScheme.error,
+            onTap: () => event.cancelSend(),
+          ),
         ],
       );
     }
@@ -390,13 +379,56 @@ class _StatusBits extends StatelessWidget {
             false,
       ),
       builder: (context, _) {
-        // dots: 1 sent, 2 delivered (back from the server). Once read the
-        // dots go away (seen means sent and delivered) and "Seen by …"
-        // shows under your newest read message. Grey turns black in light
-        // mode.
-        if (_readByOther(event, timeline)) return const SizedBox.shrink();
-        final ink = theme.brightness == Brightness.dark ? dim : const Color(0xFF111214);
-        return VibeStatusDots(count: status.isSynced ? 2 : 1, color: ink);
+        // one small word that changes in place: Encrypting, Sent,
+        // Delivered. Once read it goes away and "Seen by …" shows under
+        // your newest read message.
+        final offline =
+            event.room.client.onSyncStatus.value?.status == SyncStatus.error;
+        final String? word = status == EventStatus.sending
+            ? (offline
+                  ? 'Waiting for connection'
+                  : event.room.encrypted
+                  ? 'Encrypting'
+                  : 'Sending')
+            : _readByOther(event, timeline)
+            ? null
+            : status.isSynced
+            ? 'Delivered'
+            : 'Sent';
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 260),
+          layoutBuilder: (current, previous) => Stack(
+            alignment: Alignment.centerRight,
+            children: [...previous, if (current != null) current],
+          ),
+          transitionBuilder: (child, a) => FadeTransition(
+            opacity: a,
+            child: SlideTransition(
+              position: Tween(
+                begin: const Offset(0, 0.5),
+                end: Offset.zero,
+              ).animate(a),
+              child: child,
+            ),
+          ),
+          child: word == null
+              ? const SizedBox.shrink(key: ValueKey(''))
+              : Padding(
+                  key: ValueKey(word),
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Text(
+                    word,
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      height: 1.2,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.4,
+                      color: ink ?? dim,
+                      shadows: const [],
+                    ),
+                  ),
+                ),
+        );
       },
     );
   }
@@ -491,8 +523,37 @@ class VibeMessage extends StatelessWidget {
     final showReactionPicker =
         singleSelected && event.room.canSendDefaultMessages;
     final enterThread = this.enterThread;
-    // a small round picture beside each bubble
-    const avatarSize = 28.0;
+    // a small round picture; the last bubble of a run curves in round it
+    const avatarSize = 30.0;
+    const nestGap = 3.0;
+    final picLeft = side == ui.TextDirection.ltr;
+    // the other messages of a run line up with that bubble
+    final inset = EdgeInsets.only(
+      left: picLeft ? avatarSize + nestGap : 0,
+      right: picLeft ? 0 : avatarSize + nestGap,
+    );
+    // text sits in a bubble; photos, stickers, big emoji and cards stay as
+    // they are
+    final bubble = displayEvent.type == EventTypes.Message &&
+        const {
+          MessageTypes.Text,
+          MessageTypes.Notice,
+          MessageTypes.Emote,
+        }.contains(displayEvent.messageType) &&
+        !displayEvent.onlyEmotes &&
+        VibeChunks.info(displayEvent) == null &&
+        !VibeLinkPreview.onlyLink(displayEvent);
+    // solid colours from the phone's colour theme when it has one: yours in
+    // the theme colour, theirs neutral
+    final dark = theme.brightness == Brightness.dark;
+    final wall = (dark ? VibePalette.wallDark : VibePalette.wallLight) ?? cs;
+    final under = dark ? const Color(0xFF1B1B1F) : const Color(0xFFF1F1F4);
+    final bubbleColor = Color.alphaBlend(
+      ownMessage ? wall.primaryContainer : cs.surfaceContainerHigh,
+      under,
+    );
+    final bubbleInk = ownMessage ? wall.onPrimaryContainer : cs.onSurface;
+    final showHeader = first && !bubble;
 
     final sentReactions = <String>{};
     if (singleSelected) {
@@ -527,12 +588,12 @@ class VibeMessage extends StatelessWidget {
           ),
         );
       }
-      // the picture sits at the bottom of a run; the line grows up from it
-      if (!last) return const SizedBox(width: avatarSize);
-      // level with the bubble, under the name line when there is one
-      return Padding(
-        padding: EdgeInsets.only(top: first ? 24 : 2),
-        child: FutureBuilder<User?>(
+      return const SizedBox.shrink();
+    }
+
+    // their picture, beside the last message of a run
+    Widget pic() {
+      return FutureBuilder<User?>(
         future: event.fetchSenderUser(),
         builder: (context, snapshot) {
           final user = snapshot.data ?? sender;
@@ -551,7 +612,6 @@ class VibeMessage extends StatelessWidget {
             ),
           );
         },
-      ),
       );
     }
 
@@ -596,15 +656,6 @@ class VibeMessage extends StatelessWidget {
                   Icons.lock_open,
                   size: 14,
                   color: Colors.redAccent,
-                ),
-              if (event.status.isSent)
-                Text(
-                  vibeTime(event.originServerTs),
-                  style: TextStyle(
-                    fontSize: VibeTextSize.message * 0.74,
-                    height: 1.15,
-                    color: cs.onSurfaceVariant,
-                  ),
                 ),
               if (isEdited)
                 Text(
@@ -738,7 +789,7 @@ class VibeMessage extends StatelessWidget {
           : CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (first) header(),
+        if (showHeader) header(),
         Align(
           alignment: ownMessage
               ? AlignmentDirectional.centerEnd
@@ -749,12 +800,12 @@ class VibeMessage extends StatelessWidget {
               final Widget content = DefaultTextStyle.merge(
                 // message text like the mocks: Figtree Regular, airy lines
                 style: TextStyle(
-                  shadows: _nameShadows(theme),
+                  shadows: bubble ? const [] : _nameShadows(theme),
                   fontWeight: FontWeight.w400,
                   height: 1.45,
                 ),
                 // your messages: every line lines up to the right edge
-                textAlign: ownMessage ? TextAlign.end : null,
+                textAlign: ownMessage && !bubble ? TextAlign.end : null,
                 // a long message is only as wide as its longest line, so the dots sit right after it
                 textWidthBasis: TextWidthBasis.longestLine,
                 child: VibeChunks.info(displayEvent) != null
@@ -764,8 +815,11 @@ class VibeMessage extends StatelessWidget {
                   ? const SizedBox.shrink()
                   : MessageContent(
                       displayEvent,
-                      textColor: cs.onSurface,
-                      linkColor: cs.primary,
+                      textColor: bubble ? bubbleInk : cs.onSurface,
+                      linkColor: bubble && ownMessage ? bubbleInk : cs.primary,
+                      // the quoted words already show on the reply line
+                      hideQuote:
+                          replying && VibeQuotePicker.quoteOf(event) != null,
                       onInfoTab: onInfoTab,
                       borderRadius: BorderRadius.circular(14),
                       timeline: timeline,
@@ -785,37 +839,116 @@ class VibeMessage extends StatelessWidget {
               // Status sits right after the text the whole time:
               // "Encrypting…" → ✓ → blue ✓✓, changing in place. Only
               // failures and file uploads (with Retry / Cancel) go below.
-              // text sits in a rounded bubble beside the round picture;
-              // photos, stickers, big emoji and cards stay as they are
-              final bubble = displayEvent.type == EventTypes.Message &&
-                  const {
-                    MessageTypes.Text,
-                    MessageTypes.Notice,
-                    MessageTypes.Emote,
-                  }.contains(displayEvent.messageType) &&
-                  !displayEvent.onlyEmotes &&
-                  VibeChunks.info(displayEvent) == null &&
-                  !VibeLinkPreview.onlyLink(displayEvent);
-              final Widget shown = !bubble
-                  ? content
-                  : Container(
-                      padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
-                      decoration: BoxDecoration(
-                        color: ownMessage
-                            ? cs.primary.withValues(alpha: 0.22)
-                            : cs.surfaceContainerHigh,
-                        borderRadius: BorderRadius.circular(22),
-                        border: Border.all(
-                          color: cs.outlineVariant.withValues(alpha: 0.5),
-                        ),
-                      ),
-                      child: content,
-                    );
               final ticks = ownMessage && !_statusBelow(event);
-              if (!ticks && effect == null) return shown;
+              final Widget shown;
+              if (!bubble) {
+                shown = content;
+              } else {
+                final meta = bubbleInk.withValues(alpha: 0.62);
+                final name = sender.calcDisplayname();
+                shown = ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.sizeOf(context).width * 0.76,
+                  ),
+                  child: CustomPaint(
+                    painter: _BubblePainter(
+                      color: bubbleColor,
+                      left: picLeft,
+                      top: first ? (last ? 10 : 20) : 6,
+                      bottom: last ? 10 : 6,
+                      cut: last ? avatarSize / 2 + nestGap : null,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // groups: who it is, inside their first bubble
+                          if (first && !ownMessage && !event.room.isDirectChat)
+                            Wrap(
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 6,
+                              children: [
+                                VibeNameText(
+                                  name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: VibeTextSize.message * 0.84,
+                                    height: 1.3,
+                                    color: dark
+                                        ? name.colorScheme.primaryContainer
+                                        : name.colorScheme.primary,
+                                  ),
+                                ),
+                                ...VibeMemberTags.chips(event.room, sender),
+                              ],
+                            ),
+                          Wrap(
+                            alignment: WrapAlignment.end,
+                            crossAxisAlignment: WrapCrossAlignment.end,
+                            children: [
+                              content,
+                              if (isEdited)
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    left: 8,
+                                    bottom: 3,
+                                  ),
+                                  child: Text(
+                                    L10n.of(context).edited,
+                                    style: TextStyle(
+                                      fontSize: 10.5,
+                                      height: 1.2,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.4,
+                                      color: meta,
+                                    ),
+                                  ),
+                                ),
+                              // Encrypting, Sent, Delivered: inside the bubble
+                              if (ticks)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 3),
+                                  child: _StatusBits(
+                                    event,
+                                    timeline,
+                                    ink: meta,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }
+              // the last message of a run carries the picture; a bubble
+              // curves in round it
+              Widget place(Widget w) => Padding(
+                padding: EdgeInsets.only(top: first ? 0 : 2),
+                child: last
+                    ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        textDirection: side,
+                        crossAxisAlignment: bubble
+                            ? CrossAxisAlignment.center
+                            : CrossAxisAlignment.end,
+                        children: [
+                          pic(),
+                          const SizedBox(width: nestGap),
+                          Flexible(child: w),
+                        ],
+                      )
+                    : Padding(padding: inset, child: w),
+              );
+              if ((!ticks || bubble) && effect == null) return place(shown);
               // Sent/read ticks sit beside the text: after it, or before it
               // on your side so the right edge stays clean.
-              return Row(
+              return place(Row(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 textDirection: side,
@@ -826,7 +959,7 @@ class VibeMessage extends StatelessWidget {
                       padding: const EdgeInsets.only(bottom: 1),
                       child: VibeEffectBadge(effect),
                     ),
-                  if (ticks)
+                  if (ticks && !bubble)
                     Padding(
                       // the gap always sits between the ticks and the text
                       padding: EdgeInsets.only(
@@ -837,7 +970,7 @@ class VibeMessage extends StatelessWidget {
                       child: _StatusBits(event, timeline),
                     ),
                 ],
-              );
+              ));
             },
           ),
         ),
@@ -846,6 +979,28 @@ class VibeMessage extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: MessageReactions(event, timeline),
+          ),
+        // the time, once, under the last message of a run
+        if (last && event.status.isSent)
+          Padding(
+            padding: const EdgeInsets.only(top: 3),
+            child: Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 6,
+              children: [
+                Text(
+                  vibeTime(event.originServerTs),
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: cs.onSurfaceVariant,
+                    shadows: _nameShadows(theme),
+                  ),
+                ),
+                // only warn when a chat is NOT encrypted
+                if (!event.room.encrypted)
+                  const Icon(Icons.lock_open, size: 12, color: Colors.redAccent),
+              ],
+            ),
           ),
         if (ownMessage) _SeenBy(event, timeline),
         // Sending / failed (with Retry and Cancel) stays under the message.
@@ -1066,9 +1221,22 @@ class VibeMessage extends StatelessWidget {
                               textDirection: side,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                avatar(),
-                                const SizedBox(width: 6),
-                                Expanded(child: body),
+                                if (longPressSelect && !event.redacted) ...[
+                                  avatar(),
+                                  const SizedBox(width: 6),
+                                ],
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: body.crossAxisAlignment,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      for (final (i, w) in body.children.indexed)
+                                        i == (showHeader ? 1 : 0)
+                                            ? w
+                                            : Padding(padding: inset, child: w),
+                                    ],
+                                  ),
+                                ),
                               ],
                             ),
                           ],
@@ -1212,120 +1380,63 @@ class _ReplyCurve extends CustomPainter {
   bool shouldRepaint(covariant _ReplyCurve old) => old.color != color;
 }
 
-
-/// Message status as small dots; a new dot pops in with a spring.
-class VibeStatusDots extends StatelessWidget {
-  final int count;
+/// A bubble's solid shape. With [cut], the end next to the picture reaches
+/// out and curves in round it: O)____) for theirs, (____(O for yours.
+class _BubblePainter extends CustomPainter {
   final Color color;
-  const VibeStatusDots({required this.count, required this.color, super.key});
 
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    height: 16,
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (var i = 0; i < 3; i++)
-          AnimatedScale(
-            scale: i < count ? 1 : 0,
-            duration: const Duration(milliseconds: 380),
-            curve: Curves.elasticOut,
-            child: i < count
-                ? Container(
-                    margin: EdgeInsets.only(left: i == 0 ? 0 : 2.5),
-                    width: 5,
-                    height: 5,
-                    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                  )
-                : const SizedBox.shrink(),
-          ),
-      ],
-    ),
-  );
-}
+  /// The picture is on the left.
+  final bool left;
 
-
-/// While a message goes out: (encrypted rooms) two dots with a line running
-/// between them, which folds into one dot; that dot pulses until it's sent.
-class VibeSendingDots extends StatefulWidget {
-  final bool encrypting;
-  final Color color;
-  const VibeSendingDots({required this.encrypting, required this.color, super.key});
-
-  @override
-  State<VibeSendingDots> createState() => _VibeSendingDotsState();
-}
-
-class _VibeSendingDotsState extends State<VibeSendingDots> with TickerProviderStateMixin {
-  late final AnimationController _run = AnimationController(vsync: this, duration: const Duration(milliseconds: 600))..repeat(reverse: true);
-  // 0 = encrypting (two dots + line), 1 = folded into one pulsing dot
-  late final AnimationController _fold = AnimationController(vsync: this, duration: const Duration(milliseconds: 280), value: widget.encrypting ? 0 : 1);
-
-  @override
-  void initState() {
-    super.initState();
-    if (widget.encrypting) {
-      Future<void>.delayed(const Duration(milliseconds: 900), () {
-        if (mounted) _fold.forward();
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _run.dispose();
-    _fold.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    width: 22,
-    height: 16,
-    child: AnimatedBuilder(
-      animation: Listenable.merge([_run, _fold]),
-      builder: (context, _) => CustomPaint(painter: _SendingPainter(_run.value, _fold.value, widget.color)),
-    ),
-  );
-}
-
-class _SendingPainter extends CustomPainter {
-  final double t, fold;
-  final Color color;
-  _SendingPainter(this.t, this.fold, this.color);
+  /// Corner sizes on the picture's side (tighter where bubbles stack).
+  final double top, bottom;
+  final double? cut;
+  const _BubblePainter({
+    required this.color,
+    required this.left,
+    required this.top,
+    required this.bottom,
+    this.cut,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final y = size.height / 2;
-    const r = 2.5;
-    final left = Offset(r, y);
-    final right = Offset(size.width - r, y);
-    if (fold < 1) {
-      final a = 1 - fold;
-      final p = Paint()..color = color.withValues(alpha: color.a * a);
-      // the second dot slides into the first as it folds
-      canvas.drawCircle(left, r, p);
-      canvas.drawCircle(Offset.lerp(right, left, fold)!, r, p);
-      // a short line running back and forth between them
-      final from = left.dx + r + 1, to = right.dx - r - 1;
-      final head = from + (to - from) * Curves.easeInOut.transform(t);
-      final len = (to - from) * 0.35;
-      canvas.drawLine(
-        Offset((head - len).clamp(from, to), y),
-        Offset(head, y),
-        Paint()
-          ..color = color.withValues(alpha: color.a * a * 0.8)
-          ..strokeWidth = 1.6
-          ..strokeCap = StrokeCap.round,
+    const r = Radius.circular(20);
+    final reach = cut ?? 0;
+    final t = Radius.circular(top), b = Radius.circular(bottom);
+    final shape = RRect.fromRectAndCorners(
+      Rect.fromLTRB(
+        left ? -reach : 0,
+        0,
+        size.width + (left ? 0 : reach),
+        size.height,
+      ),
+      topLeft: left ? t : r,
+      bottomLeft: left ? b : r,
+      topRight: left ? r : t,
+      bottomRight: left ? r : b,
+    );
+    var path = Path()..addRRect(shape);
+    if (cut != null) {
+      path = Path.combine(
+        PathOperation.difference,
+        path,
+        Path()..addOval(
+          Rect.fromCircle(
+            center: Offset(left ? -reach : size.width + reach, size.height / 2),
+            radius: reach,
+          ),
+        ),
       );
     }
-    if (fold > 0) {
-      final pulse = 0.3 + 0.55 * t;
-      canvas.drawCircle(left, r, Paint()..color = color.withValues(alpha: color.a * pulse * fold));
-    }
+    canvas.drawPath(path, Paint()..color = color);
   }
 
   @override
-  bool shouldRepaint(covariant _SendingPainter old) => old.t != t || old.fold != fold || old.color != color;
+  bool shouldRepaint(covariant _BubblePainter old) =>
+      old.color != color ||
+      old.left != left ||
+      old.top != top ||
+      old.bottom != bottom ||
+      old.cut != cut;
 }
-

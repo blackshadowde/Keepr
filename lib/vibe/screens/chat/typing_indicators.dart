@@ -58,15 +58,15 @@ class TypingIndicators extends StatelessWidget {
               curve: Curves.easeOut,
               offset: typing ? Offset.zero : const Offset(0, 0.25),
               child: Padding(
-                padding: const EdgeInsets.only(left: 16),
+                padding: const EdgeInsets.only(left: 12),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // typing: the dots sit inside a round bubble, where their
+                    // typing: the dots sit inside a circle where their
                     // picture goes; the message grows out of it
                     if (typing && style == null)
                       Container(
-                        width: 44,
+                        width: 30,
                         height: 30,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
@@ -138,7 +138,7 @@ class _VibeTypingDotsState extends State<_VibeTypingDots>
   Widget build(BuildContext context) {
     final dark = Theme.of(context).brightness == Brightness.dark;
     return CustomPaint(
-      size: const Size(24, 16),
+      size: const Size(18, 14),
       painter: _DotsPainter(
         _ctrl,
         dark ? const Color(0xFFFFFFFF) : const Color(0xFF000000),
@@ -155,14 +155,14 @@ class _DotsPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    const r = 3.0;
+    const r = 2.2;
     final paint = Paint()..isAntiAlias = true;
-    final cy = size.height / 2 + 2;
+    final cy = size.height / 2 + 1.5;
     for (var i = 0; i < 3; i++) {
       final phase = progress.value * math.pi * 2 - i * 0.7;
       final bounce = math.max(0.0, math.sin(phase));
       paint.color = color.withAlpha((150 + 105 * bounce).round());
-      canvas.drawCircle(Offset(r + i * 9, cy - bounce * 4), r, paint);
+      canvas.drawCircle(Offset(r + i * 6.8, cy - bounce * 3), r, paint);
     }
   }
 
