@@ -27,8 +27,9 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 /// work whatever your home server supports.
 ///
 /// Quality: Element Call sends HD (720p) with simulcast and adapts to the
-/// network; Opus voice with echo cancelling. Vibe shows your own preview
-/// unmirrored, and voice calls switch the camera off before joining.
+/// network; Opus voice with echo cancelling. Your own preview is mirrored
+/// like a mirror (the other person always sees you the right way round),
+/// and voice calls switch the camera off before joining.
 abstract class VibeCall {
   static const _key = 'chat.keepr.call';
   static const _channel = MethodChannel('vibe/system');
@@ -517,10 +518,9 @@ class _VibeCallScreenState extends State<_VibeCallScreen> {
   var cfg = $cfg;
   var st = {};
   var css = document.createElement('style');
-  // your own preview like a camera, not a mirror
-  // and a touch brighter / crisper on screen (faces look less dull)
-  css.textContent = '[class*="mirror"] video, video[class*="mirror"]{transform:none!important}' +
-    'video{filter:brightness(1.07) contrast(1.06) saturate(1.1)}';
+  // a touch brighter / crisper on screen (faces look less dull); your own
+  // preview keeps the call's own mirroring, so it moves like a mirror
+  css.textContent = 'video{filter:brightness(1.07) contrast(1.06) saturate(1.1)}';
   document.head.appendChild(css);
   // your camera: keep auto exposure / focus / white balance on and lift the
   // exposure a little (the phone camera app does this; the web view doesn't)

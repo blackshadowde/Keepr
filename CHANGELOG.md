@@ -3,6 +3,10 @@
 Vibe's changes are listed on each release:
 https://github.com/blackshadowde/Vibe-flutter/releases
 
+## 2026-11-14
+
+- Video calls: your own preview is mirrored again, like looking in a mirror, so moving your right hand moves the picture on the right. What the other person sees was never flipped and still isn't (PENDING)
+
 ## 2026-11-07 ([a7d176a](https://github.com/blackshadowde/keepr/commit/a7d176a))
 
 - Brought back from the rollback, on its own: switching Chats / Spaces, and opening or closing a person or community pane, move the rows as blocks (the old rows slide away, then the new ones come in). Opening a chat is unchanged (it slides in as before) ([f9efdd4](https://github.com/blackshadowde/keepr/commit/f9efdd4))
