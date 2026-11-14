@@ -5,15 +5,10 @@
 [![Built on Matrix](https://img.shields.io/badge/built%20on-Matrix-000000?logo=matrix&logoColor=white)](https://matrix.org)
 
 <p align="center">
-  <img src="vibe-icon.png" width="112" alt="Keepr">
+  <img src="docs/screenshots/banner.webp" width="100%" alt="Keepr: private chat, made personal. End-to-end encrypted, post-quantum in direct chats, no phone number, no ads.">
 </p>
 
 <h1 align="center">Keepr</h1>
-
-<p align="center">
-  A private messenger for the people you talk to every day.<br>
-  End-to-end encrypted, no phone number, no ads, open source.
-</p>
 
 <p align="center">
   <a href="https://github.com/blackshadowde/Keepr/releases/latest"><img src="https://raw.githubusercontent.com/Kunzisoft/Github-badge/main/get-it-on-github.png" alt="Get it on GitHub" height="60"></a>
@@ -44,9 +39,12 @@ Keepr is a chat app for Android, iPhone and the web. It runs on [Matrix](https:/
 
 ## Screenshots
 
-| Home | Chat | Message menu | Typing buddy |
-|:-:|:-:|:-:|:-:|
-| <img src="docs/screenshots/home.png" width="200" alt="Home with unread chats as cards"> | <img src="docs/screenshots/chat.png" width="200" alt="Chat with bubbles nested round the picture"> | <img src="docs/screenshots/menu.png" width="200" alt="Message actions orbiting a held message"> | <img src="docs/screenshots/buddy.png" width="200" alt="The typing buddy on the text box"> |
+<p align="center">
+  <img src="docs/screenshots/home.webp" width="24%" alt="Home: unread chats as cards you can answer right there">
+  <img src="docs/screenshots/chat.webp" width="24%" alt="Chat: bubbles that hold the picture, post-quantum in direct chats">
+  <img src="docs/screenshots/menu.webp" width="24%" alt="Message menu: actions orbit a held message">
+  <img src="docs/screenshots/buddy.webp" width="24%" alt="Typing buddy: reacts to your words">
+</p>
 
 ## Features
 
