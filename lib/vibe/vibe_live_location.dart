@@ -295,7 +295,7 @@ abstract class VibeLive {
         ? "I'll check in when I get to ${s.name ?? 'the place'} (by $by)"
         : "I'll check in at $by";
     final body = switch (state) {
-      'arrived' => 'Arrived at ${s.name ?? 'the place'} ✓',
+      'arrived' => 'Arrived at ${s.name ?? 'the place'}',
       'ended' => 'Check-in ended',
       'missed' => 'Missed check-in: no answer since $by',
       _ => 'Check-in: $what',

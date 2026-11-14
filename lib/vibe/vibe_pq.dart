@@ -163,7 +163,7 @@ abstract class VibePq {
   static const shareType = 'chat.keepr.pq_share';
   static const wrapKey = 'chat.keepr.pq';
   static const fallback =
-      '🔒 Post-quantum message. Open it in Keepr to read it.';
+      'Post-quantum message. Open it in Keepr to read it.';
 
   /// A new chat key after this many messages, or when the devices change.
   static const _rotateAfter = 100;

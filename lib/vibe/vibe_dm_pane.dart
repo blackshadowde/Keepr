@@ -444,10 +444,9 @@ class _DmTile extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                          child: Text(
+                          child: _PreviewText(
                             preview,
                             maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 14.5,
                               color: cs.onSurfaceVariant,
@@ -541,6 +540,51 @@ class _InviteTile extends StatelessWidget {
   }
 }
 
+/// Starts a preview that is a reply (shown with a small reply icon).
+const _replyMark = '\u2063';
+
+/// A preview line; a reply gets a small reply icon in front.
+class _PreviewText extends StatelessWidget {
+  final String text;
+  final int maxLines;
+  final TextStyle style;
+  const _PreviewText(this.text, {required this.maxLines, required this.style});
+
+  @override
+  Widget build(BuildContext context) {
+    final you = text.startsWith('You: $_replyMark');
+    final reply = you || text.startsWith(_replyMark);
+    if (!reply) {
+      return Text(
+        text,
+        maxLines: maxLines,
+        overflow: TextOverflow.ellipsis,
+        style: style,
+      );
+    }
+    final rest = text.replaceFirst(_replyMark, '');
+    final size = (style.fontSize ?? 14) * 1.05;
+    return Text.rich(
+      TextSpan(
+        children: [
+          if (you) const TextSpan(text: 'You: '),
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: Icon(Icons.reply_rounded, size: size, color: style.color),
+            ),
+          ),
+          TextSpan(text: you ? rest.substring(5) : rest),
+        ],
+      ),
+      maxLines: maxLines,
+      overflow: TextOverflow.ellipsis,
+      style: style,
+    );
+  }
+}
+
 /// The last message as one clean line: your own starts with "You:", and a
 /// reply to part of a message shows the answer, not the quoted words.
 String _previewOf(BuildContext context, Room room) {
@@ -566,7 +610,7 @@ String _previewOf(BuildContext context, Room room) {
         .skipWhile((l) => l.startsWith('> ') || l.trim().isEmpty)
         .join(' ')
         .trim();
-    if (answer.isNotEmpty) body = '↩ $answer';
+    if (answer.isNotEmpty) body = '$_replyMark$answer';
   }
   return last.senderId == room.client.userID ? 'You: $body' : body;
 }
@@ -768,12 +812,11 @@ class _UnreadCardState extends State<_UnreadCard> {
                                     bottomRight: Radius.circular(18),
                                   ),
                                 ),
-                                child: Text(
+                                child: _PreviewText(
                                   typing
                                       ? '••• typing'
                                       : _previewOf(context, room),
                                   maxLines: 3,
-                                  overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     fontSize: 14.5,
                                     height: 1.35,
