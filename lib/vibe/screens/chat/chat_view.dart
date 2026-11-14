@@ -3,6 +3,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'package:vibe/vibe/buddy/vibe_buddy.dart';
 import 'package:vibe/vibe/buddy/vibe_buddy_bar.dart';
 import 'package:vibe/vibe/vibe_glass.dart';
 import 'package:vibe/vibe/vibe_stale_keyboard.dart';
