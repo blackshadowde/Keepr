@@ -2,10 +2,10 @@
 
 import 'package:flutter/material.dart';
 
-/// Google-Messages style entrance for a brand new message: the row grows from
-/// the bottom (so the whole timeline glides up smoothly) while the bubble
-/// slides up, scales from its corner and fades in. Messages that do not
-/// animate are returned untouched (zero overhead).
+/// Entrance for a brand new message: the row opens up from the bottom (so
+/// the timeline glides up) and the message itself stretches out of the
+/// sender's picture (see [VibeEntrance.of]); nothing slides or fades.
+/// Messages that do not animate are returned untouched.
 class VibeEntrance extends StatefulWidget {
   final bool animate;
   final bool fromRight;
@@ -18,8 +18,21 @@ class VibeEntrance extends StatefulWidget {
     super.key,
   });
 
+  /// 0 → 1 while the message above is arriving, or null when it isn't.
+  static Animation<double>? of(BuildContext context) => context
+      .dependOnInheritedWidgetOfExactType<_Grow>()
+      ?.grow;
+
   @override
   State<VibeEntrance> createState() => _VibeEntranceState();
+}
+
+class _Grow extends InheritedWidget {
+  final Animation<double> grow;
+  const _Grow({required this.grow, required super.child});
+
+  @override
+  bool updateShouldNotify(_Grow old) => old.grow != grow;
 }
 
 class _VibeEntranceState extends State<VibeEntrance>
@@ -27,8 +40,6 @@ class _VibeEntranceState extends State<VibeEntrance>
   AnimationController? _c;
   late final GlobalKey? _gk = widget.animate ? GlobalKey() : null;
   Animation<double>? _size;
-  Animation<double>? _pop;
-  Animation<double>? _fade;
 
   @override
   void initState() {
@@ -36,18 +47,12 @@ class _VibeEntranceState extends State<VibeEntrance>
     if (!widget.animate) return;
     final c = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 620),
+      duration: const Duration(milliseconds: 640),
     );
     _c = c;
     _size = CurvedAnimation(
       parent: c,
-      curve: const Interval(0.0, 0.85, curve: Curves.easeOutCubic),
-    );
-    // the liquid swell runs on its own curves (see _Pop)
-    _pop = CurvedAnimation(parent: c, curve: Curves.linear);
-    _fade = CurvedAnimation(
-      parent: c,
-      curve: const Interval(0.0, 0.55, curve: Curves.easeOut),
+      curve: const Interval(0.0, 0.45, curve: Curves.easeOutCubic),
     );
     c.addStatusListener((s) {
       if (s == AnimationStatus.completed && mounted) setState(() {});
@@ -67,48 +72,47 @@ class _VibeEntranceState extends State<VibeEntrance>
     if (c == null) return widget.child;
     final inner = KeyedSubtree(key: _gk, child: widget.child);
     if (c.isCompleted) return inner;
-    // Size grows (so the timeline glides up); fade, rise and pop are
-    // paint-only transitions, so the message isn't rebuilt every frame.
     return SizeTransition(
       sizeFactor: _size!,
       axisAlignment: 1.0,
-      child: FadeTransition(
-        opacity: _fade!,
-        child: _Pop(
-          pop: _pop!,
-          alignment: widget.fromRight
-              ? Alignment.bottomRight
-              : Alignment.bottomLeft,
-          child: inner,
-        ),
-      ),
+      child: _Grow(grow: c, child: inner),
     );
   }
 }
 
-class _Pop extends AnimatedWidget {
-  final Alignment alignment;
+/// Wraps a message so it stretches out of the picture beside it: wide
+/// first, then tall, with a little overshoot like a drop pulling free.
+/// [left]: the picture is on the left.
+class VibeGrowOut extends StatelessWidget {
+  final bool left;
   final Widget child;
-  const _Pop({
-    required Animation<double> pop,
-    required this.alignment,
-    required this.child,
-  }) : super(listenable: pop);
+  const VibeGrowOut({required this.left, required this.child, super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Liquid: the bubble swells out of the corner where the typing circle
-    // was, wide first and then tall, overshooting a little like a drop
-    // pulling free, then settles to its shape.
-    final p = (listenable as Animation<double>).value;
-    final w = const ElasticOutCurve(0.7).transform((p * 1.15).clamp(0.0, 1.0));
-    final h = const ElasticOutCurve(0.6).transform(
-      ((p - 0.08) / 0.92).clamp(0.0, 1.0),
-    );
-    return Transform(
-      alignment: alignment,
-      transform: Matrix4.diagonal3Values(0.18 + 0.82 * w, 0.18 + 0.82 * h, 1),
+    final grow = VibeEntrance.of(context);
+    if (grow == null) return child;
+    return AnimatedBuilder(
+      animation: grow,
       child: child,
+      builder: (context, child) {
+        final p = grow.value;
+        final w = const ElasticOutCurve(0.75).transform(
+          ((p - 0.05) / 0.95).clamp(0.0, 1.0),
+        );
+        final h = const ElasticOutCurve(0.65).transform(
+          ((p - 0.15) / 0.85).clamp(0.0, 1.0),
+        );
+        return Transform(
+          alignment: left ? Alignment.bottomLeft : Alignment.bottomRight,
+          transform: Matrix4.diagonal3Values(
+            (0.08 + 0.92 * w).clamp(0.0, 1.2),
+            (0.3 + 0.7 * h).clamp(0.0, 1.2),
+            1,
+          ),
+          child: child,
+        );
+      },
     );
   }
 }

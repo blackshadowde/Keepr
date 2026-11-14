@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'package:vibe/vibe/vibe_view_once.dart';
 import 'dart:math' as math;
 
 import 'package:vibe/vibe/screens/chat/chat.dart';
@@ -321,6 +322,10 @@ abstract class VibeEffects {
       controller.sendEffect = null;
     } else if (choice == 'later') {
       await VibeSendLater.pick(context, controller);
+    } else if (choice == 'once') {
+      final room = controller.room;
+      controller.sendController.clear();
+      await VibeViewOnce.sendText(room, text);
     }
   }
 }
@@ -394,11 +399,25 @@ class _SendOptionsSheet extends StatelessWidget {
             clipBehavior: Clip.antiAlias,
             child: Material(
               type: MaterialType.transparency,
-              child: ListTile(
-                leading: Icon(Icons.schedule_send_outlined, color: t1),
-                title: Text('Send later', style: TextStyle(color: t1)),
-                trailing: Icon(Icons.chevron_right, color: t2),
-                onTap: () => Navigator.of(context).pop('later'),
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: Icon(Icons.schedule_send_outlined, color: t1),
+                    title: Text('Send later', style: TextStyle(color: t1)),
+                    trailing: Icon(Icons.chevron_right, color: t2),
+                    onTap: () => Navigator.of(context).pop('later'),
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.looks_one_outlined, color: t1),
+                    title: Text('View once', style: TextStyle(color: t1)),
+                    subtitle: Text(
+                      'Opens one time, then turns to dust',
+                      style: TextStyle(color: t2, fontSize: 12.5),
+                    ),
+                    trailing: Icon(Icons.chevron_right, color: t2),
+                    onTap: () => Navigator.of(context).pop('once'),
+                  ),
+                ],
               ),
             ),
           ),

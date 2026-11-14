@@ -343,6 +343,9 @@ Future<void> _tryPushHelper(
   // Calculate the body
   final body = event.type == EventTypes.Encrypted
       ? l10n.newMessageInFluffyChat
+      // a view-once message stays hidden until it's opened in the chat
+      : event.content['chat.keepr.view_once'] == true
+      ? 'View once message'
       : await event.vibeBody(
           matrixLocals,
           plaintextBody: true,
@@ -442,7 +445,9 @@ Future<void> _tryPushHelper(
           groupConversation: !event.room.isDirectChat,
           messages: [newMessage],
         ),
-    ticker: event.vibeBodyFallback(
+    ticker: event.content['chat.keepr.view_once'] == true
+        ? 'View once message'
+        : event.vibeBodyFallback(
       matrixLocals,
       plaintextBody: true,
       withSenderNamePrefix: !event.room.isDirectChat,

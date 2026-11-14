@@ -8,6 +8,7 @@ import 'dart:async';
 import 'package:vibe/l10n/l10n.dart';
 import 'package:vibe/vibe/screens/chat/events/map_bubble.dart';
 import 'package:vibe/widgets/future_loading_dialog.dart';
+import 'package:vibe/vibe/vibe_live_location.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
@@ -101,6 +102,128 @@ class SendLocationDialogState extends State<SendLocationDialog> {
       if (_picked.value == null) _toMe();
     } catch (e) {
       setState(() => error = e);
+    }
+  }
+
+  Future<void> _live() async {
+    final until = await _pickUntil(context, 'Share live location for', const [
+      ('15 minutes', Duration(minutes: 15)),
+      ('1 hour', Duration(hours: 1)),
+      ('8 hours', Duration(hours: 8)),
+    ]);
+    if (until == null || !mounted) return;
+    final r = await showFutureLoadingDialog(
+      context: context,
+      future: () => VibeLive.startLive(widget.room, until),
+    );
+    if (!mounted) return;
+    if (r.result == true) {
+      Navigator.of(context, rootNavigator: false).pop();
+    }
+  }
+
+  Future<void> _checkIn() async {
+    final place = _picked.value;
+    final name = TextEditingController();
+    final arrive = await showModalBottomSheet<bool>(
+      context: context,
+      showDragHandle: true,
+      useRootNavigator: true,
+      builder: (c) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            0,
+            16,
+            16 + MediaQuery.viewInsetsOf(c).bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Check in',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                "If you don't check in, they get your live location for an "
+                'hour.',
+                style: TextStyle(
+                  fontSize: 13.5,
+                  color: Theme.of(c).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 14),
+              if (place != null) ...[
+                TextField(
+                  controller: name,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: InputDecoration(
+                    hintText: 'Name of the place (Home, Office…)',
+                    filled: true,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _Choice(
+                  icon: Icons.place_rounded,
+                  title: 'When I get to the pin',
+                  sub: 'Checks in by itself when you arrive',
+                  filled: true,
+                  onTap: () => Navigator.of(c).pop(true),
+                ),
+              ] else
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    'To check in on arriving, move the map to the place first.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Theme.of(c).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              _Choice(
+                icon: Icons.timer_outlined,
+                title: 'After a timer',
+                sub: 'You confirm you are OK when it ends',
+                filled: place == null,
+                onTap: () => Navigator.of(c).pop(false),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    final placeName = name.text.trim();
+    name.dispose();
+    if (arrive == null || !mounted) return;
+    final until = await _pickUntil(
+      context,
+      arrive ? 'I should be there in' : 'Check in after',
+      const [
+        ('30 minutes', Duration(minutes: 30)),
+        ('1 hour', Duration(hours: 1)),
+        ('2 hours', Duration(hours: 2)),
+      ],
+    );
+    if (until == null || !mounted) return;
+    final r = await showFutureLoadingDialog(
+      context: context,
+      future: () => VibeLive.startCheckIn(
+        widget.room,
+        until,
+        place: arrive ? place : null,
+        name: arrive && placeName.isNotEmpty ? placeName : null,
+      ),
+    );
+    if (!mounted) return;
+    if (r.result == true) {
+      Navigator.of(context, rootNavigator: false).pop();
     }
   }
 
@@ -262,6 +385,24 @@ class SendLocationDialogState extends State<SendLocationDialog> {
                                 filled: picked == null,
                                 onTap: () => sendAction(),
                               ),
+                            if (pos != null) ...[
+                              _Choice(
+                                icon: Icons.share_location_rounded,
+                                title: 'Share live location',
+                                sub: 'Moves with you until the time you pick',
+                                filled: false,
+                                onTap: _live,
+                              ),
+                              _Choice(
+                                icon: Icons.shield_moon_outlined,
+                                title: 'Check in',
+                                sub: picked == null
+                                    ? 'Tell them when you get there, or set a timer'
+                                    : 'When you reach the pin, or after a timer',
+                                filled: false,
+                                onTap: _checkIn,
+                              ),
+                            ],
                             if (picked != null)
                               _Choice(
                                 icon: Icons.place_rounded,
@@ -377,4 +518,60 @@ class _Choice extends StatelessWidget {
       ),
     );
   }
+}
+
+/// How long: a few quick choices, or "Until…" a time you pick.
+Future<DateTime?> _pickUntil(
+  BuildContext context,
+  String title,
+  List<(String, Duration)> choices,
+) async {
+  final picked = await showModalBottomSheet<Object>(
+    context: context,
+    showDragHandle: true,
+    useRootNavigator: true,
+    builder: (c) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 12),
+            for (final (label, d) in choices)
+              _Choice(
+                icon: Icons.schedule_rounded,
+                title: label,
+                sub: 'Until ${VibeLive.time(DateTime.now().add(d).millisecondsSinceEpoch)}',
+                filled: false,
+                onTap: () => Navigator.of(c).pop(d),
+              ),
+            _Choice(
+              icon: Icons.edit_calendar_rounded,
+              title: 'Until…',
+              sub: 'Pick the time',
+              filled: false,
+              onTap: () => Navigator.of(c).pop('pick'),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+  if (picked is Duration) return DateTime.now().add(picked);
+  if (picked != 'pick' || !context.mounted) return null;
+  final now = DateTime.now();
+  final t = await showTimePicker(
+    context: context,
+    initialTime: TimeOfDay.fromDateTime(now.add(const Duration(hours: 1))),
+  );
+  if (t == null) return null;
+  var at = DateTime(now.year, now.month, now.day, t.hour, t.minute);
+  // a time earlier than now means tomorrow
+  if (!at.isAfter(now)) at = at.add(const Duration(days: 1));
+  return at;
 }

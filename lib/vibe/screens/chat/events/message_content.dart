@@ -26,7 +26,7 @@ import 'audio_player.dart';
 import 'cute_events.dart';
 import 'html_message.dart';
 import 'image_bubble.dart';
-import 'map_bubble.dart';
+import 'package:vibe/vibe/vibe_live_location.dart';
 import 'message_download_content.dart';
 
 class MessageContent extends StatelessWidget {
@@ -145,26 +145,9 @@ class MessageContent extends StatelessWidget {
               linkColor: linkColor,
             );
           case MessageTypes.Location:
-            final geoUri = Uri.tryParse(
-              event.content.tryGet<String>('geo_uri')!,
-            );
-            if (geoUri != null && geoUri.scheme == 'geo') {
-              final latlong = geoUri.path
-                  .split(';')
-                  .first
-                  .split(',')
-                  .map(double.tryParse)
-                  .toList();
-              if (latlong.length == 2 &&
-                  latlong.first != null &&
-                  latlong.last != null) {
-                return MapBubble(
-                  onTap: () =>
-                      UrlLauncher(context, geoUri.toString()).launchUrl(),
-                  latitude: latlong.first!,
-                  longitude: latlong.last!,
-                );
-              }
+            if (VibeLive.parse(event.content.tryGet<String>('geo_uri')) !=
+                null) {
+              return VibeLocationCard(event: event, eventId: event.eventId);
             }
             continue textmessage;
           case MessageTypes.Text:

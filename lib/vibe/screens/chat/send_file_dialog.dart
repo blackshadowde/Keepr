@@ -29,6 +29,7 @@ import 'package:matrix/matrix.dart' hide Result;
 import 'package:mime/mime.dart';
 
 import 'package:vibe/utils/resize_video.dart';
+import 'package:vibe/vibe/vibe_view_once.dart';
 
 class SendFileDialog extends StatefulWidget {
   final Room room;
@@ -51,6 +52,9 @@ class SendFileDialog extends StatefulWidget {
 
 class SendFileDialogState extends State<SendFileDialog> {
   bool compress = true;
+
+  /// The other person can open it once, then it's gone.
+  bool viewOnce = false;
 
   /// Images smaller than 20kb don't need compression.
   static const int minSizeToCompress = 20 * 1000;
@@ -175,7 +179,10 @@ class SendFileDialogState extends State<SendFileDialog> {
             shrinkImageMaxDimension: compress
                 ? VibeLowData.sendMaxDimension
                 : null,
-            extraContent: label.isEmpty ? null : {'body': label},
+            extraContent: {
+              if (label.isNotEmpty) 'body': label,
+              if (viewOnce) VibeViewOnce.key: true,
+            },
             threadRootEventId: widget.threadRootEventId,
             threadLastEventId: widget.threadLastEventId,
           );
@@ -196,7 +203,10 @@ class SendFileDialogState extends State<SendFileDialog> {
             shrinkImageMaxDimension: compress
                 ? VibeLowData.sendMaxDimension
                 : null,
-            extraContent: label.isEmpty ? null : {'body': label},
+            extraContent: {
+              if (label.isNotEmpty) 'body': label,
+              if (viewOnce) VibeViewOnce.key: true,
+            },
           );
         }
       }
@@ -421,6 +431,13 @@ class SendFileDialogState extends State<SendFileDialog> {
                         counterText: '',
                       ),
                     ),
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    value: viewOnce,
+                    onChanged: (v) => setState(() => viewOnce = v),
+                    title: const Text('View once'),
+                    subtitle: const Text('Opens one time, then it\'s gone'),
+                  ),
                   // Workaround for SwitchListTile.adaptive crashes in CupertinoDialog
                   if ({'image', 'video'}.contains(uniqueFileType))
                     Row(

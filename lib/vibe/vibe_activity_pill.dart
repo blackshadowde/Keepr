@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import 'package:vibe/vibe/vibe_event_body.dart';
+import 'package:vibe/vibe/vibe_view_once.dart';
+import 'package:vibe/vibe/vibe_live_location.dart';
 import 'package:vibe/vibe/vibe_member_tags.dart';
 import 'dart:async';
 
@@ -99,6 +101,8 @@ class _VibeActivityHostState extends State<VibeActivityHost> {
     });
     VibeDisappearing.start(c);
     VibeSendLater.start(c);
+    VibeViewOnce.start(c);
+    VibeLive.start(c);
     Future.delayed(const Duration(seconds: 3), () {
       if (c.isLogged()) VibeWhatsNew.maybeShow();
     });

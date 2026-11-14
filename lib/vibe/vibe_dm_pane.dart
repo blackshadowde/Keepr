@@ -14,6 +14,7 @@ import 'package:vibe/vibe/vibe_groups.dart';
 import 'package:vibe/vibe/vibe_cascade.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
 import 'package:vibe/vibe/vibe_palette.dart';
+import 'package:vibe/vibe/vibe_view_once.dart';
 import 'package:vibe/vibe/vibe_archive.dart';
 import 'package:vibe/vibe/vibe_typing_pen.dart';
 import 'package:vibe/widgets/avatar.dart';
@@ -547,6 +548,11 @@ String _previewOf(BuildContext context, Room room) {
   final group = VibeGroups.isGroup(room);
   if (last == null) {
     return group ? '${VibeGroups.memberCount(room)} members' : 'Encrypted chat';
+  }
+  if (VibeViewOnce.of(last) && !last.redacted) {
+    return last.senderId == room.client.userID
+        ? 'You: View once'
+        : 'View once · tap to open';
   }
   var body = last.vibeBodyFallback(
     MatrixLocals(L10n.of(context)),

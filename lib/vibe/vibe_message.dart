@@ -3,6 +3,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/services.dart';
@@ -11,6 +12,9 @@ import 'package:vibe/vibe/vibe_starred.dart';
 import 'package:vibe/vibe/vibe_member_tags.dart';
 import 'package:vibe/vibe/vibe_palette.dart';
 import 'package:vibe/vibe/vibe_quote.dart';
+import 'package:vibe/vibe/vibe_entrance.dart';
+import 'package:vibe/vibe/vibe_view_once.dart';
+import 'package:vibe/vibe/vibe_live_location.dart';
 import 'package:vibe/vibe/vibe_effects.dart';
 import 'package:vibe/vibe/vibe_emoji_sheet.dart';
 import 'package:vibe/vibe/vibe_haptics.dart';
@@ -481,10 +485,13 @@ class VibeMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (VibeDisappearing.isExpired(event)) return const SizedBox.shrink();
+    final once = VibeViewOnce.of(event) && !event.redacted;
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
     final client = Matrix.of(context).client;
     final ownMessage = event.senderId == client.userID;
+    // a view-once message you've opened is gone
+    if (!ownMessage && VibeViewOnce.viewed(event)) return const SizedBox.shrink();
     // Your messages sit on the other side: avatar and text on the right
     // (left in right-to-left languages).
     final dir = Directionality.of(context);
@@ -519,7 +526,11 @@ class VibeMessage extends StatelessWidget {
       timeline,
       RelationshipTypes.thread,
     );
-    final isEdited = event.hasAggregatedEvents(timeline, RelationshipTypes.edit);
+    // live location and check-in update themselves by edits: not "edited"
+    final isEdited =
+        event.hasAggregatedEvents(timeline, RelationshipTypes.edit) &&
+        VibeLive.live(displayEvent) == null &&
+        VibeLive.checkIn(displayEvent) == null;
     final showReactionPicker =
         singleSelected && event.room.canSendDefaultMessages;
     final enterThread = this.enterThread;
@@ -540,6 +551,8 @@ class VibeMessage extends StatelessWidget {
           MessageTypes.Notice,
           MessageTypes.Emote,
         }.contains(displayEvent.messageType) &&
+        !once &&
+        VibeLive.checkIn(displayEvent) == null &&
         !displayEvent.onlyEmotes &&
         VibeChunks.info(displayEvent) == null &&
         !VibeLinkPreview.onlyLink(displayEvent);
@@ -808,7 +821,22 @@ class VibeMessage extends StatelessWidget {
                 textAlign: ownMessage && !bubble ? TextAlign.end : null,
                 // a long message is only as wide as its longest line, so the dots sit right after it
                 textWidthBasis: TextWidthBasis.longestLine,
-                child: VibeChunks.info(displayEvent) != null
+                child: once
+                  ? VibeViewOnceTile(
+                      event: event,
+                      timeline: timeline,
+                      own: ownMessage,
+                      color: bubbleColor,
+                      ink: bubbleInk,
+                    )
+                  : VibeLive.checkIn(displayEvent) != null
+                  ? VibeCheckInCard(
+                      event: displayEvent,
+                      eventId: event.eventId,
+                      color: bubbleColor,
+                      ink: bubbleInk,
+                    )
+                  : VibeChunks.info(displayEvent) != null
                   ? VibeChunkCard(displayEvent)
                   // just a link: the preview card below stands in for it
                   : VibeLinkPreview.onlyLink(displayEvent)
@@ -854,9 +882,10 @@ class VibeMessage extends StatelessWidget {
                     painter: _BubblePainter(
                       color: bubbleColor,
                       left: picLeft,
-                      top: first ? (last ? 10 : 20) : 6,
-                      bottom: last ? 10 : 6,
-                      cut: last ? avatarSize / 2 + nestGap : null,
+                      top: first ? 20 : 6,
+                      bottom: last ? 20 : 6,
+                      pic: last ? avatarSize : null,
+                      gap: nestGap,
                     ),
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
@@ -934,16 +963,18 @@ class VibeMessage extends StatelessWidget {
                     ? Row(
                         mainAxisSize: MainAxisSize.min,
                         textDirection: side,
-                        crossAxisAlignment: bubble
-                            ? CrossAxisAlignment.center
-                            : CrossAxisAlignment.end,
+                        // the picture at the bottom; the bubble flows into it
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           pic(),
                           const SizedBox(width: nestGap),
-                          Flexible(child: w),
+                          Flexible(child: VibeGrowOut(left: picLeft, child: w)),
                         ],
                       )
-                    : Padding(padding: inset, child: w),
+                    : Padding(
+                        padding: inset,
+                        child: VibeGrowOut(left: picLeft, child: w),
+                      ),
               );
               if ((!ticks || bubble) && effect == null) return place(shown);
               // Sent/read ticks sit beside the text: after it, or before it
@@ -1380,56 +1411,82 @@ class _ReplyCurve extends CustomPainter {
   bool shouldRepaint(covariant _ReplyCurve old) => old.color != color;
 }
 
-/// A bubble's solid shape. With [cut], the end next to the picture reaches
-/// out and curves in round it: O)____) for theirs, (____(O for yours.
+/// A bubble's solid shape, corners tighter where bubbles stack. With [pic],
+/// the bottom corner next to the picture flows into it with a soft inward
+/// curve, so a run of bubbles looks like it comes out of the picture:
+/// O)____) for theirs, (____(O for yours.
 class _BubblePainter extends CustomPainter {
   final Color color;
 
   /// The picture is on the left.
   final bool left;
 
-  /// Corner sizes on the picture's side (tighter where bubbles stack).
+  /// Corner sizes on the picture's side.
   final double top, bottom;
-  final double? cut;
+
+  /// The picture's size when it sits beside this bubble.
+  final double? pic;
+  final double gap;
   const _BubblePainter({
     required this.color,
     required this.left,
     required this.top,
     required this.bottom,
-    this.cut,
+    this.pic,
+    this.gap = 3,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     const r = Radius.circular(20);
-    final reach = cut ?? 0;
-    final t = Radius.circular(top), b = Radius.circular(bottom);
-    final shape = RRect.fromRectAndCorners(
-      Rect.fromLTRB(
-        left ? -reach : 0,
-        0,
-        size.width + (left ? 0 : reach),
-        size.height,
-      ),
-      topLeft: left ? t : r,
-      bottomLeft: left ? b : r,
-      topRight: left ? r : t,
-      bottomRight: left ? r : b,
-    );
-    var path = Path()..addRRect(shape);
-    if (cut != null) {
-      path = Path.combine(
-        PathOperation.difference,
-        path,
-        Path()..addOval(
-          Rect.fromCircle(
-            center: Offset(left ? -reach : size.width + reach, size.height / 2),
-            radius: reach,
-          ),
+    final t = Radius.circular(top);
+    final d = pic;
+    // mirrored for a picture on the right: draw as if it's on the left
+    if (!left) {
+      canvas.save();
+      canvas.translate(size.width, 0);
+      canvas.scale(-1, 1);
+    }
+    var path = Path()
+      ..addRRect(
+        RRect.fromRectAndCorners(
+          Offset.zero & size,
+          topLeft: t,
+          bottomLeft: d == null ? Radius.circular(bottom) : Radius.zero,
+          topRight: r,
+          bottomRight: r,
         ),
+      );
+    if (d != null) {
+      // the picture's centre, left of the bubble, level with its bottom
+      final ring = d / 2 + gap;
+      final c = Offset(-ring, size.height - d / 2);
+      // a small circle tangent to the bubble's edge and the ring round the
+      // picture gives the inward curve where the bubble meets it
+      final f = (math.min(8.0, (c.dy - 2) * (c.dy - 2) / (4 * ring)))
+          .clamp(1.0, 8.0);
+      final fy = c.dy - 2 * math.sqrt(ring * f);
+      // where the small circle touches the ring
+      final fc = Offset(-f, fy);
+      final tp = fc + (c - fc) * (f / (ring + f));
+      final neck = Path()
+        ..moveTo(1, fy)
+        ..lineTo(tp.dx, tp.dy)
+        ..lineTo(c.dx, c.dy)
+        ..lineTo(c.dx, size.height)
+        ..lineTo(1, size.height)
+        ..close();
+      final bites = Path()
+        ..addOval(Rect.fromCircle(center: c, radius: ring))
+        ..addOval(Rect.fromCircle(center: fc, radius: f));
+      path = Path.combine(
+        PathOperation.union,
+        path,
+        Path.combine(PathOperation.difference, neck, bites),
       );
     }
     canvas.drawPath(path, Paint()..color = color);
+    if (!left) canvas.restore();
   }
 
   @override
@@ -1438,5 +1495,5 @@ class _BubblePainter extends CustomPainter {
       old.left != left ||
       old.top != top ||
       old.bottom != bottom ||
-      old.cut != cut;
+      old.pic != pic;
 }

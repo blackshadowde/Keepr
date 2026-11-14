@@ -9,6 +9,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import 'package:vibe/config/app_config.dart';
+import 'package:vibe/vibe/vibe_live_location.dart';
 
 /// Map tiles in dark mode: the same map, turned dark and grey.
 const vibeMapNight = ColorFilter.matrix(<double>[
@@ -87,6 +88,14 @@ class MapBubble extends StatelessWidget {
   final double height;
   final double radius;
   final VoidCallback? onTap;
+  final String? title;
+  final String? sub;
+
+  /// Live location: a pulsing dot by the title.
+  final bool live;
+
+  /// Instead of the arrow at the end (Stop sharing).
+  final Widget? action;
 
   const MapBubble({
     required this.latitude,
@@ -96,6 +105,10 @@ class MapBubble extends StatelessWidget {
     this.height = 150,
     this.radius = 20.0,
     this.onTap,
+    this.title,
+    this.sub,
+    this.live = false,
+    this.action,
     super.key,
   });
 
@@ -159,14 +172,19 @@ class MapBubble extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
                 child: Row(
                   children: [
-                    Icon(Icons.place_rounded, size: 20, color: cs.primary),
+                    live
+                        ? const SizedBox(
+                            width: 20,
+                            child: Center(child: VibeLiveDot()),
+                          )
+                        : Icon(Icons.place_rounded, size: 20, color: cs.primary),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Location',
+                            title ?? 'Location',
                             style: TextStyle(
                               fontSize: 14.5,
                               fontWeight: FontWeight.w700,
@@ -174,8 +192,9 @@ class MapBubble extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            '${latitude.toStringAsFixed(5)}, '
-                            '${longitude.toStringAsFixed(5)}',
+                            sub ??
+                                '${latitude.toStringAsFixed(5)}, '
+                                    '${longitude.toStringAsFixed(5)}',
                             style: TextStyle(
                               fontSize: 12,
                               color: cs.onSurfaceVariant,
@@ -184,7 +203,7 @@ class MapBubble extends StatelessWidget {
                         ],
                       ),
                     ),
-                    Tooltip(
+                    action ?? Tooltip(
                       message: L10n.of(context).openInMaps,
                       child: Icon(
                         Icons.north_east_rounded,
