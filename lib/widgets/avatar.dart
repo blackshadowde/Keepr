@@ -18,6 +18,9 @@ class Avatar extends StatelessWidget {
   final Client? client;
   final String? presenceUserId;
   final Color? presenceBackgroundColor;
+
+  /// No dot for people who aren't online (chat lists).
+  final bool hideOffline;
   final BorderRadius? borderRadius;
   final IconData? icon;
   final ShapeBorder? shapeBorder;
@@ -35,6 +38,7 @@ class Avatar extends StatelessWidget {
     this.client,
     this.presenceUserId,
     this.presenceBackgroundColor,
+    this.hideOffline = false,
     this.borderRadius,
     this.shapeBorder,
     this.icon,
@@ -159,6 +163,9 @@ class Avatar extends StatelessWidget {
                     : presence.presence.isUnavailable
                     ? vibeDotOrange
                     : vibeDotGrey;
+                if (hideOffline && dotColor == vibeDotGrey) {
+                  return const SizedBox.shrink();
+                }
                 return _dot(theme, dotColor);
               },
             ),

@@ -13,6 +13,7 @@ import 'package:vibe/vibe/vibe_chat_actions.dart';
 import 'package:vibe/vibe/vibe_groups.dart';
 import 'package:vibe/vibe/vibe_cascade.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
+import 'package:vibe/vibe/vibe_palette.dart';
 import 'package:vibe/vibe/vibe_archive.dart';
 import 'package:vibe/vibe/vibe_typing_pen.dart';
 import 'package:vibe/widgets/avatar.dart';
@@ -57,6 +58,9 @@ class VibeDmPane extends StatefulWidget {
 class _VibeDmPaneState extends State<VibeDmPane> {
   final TextEditingController _filter = TextEditingController();
 
+  /// Unread cards opened by hand while they're folded (more than 5 unread).
+  final _opened = <String>{};
+
   @override
   void dispose() {
     _filter.dispose();
@@ -96,6 +100,12 @@ class _VibeDmPaneState extends State<VibeDmPane> {
     final others = q.isEmpty
         ? joined.where((r) => !r.isFavourite).toList()
         : joined;
+    // unread chats are cards on top; more than 5 fold to one line each
+    final fresh = q.isEmpty
+        ? joined.where((r) => r.isUnread).toList()
+        : const <Room>[];
+    final rest = q.isEmpty ? others.where((r) => !r.isUnread).toList() : others;
+    final folded = fresh.length > 5;
 
     Widget dmTile(Room r, int index) => VibeStagger(
       key: ValueKey('dm_${r.id}'),
@@ -191,14 +201,38 @@ class _VibeDmPaneState extends State<VibeDmPane> {
                           ),
                         ),
                     ],
+                    for (var i = 0; i < fresh.length; i++)
+                      () => VibeStagger(
+                        key: ValueKey('new_${fresh[i].id}'),
+                        index: i + invites.length + spaces.length,
+                        child: _UnreadCard(
+                          room: fresh[i],
+                          name: nameOf(fresh[i]),
+                          foldable: folded,
+                          open: !folded || _opened.contains(fresh[i].id),
+                          onToggle: () => setState(() {
+                            if (!_opened.remove(fresh[i].id)) {
+                              _opened.add(fresh[i].id);
+                            }
+                          }),
+                          onOpen: () => widget.onOpen(fresh[i]),
+                          onAvatarTap: () => widget.onTap(fresh[i]),
+                          onLongPress: () => VibeChatActions.show(
+                            context,
+                            fresh[i],
+                            onOpen: () => widget.onOpen(fresh[i]),
+                          ),
+                        ),
+                      ),
                     // adding lives in the + tile above, not on each label
-                    () => _SectionLabel(
-                      widget.spacesMode ? 'Groups' : 'Direct messages',
-                    ),
-                    for (var i = 0; i < others.length; i++)
+                    if (rest.isNotEmpty)
+                      () => _SectionLabel(
+                        widget.spacesMode ? 'All groups' : 'All chats',
+                      ),
+                    for (var i = 0; i < rest.length; i++)
                       () => dmTile(
-                        others[i],
-                        i + invites.length + spaces.length + 1,
+                        rest[i],
+                        i + fresh.length + invites.length + spaces.length + 1,
                       ),
                   ];
                   // every chat its own pill; the archive one more pill
@@ -297,12 +331,13 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 22, 16, 8),
+    padding: const EdgeInsets.fromLTRB(26, 16, 16, 6),
     child: Text(
-      text,
+      text.toUpperCase(),
       style: TextStyle(
-        fontSize: 13.5,
-        fontWeight: FontWeight.w600,
+        fontSize: 12,
+        letterSpacing: 0.9,
+        fontWeight: FontWeight.w700,
         color: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
     ),
@@ -334,31 +369,23 @@ class _DmTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final unread = room.isUnread;
-    final last = room.lastEvent;
     // the last message, or what kind of chat it is
-    final preview = subtitle ?? last?.vibeBodyFallback(
-          MatrixLocals(L10n.of(context)),
-          hideReply: true,
-          withSenderNamePrefix: VibeGroups.isGroup(room),
-        ) ??
-        (VibeGroups.isGroup(room)
-            ? '${VibeGroups.memberCount(room)} members'
-            : 'Encrypted chat');
-    // each chat is its own pill on the wallpaper (like the start pane's
-    // rows), not one shared panel
+    final preview = subtitle ?? _previewOf(context, room);
+    // rows are flat: only the open chat is tinted, and unread chats are
+    // cards above the list
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 1),
       child: Material(
       color: active
           ? cs.secondaryContainer.withValues(alpha: 0.92)
-          : cs.surfaceContainerLow.withValues(alpha: 0.88),
+          : Colors.transparent,
       shape: const StadiumBorder(),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         onLongPress: onLongPress,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(9, 9, 20, 9),
+          padding: const EdgeInsets.fromLTRB(12, 6, 16, 6),
           child: Row(
             children: [
               GestureDetector(
@@ -370,9 +397,10 @@ class _DmTile extends StatelessWidget {
                     child: Avatar(
                       mxContent: room.avatar,
                       name: name,
-                      size: 48,
+                      size: 44,
                       client: room.client,
                       presenceUserId: room.directChatMatrixID,
+                      hideOffline: true,
                     ),
                   ),
                 ),
@@ -505,6 +533,307 @@ class _InviteTile extends StatelessWidget {
                 },
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The last message as one clean line: your own starts with "You:", and a
+/// reply to part of a message shows the answer, not the quoted words.
+String _previewOf(BuildContext context, Room room) {
+  final last = room.lastEvent;
+  final group = VibeGroups.isGroup(room);
+  if (last == null) {
+    return group ? '${VibeGroups.memberCount(room)} members' : 'Encrypted chat';
+  }
+  var body = last.vibeBodyFallback(
+    MatrixLocals(L10n.of(context)),
+    hideReply: true,
+    withSenderNamePrefix: group,
+  );
+  if (group) return body;
+  if (body.startsWith('> ')) {
+    final answer = body
+        .split('\n')
+        .skipWhile((l) => l.startsWith('> ') || l.trim().isEmpty)
+        .join(' ')
+        .trim();
+    if (answer.isNotEmpty) body = '↩ $answer';
+  }
+  return last.senderId == room.client.userID ? 'You: $body' : body;
+}
+
+/// An unread chat as a card: who, when and how many; the message in a
+/// bubble; a box to answer right there. Folded (more than 5 unread) it's
+/// one line with a round arrow that opens it.
+class _UnreadCard extends StatefulWidget {
+  final Room room;
+  final String name;
+  final bool foldable;
+  final bool open;
+  final VoidCallback onToggle;
+  final VoidCallback onOpen;
+  final VoidCallback onAvatarTap;
+  final VoidCallback onLongPress;
+  const _UnreadCard({
+    required this.room,
+    required this.name,
+    required this.foldable,
+    required this.open,
+    required this.onToggle,
+    required this.onOpen,
+    required this.onAvatarTap,
+    required this.onLongPress,
+  });
+
+  @override
+  State<_UnreadCard> createState() => _UnreadCardState();
+}
+
+class _UnreadCardState extends State<_UnreadCard> {
+  final _text = TextEditingController();
+  bool _sending = false;
+
+  @override
+  void dispose() {
+    _text.dispose();
+    super.dispose();
+  }
+
+  Future<void> _send() async {
+    final t = _text.text.trim();
+    if (t.isEmpty || _sending) return;
+    setState(() => _sending = true);
+    _text.clear();
+    try {
+      await widget.room.sendTextEvent(t);
+    } catch (_) {
+      // not sent: give the words back
+      if (mounted) _text.text = t;
+    }
+    if (mounted) setState(() => _sending = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final dark = theme.brightness == Brightness.dark;
+    // the phone's colour theme when it has one, like the chat bubbles
+    final wall = (dark ? VibePalette.wallDark : VibePalette.wallLight) ?? cs;
+    final card = Color.alphaBlend(
+      wall.primaryContainer,
+      dark ? const Color(0xFF1B1B1F) : const Color(0xFFF1F1F4),
+    );
+    final ink = wall.onPrimaryContainer;
+    final well = Color.alphaBlend(
+      cs.surface,
+      dark ? const Color(0xFF111318) : Colors.white,
+    );
+    final room = widget.room;
+    final n = room.notificationCount;
+    final typing = room.typingUsers.any((u) => u.id != room.client.userID);
+    final empty = _text.text.trim().isEmpty;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Material(
+        color: card,
+        borderRadius: BorderRadius.circular(26),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: widget.onOpen,
+          onLongPress: widget.onLongPress,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: widget.onAvatarTap,
+                      child: Avatar(
+                        mxContent: room.avatar,
+                        name: widget.name,
+                        size: 40,
+                        client: room.client,
+                        presenceUserId: room.directChatMatrixID,
+                        presenceBackgroundColor: card,
+                        hideOffline: true,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        widget.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 16.5,
+                          fontWeight: FontWeight.w700,
+                          color: ink,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      room.latestEventReceivedTime.localizedTimeShort(context),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: ink.withValues(alpha: 0.8),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      constraints: BoxConstraints(minWidth: n > 0 ? 20 : 10),
+                      height: n > 0 ? 20 : 10,
+                      padding: EdgeInsets.symmetric(horizontal: n > 0 ? 6 : 0),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: wall.primary,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: n > 0
+                          ? Text(
+                              n > 99 ? '99+' : '$n',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: wall.onPrimary,
+                              ),
+                            )
+                          : null,
+                    ),
+                    // folded: a round arrow opens the card
+                    if (widget.foldable) ...[
+                      const SizedBox(width: 8),
+                      Material(
+                        color: well,
+                        shape: const CircleBorder(),
+                        clipBehavior: Clip.antiAlias,
+                        child: InkWell(
+                          onTap: widget.onToggle,
+                          child: SizedBox.square(
+                            dimension: 32,
+                            child: AnimatedRotation(
+                              turns: widget.open ? 0.5 : 0,
+                              duration: const Duration(milliseconds: 240),
+                              child: Icon(
+                                Icons.expand_more_rounded,
+                                size: 22,
+                                color: cs.onSurface,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 260),
+                  curve: Curves.easeOutCubic,
+                  alignment: Alignment.topCenter,
+                  child: !widget.open
+                      ? const SizedBox(width: double.infinity)
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const SizedBox(height: 10),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Container(
+                                padding: const EdgeInsets.fromLTRB(
+                                  13,
+                                  8,
+                                  13,
+                                  8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: well,
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(6),
+                                    topRight: Radius.circular(18),
+                                    bottomLeft: Radius.circular(18),
+                                    bottomRight: Radius.circular(18),
+                                  ),
+                                ),
+                                child: Text(
+                                  typing
+                                      ? '••• typing'
+                                      : _previewOf(context, room),
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 14.5,
+                                    height: 1.35,
+                                    color: typing ? cs.primary : cs.onSurface,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: SizedBox(
+                                    height: 38,
+                                    child: TextField(
+                                      controller: _text,
+                                      onChanged: (_) => setState(() {}),
+                                      onSubmitted: (_) => _send(),
+                                      textInputAction: TextInputAction.send,
+                                      textCapitalization:
+                                          TextCapitalization.sentences,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: cs.onSurface,
+                                      ),
+                                      decoration: InputDecoration(
+                                        hintText: 'Reply…',
+                                        isDense: true,
+                                        filled: true,
+                                        fillColor: well,
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 14,
+                                              vertical: 9,
+                                            ),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            19,
+                                          ),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                FilledButton(
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: wall.primary,
+                                    foregroundColor: wall.onPrimary,
+                                    shape: const StadiumBorder(),
+                                    minimumSize: const Size(0, 38),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                    ),
+                                  ),
+                                  onPressed: empty ? widget.onOpen : _send,
+                                  child: Text(empty ? 'Open' : 'Send'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -237,7 +237,8 @@ class _VibeHomeViewState extends State<VibeHomeView> {
                     !channels.contains(r.id),
               )
               .toList();
-          // the rail: pinned chats and channels, then unread ones (each once)
+          // the rail: pinned chats and channels (unread ones are cards in the
+          // list)
           final quick = <Room>[];
           void add(Room r) {
             if (quick.length < 14 && !quick.contains(r)) quick.add(r);
@@ -252,11 +253,6 @@ class _VibeHomeViewState extends State<VibeHomeView> {
           final spacesUnread =
               joinedRooms.where((r) => VibeGroups.isGroup(r) && unread(r)).length;
           for (final r in joinedRooms.where((r) => r.isFavourite)) {
-            add(r);
-          }
-          for (final r in joinedRooms.where(
-            (r) => r.notificationCount > 0 || r.markedUnread,
-          )) {
             add(r);
           }
           Room? selected;
