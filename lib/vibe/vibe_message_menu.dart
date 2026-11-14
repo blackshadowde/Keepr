@@ -15,6 +15,7 @@ import 'package:vibe/l10n/l10n.dart';
 import 'package:vibe/vibe/screens/chat/chat.dart';
 import 'package:vibe/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:vibe/vibe/vibe_message.dart';
+import 'package:vibe/vibe/vibe_message_orbit.dart';
 import 'package:vibe/vibe/vibe_starred.dart';
 import 'package:vibe/widgets/avatar.dart';
 import 'package:vibe/vibe/vibe_slash.dart';
@@ -24,9 +25,16 @@ import 'package:matrix/matrix.dart';
 const Color _red = Color(0xFFF87171);
 Color get _blue => VibePalette.accent;
 
-/// Long-press menu for a message (reactions, preview, actions).
+/// Long-press menu for a message: the orbit round the message, or this
+/// sheet (reactions, preview, every action) from its More button.
 abstract class VibeMessageMenu {
   static Future<void> show(
+    BuildContext context,
+    ChatController controller,
+    Event event,
+  ) => VibeMessageOrbit.show(context, controller, event);
+
+  static Future<void> sheet(
     BuildContext context,
     ChatController controller,
     Event event,

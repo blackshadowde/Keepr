@@ -15,6 +15,7 @@ import 'package:vibe/vibe/vibe_entrance.dart';
 import 'package:vibe/vibe/vibe_view_once.dart';
 import 'package:vibe/vibe/vibe_live_location.dart';
 import 'package:vibe/vibe/vibe_pq.dart';
+import 'package:vibe/vibe/vibe_message_orbit.dart';
 import 'package:vibe/vibe/vibe_effects.dart';
 import 'package:vibe/vibe/vibe_emoji_sheet.dart';
 import 'package:vibe/vibe/vibe_haptics.dart';
@@ -1178,6 +1179,13 @@ class VibeMessage extends StatelessWidget {
                       ? null
                       : () {
                           VibeHaptics.heavy();
+                          // where the message is, for the menu round it
+                          final box = context.findRenderObject();
+                          if (box is RenderBox && box.hasSize) {
+                            VibeMessageOrbit.hold(
+                              box.localToGlobal(Offset.zero) & box.size,
+                            );
+                          }
                           final cb = onLongPress;
                           if (cb != null) {
                             cb(event);
