@@ -44,9 +44,9 @@ Keepr is a chat app for Android, iPhone and the web. It runs on [Matrix](https:/
 
 ## Screenshots
 
-| | | | | |
-|-|-|-|-|-|
-| <img src="docs/screenshots/home.png" width="160" alt="Home"> | <img src="docs/screenshots/chat.png" width="160" alt="Chat"> | <img src="docs/screenshots/start.png" width="160" alt="Start a chat, group or community"> | <img src="docs/screenshots/strict.png" width="160" alt="Strict encryption"> | <img src="docs/screenshots/profile.png" width="160" alt="Profile"> |
+| Home | Chat | Message menu | Typing buddy |
+|:-:|:-:|:-:|:-:|
+| <img src="docs/screenshots/home.png" width="200" alt="Home with unread chats as cards"> | <img src="docs/screenshots/chat.png" width="200" alt="Chat with bubbles nested round the picture"> | <img src="docs/screenshots/menu.png" width="200" alt="Message actions orbiting a held message"> | <img src="docs/screenshots/buddy.png" width="200" alt="The typing buddy on the text box"> |
 
 ## Features
 
