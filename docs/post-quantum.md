@@ -1,4 +1,4 @@
-# Post-quantum direct chats (plan)
+# Post-quantum direct chats
 
 An extra lock on direct chats between two Keepr users, so that messages
 recorded today can't be read later by a quantum computer ("harvest now,
