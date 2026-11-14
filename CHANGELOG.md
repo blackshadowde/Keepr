@@ -3,6 +3,13 @@
 Vibe's changes are listed on each release:
 https://github.com/blackshadowde/Vibe-flutter/releases
 
+## 2026-11-15
+
+- Home: the top is your picture, name and status (Online in green) with round Search and Settings buttons; under it Chats and Spaces side by side as pills with their unread counts, and a round + at the end. Hold Chats for locked chats. Pinned chats show as pictures under that row when you have any ([d601d9fd0](https://github.com/blackshadowde/keepr/commit/d601d9fd0))
+- Chat bubbles: back to the picture sitting in the curve of the last bubble, and now every bubble of a run reaches the same edge, so the run lines up ([d601d9fd0](https://github.com/blackshadowde/keepr/commit/d601d9fd0))
+- Typing indicators: when someone sets a new one in a chat with you, you get a notification showing it (asking you to set yours if you haven't); opening the chat offers Set yours once ([d601d9fd0](https://github.com/blackshadowde/keepr/commit/d601d9fd0))
+- Attach menu: each action is a bright round tile with a white rounded icon (Photos, Contacts, Files, Poll, Location) ([d601d9fd0](https://github.com/blackshadowde/keepr/commit/d601d9fd0))
+
 ## 2026-11-14
 
 - Chat bubbles: the sender's picture sits at the bottom of a run and the last bubble's bottom corner flows into it with a soft inward curve; the bubbles above line up with it, so the run reads as one shape. A new message no longer slides in: the row opens up and the bubble stretches out of the picture (wide, then tall, a little overshoot) ([7280b32d0](https://github.com/blackshadowde/keepr/commit/7280b32d0))
