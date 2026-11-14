@@ -5,7 +5,7 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 
 ## 2026-11-14
 
-- Video calls: your own preview is mirrored again, like looking in a mirror, so moving your right hand moves the picture on the right. What the other person sees was never flipped and still isn't (PENDING)
+- Video calls: your own preview is mirrored again, like looking in a mirror, so moving your right hand moves the picture on the right. What the other person sees was never flipped and still isn't ([0edd8cc](https://github.com/blackshadowde/keepr/commit/0edd8cc))
 
 ## 2026-11-07 ([a7d176a](https://github.com/blackshadowde/keepr/commit/a7d176a))
 
