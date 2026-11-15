@@ -34,10 +34,22 @@ class TypingIndicators extends StatelessWidget {
       ),
       builder: (context, _) {
         final me = Matrix.of(context).client.userID;
+        // a message just came from someone typing: their dots become the
+        // message's picture (see VibeTypingMorph), so they go at once here
+        final newest = controller.timeline?.events.firstOrNull;
+        final arrived =
+            newest != null &&
+            newest.senderId != me &&
+            DateTime.now().difference(newest.originServerTs).inSeconds.abs() <
+                4;
         final typingUsers = controller.room.typingUsers
-            .where((u) => u.stateKey != me)
+            .where(
+              (u) =>
+                  u.stateKey != me && !(arrived && newest.senderId == u.id),
+            )
             .toList();
         final typing = typingUsers.isNotEmpty;
+        final duration = !typing && arrived ? Duration.zero : _duration;
         final who = typing ? typingUsers.first : null;
         // their own typing indicator (Settings > Customisation), if any
         final style = who == null
@@ -47,17 +59,17 @@ class TypingIndicators extends StatelessWidget {
         final buddy = who == null ? null : VibeBuddy.of(controller.room, who.id);
 
         return AnimatedContainer(
-          duration: _duration,
+          duration: duration,
           curve: Curves.easeOut,
           height: typing ? 36 : 0,
           alignment: Alignment.centerLeft,
           clipBehavior: Clip.hardEdge,
           decoration: const BoxDecoration(),
           child: AnimatedOpacity(
-            duration: _duration,
+            duration: duration,
             opacity: typing ? 1 : 0,
             child: AnimatedSlide(
-              duration: _duration,
+              duration: duration,
               curve: Curves.easeOut,
               offset: typing ? Offset.zero : const Offset(0, 0.25),
               child: Padding(
@@ -85,7 +97,7 @@ class TypingIndicators extends StatelessWidget {
                           ).colorScheme.surfaceContainerHigh,
                           borderRadius: BorderRadius.circular(15),
                         ),
-                        child: const _VibeTypingDots(),
+                        child: const VibeTypingDots(),
                       ),
                     if (who != null && style != null) ...[
                       Avatar(
@@ -124,14 +136,14 @@ class TypingIndicators extends StatelessWidget {
 }
 
 /// Three dots bouncing one after another (1.2 s cycle), like Vibgram.
-class _VibeTypingDots extends StatefulWidget {
-  const _VibeTypingDots();
+class VibeTypingDots extends StatefulWidget {
+  const VibeTypingDots({super.key});
 
   @override
-  State<_VibeTypingDots> createState() => _VibeTypingDotsState();
+  State<VibeTypingDots> createState() => _VibeTypingDotsState();
 }
 
-class _VibeTypingDotsState extends State<_VibeTypingDots>
+class _VibeTypingDotsState extends State<VibeTypingDots>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl = AnimationController(
     vsync: this,

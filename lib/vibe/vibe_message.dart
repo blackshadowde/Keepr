@@ -608,7 +608,7 @@ class VibeMessage extends StatelessWidget {
 
     // their picture, beside the last message of a run
     Widget pic() {
-      return FutureBuilder<User?>(
+      final picture = FutureBuilder<User?>(
         future: event.fetchSenderUser(),
         builder: (context, snapshot) {
           final user = snapshot.data ?? sender;
@@ -628,6 +628,10 @@ class VibeMessage extends StatelessWidget {
           );
         },
       );
+      // someone else's new message: their typing dots become the picture
+      return ownMessage
+          ? picture
+          : VibeTypingMorph(size: avatarSize, child: picture);
     }
 
     Widget header() {
