@@ -24,6 +24,7 @@ import 'package:vibe/vibe/vibe_low_data.dart';
 import 'package:vibe/widgets/adaptive_dialogs/adaptive_dialog_action.dart';
 import 'package:vibe/widgets/adaptive_dialogs/dialog_text_field.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:vibe/vibe/buddy/bujji_life.dart';
 import 'package:flutter/material.dart';
 import 'package:matrix/matrix.dart' hide Result;
 import 'package:mime/mime.dart';
@@ -102,6 +103,14 @@ class SendFileDialogState extends State<SendFileDialog> {
         l10n.sendingFilesDoNotExit(widget.files.length),
       );
     }
+    // Bujji holds the camera (or the paper, for files) until it's all sent
+    final job = _files.every((f) {
+      final m = f.mimeType ?? lookupMimeType(f.path) ?? '';
+      return m.startsWith('image') || m.startsWith('video');
+    })
+        ? 'photo'
+        : 'file';
+    BujjiLife.begin(job, max: const Duration(minutes: 30));
     try {
       if (!widget.room.otherPartyCanReceiveMessages) {
         throw OtherPartyCanNotReceiveMessages();
@@ -211,6 +220,7 @@ class SendFileDialogState extends State<SendFileDialog> {
         }
       }
     } finally {
+      BujjiLife.end(job);
       if (ForegroundServices.platformSupported) {
         await ForegroundServices.stopService('send_files');
       } else {

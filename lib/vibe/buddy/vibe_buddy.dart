@@ -47,6 +47,7 @@ enum BuddyProp {
   // Bujji's life: tools for what you do, things for the moment
   hammer,
   screwdriver,
+  pen,
   broom,
   clipboard,
   umbrella,
@@ -1089,6 +1090,22 @@ class _BuddyPainter extends CustomPainter {
           canvas.drawRRect(box(93, 18, 12, 34, 5), fill(0xFFF2994A));
         });
         hands([(92, 48)]);
+      case BuddyProp.pen:
+        // writing: the pen nods along while you change the words
+        turn(98, 52, 0.5 + 0.14 * beat, () {
+          canvas.drawRRect(box(94, 4, 9, 38, 4), fill(0xFF5B6BD6));
+          canvas.drawRRect(box(94, 11, 9, 5, 1.5), fill(0xFF3A4699));
+          canvas.drawPath(
+            Path()
+              ..moveTo(94 * u, 41 * u)
+              ..lineTo(103 * u, 41 * u)
+              ..lineTo(98.5 * u, 53 * u)
+              ..close(),
+            fill(0xFFF2D7A6),
+          );
+          canvas.drawCircle(p(98.5, 52), 1.6 * u, fill(0xFF2B2E38));
+        });
+        hands([(92, 50)]);
       case BuddyProp.broom:
         canvas.save();
         canvas.translate(6 * u * math.sin(t * math.pi * 4), 0);

@@ -35,6 +35,27 @@ abstract class BujjiLife {
     if (pace != BujjiPace.off) _tools.add((kind, eventId));
   }
 
+  // ---- jobs: the tool stays in its hands until they're done ----
+
+  /// pin, delete, photo, file: what it's busy with now.
+  static final job = ValueNotifier<String?>(null);
+  static Timer? _jobTimer;
+
+  /// Starts a job; it ends with [end], or on its own after [max] in case
+  /// whatever started it went away.
+  static void begin(String kind, {Duration max = const Duration(minutes: 3)}) {
+    if (pace == BujjiPace.off) return;
+    job.value = kind;
+    _jobTimer?.cancel();
+    _jobTimer = Timer(max, () => end(kind));
+  }
+
+  static void end(String kind) {
+    if (job.value != kind) return;
+    _jobTimer?.cancel();
+    job.value = null;
+  }
+
   // ---- where messages are on screen ----
 
   static final _spots = <String, BuildContext>{};

@@ -140,6 +140,7 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
     VibeBuddy.says.addListener(_onSays);
     VibeBuddy.here = room.id;
     _tools = BujjiLife.tools.listen(_onTool);
+    BujjiLife.job.addListener(_onJob);
     _events = room.client.onTimelineEvent.stream
         .where((e) => e.room.id == room.id)
         .listen(_onEvent);
@@ -203,6 +204,7 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
     c.sendController.removeListener(_onText);
     VibeBuddy.sent.removeListener(_onSent);
     VibeBuddy.changed.removeListener(_refresh);
+    BujjiLife.job.removeListener(_onJob);
     c.scrollController.removeListener(_onScroll);
     VibeBuddy.says.removeListener(_onSays);
     if (VibeBuddy.here == room.id) VibeBuddy.here = null;
@@ -573,11 +575,43 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
         }
         _show(BuddyMood.happy, BuddyProp.hammer, 2600);
       case 'edit':
-        _show(BuddyMood.happy, BuddyProp.screwdriver, 2200);
+        // it picks up the pen and keeps it until the edit is sent
+        setState(() => _hop++);
       case 'delete':
         _show(BuddyMood.idle, BuddyProp.broom, 2600);
       case 'copy':
         _show(BuddyMood.smart, BuddyProp.clipboard, 1800);
+    }
+  }
+
+  /// What it's busy with, tool in hand until it's done: the pen while you
+  /// edit, a letter while you reply, the magnifier while you search; the
+  /// hammer, broom, camera or paper until a pin, delete or upload is done.
+  BuddyProp? get _busy {
+    if (BujjiLife.pace == BujjiPace.off) return null;
+    if (c.editEvent != null) return BuddyProp.pen;
+    if (c.searching) return BuddyProp.magnifier;
+    if (c.replyEvent != null) return BuddyProp.paper;
+    return switch (BujjiLife.job.value) {
+      'pin' => BuddyProp.hammer,
+      'delete' => BuddyProp.broom,
+      'photo' => BuddyProp.camera,
+      'file' => BuddyProp.paper,
+      _ => null,
+    };
+  }
+
+  String? _lastJob;
+
+  /// A job finished: puts the tool down, pleased with itself.
+  void _onJob() {
+    if (!mounted) return;
+    final was = _lastJob, now = BujjiLife.job.value;
+    _lastJob = now;
+    if (was != null && now == null && VibeBuddy.on) {
+      _show(BuddyMood.proud, null, 1400);
+    } else {
+      setState(() {});
     }
   }
 
@@ -655,7 +689,9 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
   /// from behind a message, plays catch, reads, has its coffee.
   void _idleLife() {
     if (!mounted || !_alive || !VibeBuddy.on) return;
-    if (_trip != null || _cross || _sleepy || _flash != null) return;
+    if (_trip != null || _cross || _sleepy || _flash != null || _busy != null) {
+      return;
+    }
     if (_hint != null || _answer != null || c.sendController.text.isNotEmpty) {
       return;
     }
@@ -1186,6 +1222,7 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
     final bed = _sleepy && _alive && (VibeBuddy.night || VibeBuddy.bedtime);
     final prop =
         _flashProp ??
+        _busy ??
         _hold ??
         (bed
             ? BuddyProp.bed

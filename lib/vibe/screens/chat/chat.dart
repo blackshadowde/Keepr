@@ -1425,8 +1425,9 @@ class ChatController extends State<ChatPageWithRoom>
     final reason = reasonInput.isEmpty ? null : reasonInput;
     if (!mounted) return;
     final slashed = selectedEvents.map((e) => e.eventId).toList();
-    // Bujji sweeps it away
+    // Bujji sweeps it away, broom in hand until it's gone
     BujjiLife.use('delete');
+    BujjiLife.begin('delete', max: const Duration(minutes: 1));
     await VibeSlash.play(context, slashed);
     if (!mounted) return;
     await showFutureLoadingDialog(
@@ -1458,6 +1459,7 @@ class ChatController extends State<ChatPageWithRoom>
         }
       },
     );
+    BujjiLife.end('delete');
     // the deleted rows now show the planted sword; let them settle first
     Future.delayed(const Duration(milliseconds: 1500), () => VibeSlash.clear(slashed));
     setState(() {
@@ -1898,12 +1900,15 @@ class ChatController extends State<ChatPageWithRoom>
       pinnedEventIds.removeWhere(selectedEventIds.contains);
     } else {
       pinnedEventIds.addAll(selectedEventIds);
-      // Bujji taps the pin in
+      // Bujji taps the pin in, hammer in hand until it's pinned
       BujjiLife.use('pin', selectedEventIds.firstOrNull);
+      BujjiLife.begin('pin', max: const Duration(minutes: 1));
     }
     showFutureLoadingDialog(
       context: context,
-      future: () => room.setPinnedEvents(pinnedEventIds),
+      future: () => room
+          .setPinnedEvents(pinnedEventIds)
+          .whenComplete(() => BujjiLife.end('pin')),
     );
   }
 
