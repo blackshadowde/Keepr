@@ -26,7 +26,7 @@ import 'package:vibe/widgets/member_actions_popup_menu_button.dart';
 import 'package:vibe/vibe/vibe_stable_id.dart';
 import 'package:flutter/material.dart';
 import 'package:matrix/matrix.dart';
-import 'package:swipe_to_action/swipe_to_action.dart';
+import 'package:vibe/vibe/vibe_swipe_reply.dart';
 
 import 'package:vibe/config/app_config.dart';
 import 'message_content.dart';
@@ -270,16 +270,9 @@ class Message extends StatelessWidget {
     final eventStateTextColor = theme.colorScheme.onSurface;
 
     return Center(
-      child: Swipeable(
+      child: VibeSwipeReply(
         key: ValueKey(VibeStableId.of(event)),
-        background: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12.0),
-          child: Center(child: Icon(Icons.check_outlined)),
-        ),
-        direction: AppSettings.swipeRightToLeftToReply.value
-            ? SwipeDirection.endToStart
-            : SwipeDirection.startToEnd,
-        onSwipe: (_) => onSwipe(),
+        onReply: onSwipe,
         child: Container(
           constraints: const BoxConstraints(
             maxWidth: VibeThemes.maxTimelineWidth,
