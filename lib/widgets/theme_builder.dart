@@ -109,11 +109,35 @@ class ThemeController extends State<ThemeBuilder> {
     VibeGlass.version.addListener(_glassChanged);
     // Hypr Launcher's theme: now and whenever Vibe comes back
     VibeGlass.followLauncher();
-    _life = AppLifecycleListener(onResume: VibeGlass.followLauncher);
+    _life = AppLifecycleListener(
+      onResume: () {
+        VibeGlass.followLauncher();
+        _rereadWallColours();
+      },
+    );
     super.initState();
   }
 
   AppLifecycleListener? _life;
+
+  /// The phone's wallpaper / Material colours, read again whenever Keepr
+  /// comes back to the screen. Keepr keeps running in the background now,
+  /// so a new wallpaper or colour theme would otherwise only show after a
+  /// restart.
+  ColorScheme? _wallLight, _wallDark;
+
+  Future<void> _rereadWallColours() async {
+    try {
+      final palette = await DynamicColorPlugin.getCorePalette();
+      if (palette == null || !mounted) return;
+      final light = palette.toColorScheme();
+      if (light == VibePalette.wallLight) return;
+      setState(() {
+        _wallLight = light;
+        _wallDark = palette.toColorScheme(brightness: Brightness.dark);
+      });
+    } catch (_) {}
+  }
 
   void _glassChanged() {
     if (mounted) setState(() {});
@@ -133,8 +157,8 @@ class ThemeController extends State<ThemeBuilder> {
       child: DynamicColorBuilder(
         // Vibe: the wallpaper colours are only used when that look is on
         builder: (light, dark) {
-          VibePalette.wallLight = light;
-          VibePalette.wallDark = dark;
+          VibePalette.wallLight = _wallLight ?? light;
+          VibePalette.wallDark = _wallDark ?? dark;
           VibePalette.look = _look;
           return widget.builder(context, themeMode, primaryColor);
         },
