@@ -2246,5 +2246,14 @@
     "@passphrasesMatch": {
         "type": "String",
         "placeholders": {}
-    }
+    },
+    "editImage": "Redaguoti vaizdą",
+    "save": "Išsaugoti",
+    "draw": "Piešti",
+    "clear": "Valyti",
+    "baseUrl": "Pradinis URL",
+    "identityServer": "Identifikavimo serveris:",
+    "versionWithNumber": "Versija: {version}",
+    "logs": "Žurnalai",
+    "matrixId": "„Matrix“ ID"
 }

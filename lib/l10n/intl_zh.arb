@@ -2713,5 +2713,24 @@
                 "type": "int"
             }
         }
-    }
+    },
+    "editImage": "编辑图片",
+    "rotateLeft": "左转",
+    "rotateRight": "右转",
+    "mirror": "镜像",
+    "save": "保存",
+    "draw": "绘制",
+    "undo": "撤销",
+    "clear": "清除",
+    "eraser": "擦除",
+    "crop": "裁剪",
+    "sendingFilesDoNotExit": "正发送 {count} 个文件… 请不要退出！",
+    "compressingVideo": "正在压缩视频…",
+    "loadingMessages": "正在加载消息…",
+    "buildDoesNotSupportFirebase": "此版本不支持 firebase 云消息。",
+    "unableToRegisterDeviceForFirebase": "无法注册设备用于 firebase 云消息。",
+    "unifiedPushDistributors": "Unified Push 分发程序：",
+    "doubleTapToReact": "轻按两次回应",
+    "doubleTapToReactDescription": "轻按消息两次进行回应而非选中文本",
+    "doubleTapReaction": "轻按两次回应"
 }

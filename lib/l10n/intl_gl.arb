@@ -2713,5 +2713,24 @@
                 "type": "int"
             }
         }
-    }
+    },
+    "editImage": "Editar imaxe",
+    "rotateLeft": "Rotar á esquerda",
+    "rotateRight": "Rotar á dereita",
+    "mirror": "Espello",
+    "save": "Gardar",
+    "draw": "Debuxar",
+    "undo": "Desfacer",
+    "clear": "Limpar",
+    "eraser": "Borrar",
+    "crop": "Recortar",
+    "sendingFilesDoNotExit": "Enviando {count} ficheiros… Non saias!",
+    "compressingVideo": "Comprimindo o vídeo…",
+    "loadingMessages": "Cargando mensaxes…",
+    "buildDoesNotSupportFirebase": "Esta versión non é compatible con firebase cloud messaging.",
+    "unableToRegisterDeviceForFirebase": "Non se puido rexistrar o dispositivo en firebase cloud messaging.",
+    "unifiedPushDistributors": "Distribuidores Unified Push:",
+    "doubleTapToReact": "Doble toque para reaccionar",
+    "doubleTapToReactDescription": "Fai doble toque nunha mensaxe para engadir reacción no lugar de seleccionar o texto",
+    "doubleTapReaction": "Reacción con doble toque"
 }

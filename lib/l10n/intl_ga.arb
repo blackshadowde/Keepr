@@ -2719,5 +2719,24 @@
                 "type": "int"
             }
         }
-    }
+    },
+    "editImage": "Cuir íomhá in eagar",
+    "rotateLeft": "Rothlaigh ar chlé",
+    "rotateRight": "Rothlaigh ar dheis",
+    "mirror": "Scáthán",
+    "save": "Sábháil",
+    "draw": "Tarraing",
+    "undo": "Cuir ar ceal",
+    "clear": "Glan",
+    "eraser": "Scriosán",
+    "crop": "Barr",
+    "sendingFilesDoNotExit": "Ag seoladh {count} comhad... Ná scoir le do thoil!",
+    "compressingVideo": "Ag comhbhrú físeáin...",
+    "loadingMessages": "Ag lódáil teachtaireachtaí...",
+    "buildDoesNotSupportFirebase": "Ní thacaíonn an tógáil seo le teachtaireachtaí scamall firebase.",
+    "unableToRegisterDeviceForFirebase": "Ní féidir gléas a chlárú le haghaidh teachtaireachtaí scamall firebase.",
+    "unifiedPushDistributors": "Dáileoirí Brú Aontaithe:",
+    "doubleTapToReact": "Tapáil faoi dhó le freagairt",
+    "doubleTapToReactDescription": "Tapáil faoi dhó ar theachtaireacht le freagairt in ionad téacs a roghnú",
+    "doubleTapReaction": "Imoibriú tapála faoi dhó"
 }

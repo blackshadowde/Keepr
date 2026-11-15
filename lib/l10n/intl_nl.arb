@@ -2712,5 +2712,24 @@
                 "type": "int"
             }
         }
-    }
+    },
+    "editImage": "Afbeelding wijzigen",
+    "rotateLeft": "Linksom draaien",
+    "rotateRight": "Rechtsom draaien",
+    "mirror": "Spiegelen",
+    "save": "Opslaan",
+    "draw": "Tekenen",
+    "undo": "Herstel",
+    "clear": "Ongedaan maken",
+    "eraser": "Gummen",
+    "crop": "Bijsnijden",
+    "sendingFilesDoNotExit": "{count} bestanden sturen... Even geduld ajb!",
+    "compressingVideo": "Video comprimeren...",
+    "loadingMessages": "Berichten laden...",
+    "buildDoesNotSupportFirebase": "Deze versie ondersteunt geen firebase cloud messaging.",
+    "unableToRegisterDeviceForFirebase": "Niet in staat om het apparaat te registreren voor firebase cloud messaging.",
+    "unifiedPushDistributors": "Unified Push diensten:",
+    "doubleTapToReact": "Dubbele tik om te reageren",
+    "doubleTapToReactDescription": "Dubbele tik op een bericht om te reageren of tekst te selecteren",
+    "doubleTapReaction": "Dubbele tik reactie"
 }

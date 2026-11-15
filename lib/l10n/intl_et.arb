@@ -2713,5 +2713,24 @@
             }
         }
     },
-    "biometricsDescription": "Biomeetrilise autentimise puhul saad rakenduse lukust avada oma näo või sõrmejäljega. Konkreetsed võimalused sõltuvad sinu seadmest."
+    "biometricsDescription": "Biomeetrilise autentimise puhul saad rakenduse lukust avada oma näo või sõrmejäljega. Konkreetsed võimalused sõltuvad sinu seadmest.",
+    "editImage": "Muuda pilti",
+    "rotateLeft": "Pööra vasakule",
+    "rotateRight": "Pööra paremale",
+    "mirror": "Peegelda",
+    "save": "Salvesta",
+    "draw": "Joonista",
+    "undo": "Võta tegevus tagasi",
+    "clear": "Tühjenda",
+    "eraser": "Kustutuskumm",
+    "crop": "Kadreeri",
+    "sendingFilesDoNotExit": "Edastan {count} faili… Palun ära sulge vaadet!",
+    "compressingVideo": "Pakime videot väiksemaks...",
+    "loadingMessages": "Laadin sõnumeid…",
+    "buildDoesNotSupportFirebase": "See kompileeritud variant ei toeta Firebase Cloud Messaging teenust.",
+    "unableToRegisterDeviceForFirebase": "Seadme registreerimine Firebase Cloud Messaging teenuses ei õnnestu.",
+    "unifiedPushDistributors": "Unified Pushi tõuketeenuste levitajad:",
+    "doubleTapToReact": "Reageerimiseks topeltklõpsa",
+    "doubleTapToReactDescription": "Teksti valimise asemel saad reageerida sõnumil topeltklõpsamisega",
+    "doubleTapReaction": "Reageerimine topeltklõpsamisel"
 }

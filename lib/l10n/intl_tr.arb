@@ -2366,5 +2366,15 @@
                 "type": "String"
             }
         }
-    }
+    },
+    "editImage": "Görseli düzenle",
+    "rotateLeft": "Sola döndür",
+    "rotateRight": "Sağa döndür",
+    "mirror": "Yansıt",
+    "save": "Kaydet",
+    "draw": "Çiz",
+    "undo": "Geri",
+    "clear": "Sil",
+    "eraser": "Silgi",
+    "crop": "Kırpmak"
 }

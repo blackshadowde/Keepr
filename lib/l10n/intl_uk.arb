@@ -2549,5 +2549,18 @@
     },
     "deviceIdentityKey": "Ключ пристрою",
     "showMore": "Показати ще",
-    "showLess": "Показати менше"
+    "showLess": "Показати менше",
+    "editImage": "Змінити зображення",
+    "rotateLeft": "Обернути ліворуч",
+    "rotateRight": "Обернути праворуч",
+    "mirror": "Віддзеркалити",
+    "save": "Зберегти",
+    "draw": "Малювати",
+    "undo": "Скасувати",
+    "clear": "Очистити",
+    "eraser": "Гумка",
+    "crop": "Обрізати",
+    "sendingFilesDoNotExit": "Надсилання {count} файлів... Не виходьте!",
+    "compressingVideo": "Стиснення відео...",
+    "resetAccount": "Скинути обліковий запис"
 }

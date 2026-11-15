@@ -2034,5 +2034,21 @@
     "@passwordForgotten": {
         "type": "String",
         "placeholders": {}
-    }
+    },
+    "editImage": "Upraviť obrázok",
+    "rotateLeft": "Natočiť vľavo",
+    "rotateRight": "Natočiť vpravo",
+    "mirror": "Zrkadlit",
+    "save": "Uložit",
+    "draw": "Kreslit",
+    "undo": "Krok späť",
+    "clear": "Zmazať",
+    "eraser": "Guma",
+    "crop": "Orezat",
+    "notAnImage": "Súbor nie je obrázok.",
+    "importEmojis": "Importovat Emoji",
+    "importFromZipFile": "Importovat zo .zip súboru",
+    "replace": "Nahradiť",
+    "aboutHomeserver": "Informácie o {homeserver}",
+    "confirmMatrixId": "Prosím potvrďte svoje Matrix ID pre odstránenie účtu."
 }

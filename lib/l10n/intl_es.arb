@@ -2558,5 +2558,28 @@
                 "type": "String"
             }
         }
-    }
+    },
+    "editImage": "Editar imagen",
+    "rotateLeft": "Rotar a la izquierda",
+    "rotateRight": "Rotar a la derecha",
+    "mirror": "Espejo",
+    "save": "Guardar",
+    "draw": "Dibujar",
+    "undo": "Deshacer",
+    "clear": "Limpiar",
+    "eraser": "Borrador",
+    "crop": "Cortar",
+    "sendingFilesDoNotExit": "Enviando {count} archivos... ¡Por favor espere!",
+    "compressingVideo": "Comprimiendo video...",
+    "deviceIdentityKey": "Dispositivo de llave de identidad",
+    "restoreBootstrapEmptyDevicesDescription": "Por favor ingresa tu código frase o llave de recuperación para verificar este dispositivo y obtener acceso a tu respaldo de mensajes encriptados.",
+    "restoreBootstrapDevicesDescription": "Por favor elige uno de tus otros dispositivos, para verificar esta sesión:",
+    "resetAccount": "Resetear cuenta",
+    "restoreCryptoIdentity": "Restaurar Identidad Crypto",
+    "resetCryptoIdentity": "Resetear Identidad Crypto",
+    "setUpCryptoIdentity": "Setear Identidad Crypto",
+    "waitingForKeys": "Esperando por las llaves... Por favor ten tu otro dispositivo activo.",
+    "noKeysTransmitted": "No se obtuvieron llaves. Por favor intente de nuevo.",
+    "unlock": "Desbloquear",
+    "openFile": "Abrir archivo"
 }
