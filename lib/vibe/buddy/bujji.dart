@@ -10,6 +10,7 @@ import 'package:intl/intl.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:vibe/vibe/buddy/bujji_live.dart';
 import 'package:vibe/vibe/buddy/bujji_model.dart';
+import 'package:vibe/vibe/buddy/bujji_settings.dart';
 import 'package:vibe/vibe/buddy/vibe_buddy.dart';
 
 /// Bujji's memory: things you tell it, reminders you ask for, and your talk
@@ -121,7 +122,16 @@ class BujjiReply {
   final String text;
   final bool openChat;
   final List<BujjiChoice> choices;
-  const BujjiReply(this.text, {this.openChat = false, this.choices = const []});
+
+  /// Something to do in the app (open a Settings page); whoever shows the
+  /// answer runs it.
+  final VoidCallback? act;
+  const BujjiReply(
+    this.text, {
+    this.openChat = false,
+    this.choices = const [],
+    this.act,
+  });
 }
 
 abstract class Bujji {
@@ -367,8 +377,12 @@ abstract class Bujji {
     final said = _unclear ?? '';
     final first = _words(said).firstOrNull;
     BujjiReply reply;
-    if (c.id.startsWith('live:') || c.id.startsWith('check:')) {
-      reply = BujjiReply(await BujjiLive.act(c.id));
+    if (c.id.startsWith('live:') ||
+        c.id.startsWith('check:') ||
+        c.id.startsWith('set:')) {
+      reply = c.id.startsWith('set:')
+          ? BujjiSettings.choose(c.id)
+          : BujjiReply(await BujjiLive.act(c.id));
       log.add(
         BujjiLine(false, reply.text, DateTime.now().millisecondsSinceEpoch),
       );
@@ -429,9 +443,15 @@ abstract class Bujji {
         '@bujji every monday at 10 remind me to send the report\n'
         '@bujji what do you remember\n'
         '@bujji forget naren phone number\n'
+        '@bujji open notification settings\n'
+        '@bujji turn on dark mode\n'
+        '@bujji search typing indicators in settings\n'
         '@bujji chat',
       );
     }
+    // Settings: open a page, switch something, find where it is
+    final settings = BujjiSettings.answer(low);
+    if (settings != null) return settings;
     if (RegExp(r'^(what do you (remember|know)|list|everything|show notes)$')
         .hasMatch(low)) {
       final up = reminders.where((r) => r.next.isAfter(DateTime.now())).length;
@@ -1032,7 +1052,8 @@ class _BujjiChatPageState extends State<BujjiChatPage> {
     if (t.isEmpty) return;
     _text.clear();
     setState(() => _hop++);
-    await Bujji.handle(Bujji.forBujji(t) ?? t);
+    final r = await Bujji.handle(Bujji.forBujji(t) ?? t);
+    r.act?.call();
   }
 
   @override
@@ -1176,7 +1197,8 @@ class _BujjiChatPageState extends State<BujjiChatPage> {
                             for (final c in l.choices)
                               ActionChip(
                                 label: Text(c.label),
-                                onPressed: () => Bujji.choose(c),
+                                onPressed: () async =>
+                                    (await Bujji.choose(c)).act?.call(),
                               ),
                           ],
                         ),

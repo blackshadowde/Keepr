@@ -5,6 +5,7 @@ import 'dart:math' as math;
 
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
 import 'package:go_router/go_router.dart';
 import 'package:matrix/matrix.dart';
 import 'package:vibe/config/setting_keys.dart';
@@ -38,7 +39,8 @@ class _Hint {
   const _Hint(this.text, this.icon, [this.onTap]);
 }
 
-class _VibeBuddyBarState extends State<VibeBuddyBar> {
+class _VibeBuddyBarState extends State<VibeBuddyBar>
+    with SingleTickerProviderStateMixin {
   ChatController get c => widget.controller;
   Room get room => c.room;
 
@@ -51,6 +53,13 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
 
   /// Bumped to squish Bujji (touching or petting it).
   int _squish = 0;
+
+  /// Pulled by your finger: how far it stretches, and the spring that
+  /// brings it back (wobbling a little past its shape) when you let go.
+  Offset _pull = Offset.zero, _raw = Offset.zero, _let = Offset.zero;
+  late final AnimationController _spring = AnimationController.unbounded(
+    vsync: this,
+  )..addListener(() => setState(() => _pull = _let * _spring.value));
 
   /// Where it was, to lean the way it glides.
   double? _lastX;
@@ -126,6 +135,7 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
 
   @override
   void dispose() {
+    _spring.dispose();
     c.sendController.removeListener(_onText);
     VibeBuddy.sent.removeListener(_onSent);
     VibeBuddy.changed.removeListener(_refresh);
@@ -450,6 +460,61 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
     _show(BuddyMood.giggle, null, 1200);
   }
 
+  // ---- stretch: press and drag, it springs back ----
+
+  void _grab(DragStartDetails d) {
+    _spring.stop();
+    _raw = Offset.zero;
+    VibeHaptics.light();
+    _activity(pet: true);
+    _show(BuddyMood.giggle, null, 1500);
+  }
+
+  void _stretch(DragUpdateDetails d) {
+    _raw += d.delta;
+    // it gives less the further you pull, up to about 80 px
+    final m = _raw.distance;
+    setState(
+      () => _pull = m == 0
+          ? Offset.zero
+          : _raw / m * (80 * (1 - math.exp(-m / 80))),
+    );
+  }
+
+  void _letGo(DragEndDetails d) {
+    VibeHaptics.light();
+    _let = _pull;
+    if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) {
+      setState(() => _pull = Offset.zero);
+      return;
+    }
+    _spring.animateWith(
+      SpringSimulation(
+        SpringDescription.withDampingRatio(mass: 1, stiffness: 320, ratio: 0.28),
+        1,
+        0,
+        0,
+      ),
+    );
+    setState(() => _squish++);
+  }
+
+  /// Longer along the pull, thinner across it, leaning after the finger.
+  static Matrix4 _stretchOf(Offset pull, double size) {
+    final m = pull.distance;
+    if (m < 0.5) return Matrix4.identity();
+    final c = pull.dx / m, s = pull.dy / m;
+    final k = 1 + m / size * 0.9, j = 1 / math.sqrt(k);
+    final a = k * c * c + j * s * s, b = (k - j) * c * s;
+    final dd = k * s * s + j * c * c;
+    return Matrix4(
+      a, b, 0, 0, //
+      b, dd, 0, 0,
+      0, 0, 1, 0,
+      pull.dx * 0.35, pull.dy * 0.35, 0, 1,
+    );
+  }
+
   void _tickle() {
     VibeHaptics.medium();
     _activity(pet: true);
@@ -646,6 +711,7 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
                                           roomId: widget.controller.room.id,
                                         );
                                         if (mounted) VibeBuddy.says.value = r.text;
+                                        r.act?.call();
                                       },
                                     ),
                                 ],
@@ -698,10 +764,16 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
                         onTap: _tap,
                         onDoubleTap: _tickle,
                         onLongPress: _menu,
+                        onPanStart: _grab,
+                        onPanUpdate: _stretch,
+                        onPanEnd: _letGo,
                         child: Semantics(
                           label: VibeBuddy.name,
                           button: true,
-                          child: AnimatedRotation(
+                          child: Transform(
+                            alignment: Alignment.center,
+                            transform: _stretchOf(_pull, size),
+                            child: AnimatedRotation(
                             turns: _leanFor(x) * 0.022,
                             duration: const Duration(milliseconds: 420),
                             curve: Curves.easeOutCubic,
@@ -712,7 +784,10 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
                               mood: mood,
                               prop: prop,
                               outfit: VibeBuddy.outfit,
-                              gaze: _gaze,
+                              // while pulled it looks the way it's pulled
+                              gaze: _pull == Offset.zero
+                                  ? _gaze
+                                  : (_pull.dx / 50).clamp(-1.0, 1.0),
                               // it watches your words in the box below
                               look: mood == BuddyMood.sleepy ? 0 : 0.85,
                               floating: true,
@@ -720,6 +795,7 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
                               wiggle: _wiggle,
                               squish: _squish,
                             ),
+                          ),
                           ),
                         ),
                       ),

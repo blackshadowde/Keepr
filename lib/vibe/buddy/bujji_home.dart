@@ -297,6 +297,12 @@ class _BujjiQuickState extends State<BujjiQuick> {
       _openChat();
       return;
     }
+    // it's opening a page: the sheet makes way
+    if (r.act != null) {
+      Navigator.of(context).pop();
+      r.act!();
+      return;
+    }
     VibeHaptics.light();
     setState(() {
       _reply = r;

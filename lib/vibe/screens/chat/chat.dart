@@ -999,6 +999,8 @@ class ChatController extends State<ChatPageWithRoom>
       } else {
         VibeBuddy.says.value = reply.text;
       }
+      // a Settings page it was asked to open, and the like
+      reply.act?.call();
       return;
     }
     // the buddy asks first if it looks like a password or card number
