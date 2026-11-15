@@ -57,6 +57,22 @@ class VibeApp extends StatelessWidget {
         return '/';
       }
 
+      // matrix: links (matrix:u/name:server, matrix:r/alias:server,
+      // matrix:roomid/id:server): open the person or chat, or offer to join
+      if (state.uri.scheme == 'matrix') {
+        final parts = state.uri.pathSegments;
+        if (parts.length >= 2) {
+          final sigil = switch (parts[0]) {
+            'u' => '@',
+            'r' => '#',
+            'roomid' => '!',
+            _ => null,
+          };
+          if (sigil != null) return '/rooms/newprivatechat#$sigil${parts[1]}';
+        }
+        return '/';
+      }
+
       // Pass deep links to app:
       if (state.uri.toString().startsWith(AppConfig.deepLinkPrefix)) {
         return '/rooms/newprivatechat#${state.uri}';
