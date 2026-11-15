@@ -11,6 +11,7 @@ import 'package:vibe/widgets/avatar.dart';
 import 'package:vibe/widgets/matrix.dart';
 import 'package:flutter/material.dart';
 import 'package:vibe/vibe/vibe_typing_style.dart';
+import 'package:vibe/vibe/buddy/bujji_life.dart';
 
 /// Typing indicator at the bottom of the timeline, like Vibgram: a small
 /// round picture of who is typing and three bouncing dots, no bubble.
@@ -74,7 +75,10 @@ class TypingIndicators extends StatelessWidget {
               offset: typing ? Offset.zero : const Offset(0, 0.25),
               child: Padding(
                 padding: const EdgeInsets.only(left: 12),
-                child: Row(
+                // Bujji hurries over here when they start typing
+                child: BujjiSpot(
+                  id: 'typing',
+                  child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // typing: the dots sit inside a circle where their
@@ -125,6 +129,7 @@ class TypingIndicators extends StatelessWidget {
                       ),
                     ],
                   ],
+                ),
                 ),
               ),
             ),

@@ -379,10 +379,21 @@ abstract class Bujji {
     BujjiReply reply;
     if (c.id.startsWith('live:') ||
         c.id.startsWith('check:') ||
-        c.id.startsWith('set:')) {
-      reply = c.id.startsWith('set:')
-          ? BujjiSettings.choose(c.id)
-          : BujjiReply(await BujjiLive.act(c.id));
+        c.id.startsWith('set:') ||
+        c.id.startsWith('rem:')) {
+      if (c.id.startsWith('rem:')) {
+        // a reminder it offered for a time in the chat
+        final p = c.id.split(':');
+        final at = DateTime.fromMillisecondsSinceEpoch(int.tryParse(p[1]) ?? 0);
+        final task = p.sublist(2).join(':').replaceAll('∶', ':');
+        reply = at.isAfter(DateTime.now())
+            ? _setReminder(task, at, '', roomId)
+            : const BujjiReply('That time has passed.');
+      } else {
+        reply = c.id.startsWith('set:')
+            ? BujjiSettings.choose(c.id)
+            : BujjiReply(await BujjiLive.act(c.id));
+      }
       log.add(
         BujjiLine(false, reply.text, DateTime.now().millisecondsSinceEpoch),
       );
@@ -600,6 +611,47 @@ abstract class Bujji {
       );
     }
     return _setReminder(task.isEmpty ? 'the thing you asked' : task, at, repeat, roomId);
+  }
+
+  /// A time someone mentions in a message ("tomorrow 5 pm"), when it's
+  /// between half an hour and a week away: Bujji offers a reminder.
+  static DateTime? timeIn(String text) {
+    final low = text.toLowerCase();
+    // only when it really names a time or a day
+    if (!RegExp(
+      r'\b(\d{1,2}(:\d{2})?\s*(am|pm)|\d{1,2}:\d{2}|tomorrow|tonight|today|'
+      r'monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b',
+    ).hasMatch(low)) {
+      return null;
+    }
+    final (at, _, repeat) = _when(low);
+    if (at == null || repeat.isNotEmpty) return null;
+    final d = at.difference(DateTime.now());
+    if (d < const Duration(minutes: 30) || d > const Duration(days: 7)) {
+      return null;
+    }
+    return at;
+  }
+
+  /// Offers to remind you a little before [at] (30 min, or at the time when
+  /// that's too soon).
+  static void offer(String text, DateTime at, String roomId) {
+    final when = at.subtract(const Duration(minutes: 30));
+    final remind = when.isAfter(DateTime.now().add(const Duration(minutes: 5)))
+        ? when
+        : at;
+    final task = text.length > 60 ? '${text.substring(0, 57)}…' : text;
+    tell(
+      'Remind you ${fmtTime(remind)}?',
+      roomId: roomId,
+      choices: [
+        BujjiChoice(
+          'Remind me',
+          'rem:${remind.millisecondsSinceEpoch}:${task.replaceAll(':', '∶')}',
+        ),
+        const BujjiChoice('No thanks', 'live:ok'),
+      ],
+    );
   }
 
   static BujjiReply _setReminder(String task, DateTime at, String repeat, String? roomId) {

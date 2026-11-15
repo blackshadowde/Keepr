@@ -12,6 +12,7 @@ import 'package:vibe/vibe/buddy/bujji.dart';
 import 'package:vibe/vibe/buddy/bujji_model.dart';
 import 'package:vibe/vibe/vibe_status.dart';
 import 'package:vibe/widgets/adaptive_dialogs/show_ok_cancel_alert_dialog.dart';
+import 'package:vibe/vibe/buddy/bujji_life.dart';
 
 /// The typing buddy: a small blob in the theme colour that lives on the
 /// text box and reacts to what happens in the chat. Everything it does
@@ -28,9 +29,41 @@ enum BuddyMood {
   puzzled,
   cover,
   giggle,
+  // Bujji's life
+  angry,
+  smart,
+  shy,
+  dizzy,
+  proud,
+  wink,
+  curious,
 }
 
-enum BuddyProp { none, shield, paper, wave }
+enum BuddyProp {
+  none,
+  shield,
+  paper,
+  wave,
+  // Bujji's life: tools for what you do, things for the moment
+  hammer,
+  screwdriver,
+  broom,
+  clipboard,
+  umbrella,
+  popper,
+  coffee,
+  magnifier,
+  camera,
+  headphones,
+  phone,
+  flag,
+  heart,
+  bulb,
+  book,
+  ball,
+  bed,
+  catchHeart,
+}
 
 class BuddyOutfit {
   final String id;
@@ -254,6 +287,9 @@ class VibeBuddyFace extends StatefulWidget {
 
   /// Bump to squish it (it squashes, then wobbles like jelly).
   final int squish;
+
+  /// Turned its back on you (cross).
+  final bool away;
   const VibeBuddyFace({
     required this.color,
     this.size = 40,
@@ -266,6 +302,7 @@ class VibeBuddyFace extends StatefulWidget {
     this.hop = 0,
     this.wiggle = 0,
     this.squish = 0,
+    this.away = false,
     super.key,
   });
 
@@ -374,7 +411,11 @@ class _VibeBuddyFaceState extends State<VibeBuddyFace>
                 child: CustomPaint(
                   size: Size.square(s * 1.3),
                   painter: _BuddyPainter(
-                    color: widget.color,
+                    // cross: it goes red in the face
+                    color: widget.mood == BuddyMood.angry
+                        ? Color.lerp(widget.color, const Color(0xFFE5484D), 0.5)!
+                        : widget.color,
+                    away: widget.away,
                     mood: widget.mood,
                     prop: widget.prop,
                     outfit: widget.outfit,
@@ -429,8 +470,10 @@ class _BuddyPainter extends CustomPainter {
   final String outfit;
   final double gaze, look, blink, wave;
   final bool shadow;
+  final bool away;
   const _BuddyPainter({
     required this.color,
+    this.away = false,
     required this.mood,
     required this.prop,
     required this.outfit,
@@ -481,9 +524,17 @@ class _BuddyPainter extends CustomPainter {
     );
     // a soft shine on top
     canvas.drawOval(
-      Rect.fromLTWH(w * 0.2, h * 0.08, w * 0.28, h * 0.14),
-      Paint()..color = Colors.white.withValues(alpha: 0.35),
+      away
+          ? Rect.fromLTWH(w * 0.5, h * 0.12, w * 0.24, h * 0.12)
+          : Rect.fromLTWH(w * 0.2, h * 0.08, w * 0.28, h * 0.14),
+      Paint()..color = Colors.white.withValues(alpha: away ? 0.25 : 0.35),
     );
+    if (away) {
+      // its back to you: no face, just steam if it's cross
+      if (mood == BuddyMood.angry) _fx(canvas, w);
+      canvas.restore();
+      return;
+    }
 
     final ink = Color.lerp(color, Colors.black, 0.78)!;
     final white = Paint()..color = Colors.white;
@@ -496,7 +547,7 @@ class _BuddyPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..strokeWidth = w * 0.06;
 
-    void openEye(double x, {double scale = 1, double look = 0}) {
+    void openEye(double x, {double scale = 1, double look = 0, double? down}) {
       final hh = eh * scale * (1 - 0.9 * blink);
       final r = RRect.fromRectAndRadius(
         Rect.fromCenter(center: Offset(x, ey), width: ew * scale, height: hh),
@@ -507,7 +558,7 @@ class _BuddyPainter extends CustomPainter {
         // pupils follow where it looks: sideways, and down at the text box
         final p = Offset(
           x + look * ew * 0.22,
-          ey + hh * 0.12 + this.look * hh * 0.17,
+          ey + hh * 0.12 + (down ?? this.look) * hh * 0.17,
         );
         canvas.drawCircle(p, ew * 0.32 * scale, Paint()..color = ink);
         canvas.drawCircle(
@@ -597,12 +648,111 @@ class _BuddyPainter extends CustomPainter {
         for (final x in exs) {
           openEye(x, look: gaze);
         }
+      case BuddyMood.angry:
+        for (final x in exs) {
+          openEye(x, scale: 0.92, look: gaze);
+        }
+        // lids pulled down to the middle, and frowning brows on them
+        final lid = Paint()..color = Color.lerp(color, Colors.white, 0.2)!;
+        final brow = Paint()
+          ..color = ink
+          ..strokeWidth = w * 0.045
+          ..strokeCap = StrokeCap.round;
+        for (var i = 0; i < 2; i++) {
+          final x = exs[i];
+          final inner = i == 0 ? 1.0 : -1.0;
+          final top = ey - eh * 0.62;
+          final a = Offset(x - inner * ew * 0.75, ey - eh * 0.36);
+          final b = Offset(x + inner * ew * 0.75, ey - eh * 0.06);
+          canvas.drawPath(
+            Path()
+              ..moveTo(a.dx, top)
+              ..lineTo(b.dx, top)
+              ..lineTo(b.dx, b.dy)
+              ..lineTo(a.dx, a.dy)
+              ..close(),
+            lid,
+          );
+          canvas.drawLine(a, b, brow);
+        }
+      case BuddyMood.smart:
+        for (final x in exs) {
+          openEye(x, scale: 0.88, look: gaze);
+        }
+        final rim = Paint()
+          ..color = ink
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = w * 0.035;
+        for (final x in exs) {
+          canvas.drawCircle(Offset(x, ey + eh * 0.04), ew * 0.88, rim);
+        }
+        canvas.drawLine(
+          Offset(exs[0] + ew * 0.88, ey),
+          Offset(exs[1] - ew * 0.88, ey),
+          rim,
+        );
+      case BuddyMood.shy:
+        for (final x in exs) {
+          openEye(x, scale: 0.88, down: 1);
+        }
+      case BuddyMood.dizzy:
+        final swirl = Paint()
+          ..color = Colors.white
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round
+          ..strokeWidth = w * 0.03;
+        for (final x in exs) {
+          for (var k = 1; k <= 3; k++) {
+            canvas.drawArc(
+              Rect.fromCircle(center: Offset(x, ey), radius: ew * 0.2 * k),
+              wave * math.pi * 4 + k * 1.3,
+              math.pi * 1.4,
+              false,
+              swirl,
+            );
+          }
+        }
+      case BuddyMood.proud:
+        for (final x in exs) {
+          canvas.drawArc(
+            Rect.fromCenter(
+              center: Offset(x, ey + eh * 0.15),
+              width: ew * 1.4,
+              height: eh * 0.7,
+            ),
+            math.pi,
+            math.pi,
+            false,
+            line,
+          );
+        }
+      case BuddyMood.wink:
+        openEye(exs[0], look: gaze);
+        canvas.drawArc(
+          Rect.fromCenter(
+            center: Offset(exs[1], ey + eh * 0.15),
+            width: ew * 1.4,
+            height: eh * 0.7,
+          ),
+          math.pi,
+          math.pi,
+          false,
+          line,
+        );
+      case BuddyMood.curious:
+        for (final x in exs) {
+          openEye(x, scale: 1.22, look: gaze);
+        }
     }
 
     // cheeks
     final blush = Paint()
       ..color = const Color(0xFFFF6F91).withValues(
-        alpha: mood == BuddyMood.love || mood == BuddyMood.giggle ? 0.6 : 0.4,
+        alpha: mood == BuddyMood.shy
+            ? 0.8
+            : mood == BuddyMood.love || mood == BuddyMood.giggle
+            ? 0.6
+            : 0.4,
       );
     canvas.drawOval(
       Rect.fromCenter(center: Offset(w * 0.2, h * 0.63), width: w * 0.18, height: h * 0.1),
@@ -623,6 +773,7 @@ class _BuddyPainter extends CustomPainter {
     switch (mood) {
       case BuddyMood.giggle:
       case BuddyMood.happy:
+      case BuddyMood.proud:
         canvas.drawArc(
           Rect.fromCenter(center: mc, width: w * 0.16, height: h * 0.14),
           0,
@@ -631,7 +782,23 @@ class _BuddyPainter extends CustomPainter {
           Paint()..color = ink,
         );
       case BuddyMood.puzzled:
+      case BuddyMood.curious:
         canvas.drawCircle(mc, w * 0.035, Paint()..color = ink);
+      case BuddyMood.angry:
+        final z = Path()..moveTo(mc.dx - w * 0.08, mc.dy + h * 0.02);
+        for (var i = 1; i <= 4; i++) {
+          z.lineTo(
+            mc.dx - w * 0.08 + i * w * 0.04,
+            mc.dy + (i.isOdd ? -h * 0.015 : h * 0.02),
+          );
+        }
+        canvas.drawPath(z, mouth..strokeJoin = StrokeJoin.round);
+      case BuddyMood.shy:
+      case BuddyMood.dizzy:
+        final wv = Path()..moveTo(mc.dx - w * 0.08, mc.dy);
+        wv.quadraticBezierTo(mc.dx - w * 0.04, mc.dy - h * 0.04, mc.dx, mc.dy);
+        wv.quadraticBezierTo(mc.dx + w * 0.04, mc.dy + h * 0.04, mc.dx + w * 0.08, mc.dy);
+        canvas.drawPath(wv, mouth);
       case BuddyMood.worried:
         final p = Path()
           ..moveTo(mc.dx - w * 0.07, mc.dy + h * 0.02)
@@ -656,6 +823,8 @@ class _BuddyPainter extends CustomPainter {
       case BuddyMood.love:
       case BuddyMood.cover:
       case BuddyMood.idle:
+      case BuddyMood.smart:
+      case BuddyMood.wink:
         canvas.drawArc(
           Rect.fromCenter(center: mc, width: w * 0.12, height: h * 0.08),
           0.2,
@@ -678,6 +847,7 @@ class _BuddyPainter extends CustomPainter {
 
     _outfit(canvas, w, h, ink);
     _prop(canvas, w, h, hand, ink);
+    _fx(canvas, w);
     if (mood == BuddyMood.sleepy) _zzz(canvas, w, h, ink);
     canvas.restore();
   }
@@ -843,6 +1013,390 @@ class _BuddyPainter extends CustomPainter {
           hand,
         );
         canvas.restore();
+      default:
+        _life(canvas, w, hand);
+    }
+  }
+
+  // ---- Bujji's life: what it holds and the little extras round it ----
+  // Drawn in body units: the body is 100 across and 86 tall.
+
+  static Path _heart(Offset c, double s) => Path()
+    ..moveTo(c.dx, c.dy + s * 0.55)
+    ..cubicTo(c.dx - s, c.dy - s * 0.05, c.dx - s * 0.5, c.dy - s * 0.85,
+        c.dx, c.dy - s * 0.3)
+    ..cubicTo(c.dx + s * 0.5, c.dy - s * 0.85, c.dx + s, c.dy - s * 0.05,
+        c.dx, c.dy + s * 0.55)
+    ..close();
+
+  static Path _star(Offset c, double r) {
+    final q = r * 0.28;
+    return Path()
+      ..moveTo(c.dx, c.dy - r)
+      ..quadraticBezierTo(c.dx + q, c.dy - q, c.dx + r, c.dy)
+      ..quadraticBezierTo(c.dx + q, c.dy + q, c.dx, c.dy + r)
+      ..quadraticBezierTo(c.dx - q, c.dy + q, c.dx - r, c.dy)
+      ..quadraticBezierTo(c.dx - q, c.dy - q, c.dx, c.dy - r)
+      ..close();
+  }
+
+  void _life(Canvas canvas, double w, Paint hand) {
+    final u = w / 100;
+    Offset p(double x, double y) => Offset(x * u, y * u);
+    Paint fill(int c) => Paint()..color = Color(c);
+    Paint pen(int c, double width) => Paint()
+      ..color = Color(c)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = width * u
+      ..strokeCap = StrokeCap.round;
+    RRect box(double x, double y, double bw, double bh, double r) =>
+        RRect.fromRectAndRadius(Rect.fromLTWH(x * u, y * u, bw * u, bh * u), Radius.circular(r * u));
+    void hands(List<(double, double)> at) {
+      for (final (x, y) in at) {
+        canvas.drawCircle(p(x, y), 8.5 * u, hand);
+      }
+    }
+    void turn(double x, double y, double a, void Function() draw) {
+      canvas.save();
+      canvas.translate(x * u, y * u);
+      canvas.rotate(a);
+      canvas.translate(-x * u, -y * u);
+      draw();
+      canvas.restore();
+    }
+
+    final t = wave; // goes round once every 2.6 seconds
+    final beat = math.sin(t * math.pi * 2);
+    switch (prop) {
+      case BuddyProp.hammer:
+        // tap, tap, tap
+        final hit = math.max(0.0, math.sin(t * math.pi * 6));
+        turn(96, 52, 0.25 + 0.5 * hit, () {
+          canvas.drawRRect(box(92, -12, 8, 66, 3.5), fill(0xFFB07843));
+          canvas.drawRRect(box(74, -26, 44, 19, 5), fill(0xFF8E97A8));
+          canvas.drawRRect(box(76, -24, 40, 6, 3), fill(0xFFB9C0CD));
+        });
+        if (hit > 0.85) {
+          final spark = pen(0xFFFFC93C, 4);
+          canvas.drawLine(p(146, 18), p(160, 8), spark);
+          canvas.drawLine(p(150, 34), p(168, 34), spark);
+          canvas.drawLine(p(140, 6), p(142, -10), spark);
+        }
+        hands([(94, 44), (20, 70)]);
+      case BuddyProp.screwdriver:
+        turn(98, 50, 0.7 + 0.18 * beat, () {
+          canvas.drawRect(Rect.fromLTWH(97 * u, -12 * u, 4 * u, 32 * u), fill(0xFF9AA3B5));
+          canvas.drawRRect(box(93, 18, 12, 34, 5), fill(0xFFF2994A));
+        });
+        hands([(92, 48)]);
+      case BuddyProp.broom:
+        canvas.save();
+        canvas.translate(6 * u * math.sin(t * math.pi * 4), 0);
+        canvas.drawLine(p(112, -14), p(78, 84), pen(0xFFB07843, 6));
+        canvas.drawPath(
+          Path()
+            ..moveTo(66 * u, 78 * u)
+            ..lineTo(96 * u, 88 * u)
+            ..lineTo(92 * u, 104 * u)
+            ..quadraticBezierTo(74 * u, 108 * u, 56 * u, 100 * u)
+            ..close(),
+          fill(0xFFE8C26B),
+        );
+        canvas.restore();
+        for (final (x, y, r) in [(40.0, 98.0, 5.0), (28.0, 92.0, 3.5), (20.0, 100.0, 2.5)]) {
+          canvas.drawCircle(p(x - 8 * t, y), r * u, fill(0xCCD9D6E2));
+        }
+        hands([(88, 40), (84, 70)]);
+      case BuddyProp.clipboard:
+        canvas.drawRRect(box(28, 44, 44, 42, 5), fill(0xFFD9B47A));
+        canvas.drawRRect(box(33, 51, 34, 31, 2), fill(0xFFFFFFFF));
+        canvas.drawRRect(box(41, 40, 18, 8, 3), fill(0xFF8E97A8));
+        final l = pen(0xFFB9BDCB, 3);
+        canvas.drawLine(p(38, 60), p(56, 60), l);
+        canvas.drawLine(p(38, 67), p(62, 67), l);
+        canvas.drawLine(p(38, 74), p(52, 74), l);
+        canvas.drawPath(
+          Path()
+            ..moveTo(58 * u, 72 * u)
+            ..lineTo(62 * u, 76 * u)
+            ..lineTo(70 * u, 66 * u),
+          pen(0xFF2E9E5B, 3.5)..style = PaintingStyle.stroke,
+        );
+        hands([(30, 64), (70, 64)]);
+      case BuddyProp.umbrella:
+        canvas.drawLine(p(100, 54), p(100, -34), pen(0xFF6B4A2B, 4.5));
+        canvas.drawPath(
+          Path()
+            ..moveTo(54 * u, -30 * u)
+            ..quadraticBezierTo(100 * u, -84 * u, 146 * u, -30 * u)
+            ..quadraticBezierTo(134 * u, -40 * u, 123 * u, -30 * u)
+            ..quadraticBezierTo(112 * u, -40 * u, 100 * u, -30 * u)
+            ..quadraticBezierTo(88 * u, -40 * u, 77 * u, -30 * u)
+            ..quadraticBezierTo(66 * u, -40 * u, 54 * u, -30 * u)
+            ..close(),
+          fill(0xFFF27A93),
+        );
+        // rain round it
+        final drop = pen(0xFF7FB5E6, 3);
+        for (final (x, y) in [(30.0, -60.0), (150.0, -8.0), (20.0, -20.0), (165.0, -50.0)]) {
+          final f = (y + 120 * t) % 100 - 60;
+          canvas.drawLine(p(x, f), p(x - 4, f + 10), drop);
+        }
+        hands([(96, 56)]);
+      case BuddyProp.popper:
+        canvas.drawPath(
+          Path()
+            ..moveTo(4 * u, 58 * u)
+            ..lineTo(-30 * u, -6 * u)
+            ..lineTo(-12 * u, -16 * u)
+            ..close(),
+          fill(0xFFFFC93C),
+        );
+        const colors = [0xFFFFC93C, 0xFF7FB5E6, 0xFFF27A93, 0xFF6DD58C, 0xFFB39DFF];
+        for (var i = 0; i < 8; i++) {
+          final a = -math.pi * (0.55 + i * 0.07);
+          final d = (20 + 50 * ((t + i * 0.13) % 1));
+          final c = p(-20, -10) + Offset(math.cos(a), math.sin(a)) * d * u;
+          canvas.save();
+          canvas.translate(c.dx, c.dy);
+          canvas.rotate(i + t * 6);
+          canvas.drawRRect(
+            RRect.fromRectAndRadius(Rect.fromCenter(center: Offset.zero, width: 7 * u, height: 3.5 * u), Radius.circular(1.5 * u)),
+            fill(colors[i % colors.length]),
+          );
+          canvas.restore();
+        }
+        hands([(4, 58), (80, 66)]);
+      case BuddyProp.coffee:
+        canvas.drawPath(
+          Path()
+            ..moveTo(66 * u, 56 * u)
+            ..quadraticBezierTo(80 * u, 56 * u, 80 * u, 66 * u)
+            ..quadraticBezierTo(80 * u, 76 * u, 66 * u, 76 * u),
+          pen(0xFFFFFFFF, 5),
+        );
+        canvas.drawRRect(box(32, 48, 36, 32, 7), fill(0xFFFFFFFF));
+        canvas.drawOval(Rect.fromCenter(center: p(50, 51), width: 30 * u, height: 7 * u), fill(0xFF8A5A3B));
+        // steam rising
+        for (final x in [42.0, 56.0]) {
+          final k = (t + x / 100) % 1;
+          final st = Paint()
+            ..color = const Color(0xFFC7C4D2).withValues(alpha: 1 - k)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 3 * u
+            ..strokeCap = StrokeCap.round;
+          final y0 = 40 - 14 * k;
+          canvas.drawPath(
+            Path()
+              ..moveTo(x * u, y0 * u)
+              ..quadraticBezierTo((x - 6) * u, (y0 - 9) * u, x * u, (y0 - 18) * u),
+            st,
+          );
+        }
+        hands([(30, 66), (70, 66)]);
+      case BuddyProp.magnifier:
+        final bob = 3 * beat;
+        canvas.drawLine(p(98, 50), p(112, 30 + bob), pen(0xFF5B5F6C, 7));
+        canvas.drawCircle(p(124, 14 + bob), 20 * u, fill(0x73C8E4FF));
+        canvas.drawCircle(p(124, 14 + bob), 20 * u, pen(0xFF5B5F6C, 6));
+        hands([(96, 52)]);
+      case BuddyProp.camera:
+        canvas.drawRRect(box(24, 48, 52, 34, 8), fill(0xFF2B2E38));
+        canvas.drawRRect(box(34, 42, 14, 8, 3), fill(0xFF2B2E38));
+        canvas.drawCircle(p(50, 65), 11 * u, fill(0xFF5C6577));
+        canvas.drawCircle(p(50, 65), 11 * u, pen(0xFFAAB3C5, 3));
+        canvas.drawCircle(p(46, 61), 3 * u, fill(0xFFDDE3F0));
+        // click: a flash now and then
+        if (t > 0.9) canvas.drawCircle(p(68, 54), 9 * u, fill(0xCCFFF6C2));
+        canvas.drawCircle(p(68, 54), 2.5 * u, fill(0xFFFFD54F));
+        hands([(26, 64), (74, 64)]);
+      case BuddyProp.headphones:
+        canvas.drawPath(
+          Path()
+            ..moveTo(6 * u, 44 * u)
+            ..quadraticBezierTo(50 * u, -30 * u, 94 * u, 44 * u),
+          pen(0xFF2B2E38, 7),
+        );
+        canvas.drawRRect(box(-6, 34, 16, 28, 7), fill(0xFFE5484D));
+        canvas.drawRRect(box(90, 34, 16, 28, 7), fill(0xFFE5484D));
+      case BuddyProp.phone:
+        canvas.drawRRect(box(92, 14, 22, 38, 5), fill(0xFF2B2E38));
+        canvas.drawRRect(box(95, 19, 16, 26, 2), fill(0xFF8FB3FF));
+        final ring = Paint()
+          ..color = const Color(0xFF6DD58C).withValues(alpha: 0.4 + 0.6 * (0.5 + 0.5 * math.sin(t * math.pi * 8)))
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3.5 * u
+          ..strokeCap = StrokeCap.round;
+        canvas.drawArc(Rect.fromCircle(center: p(116, 20), radius: 10 * u), -0.9, 1.8, false, ring);
+        canvas.drawArc(Rect.fromCircle(center: p(116, 20), radius: 18 * u), -0.9, 1.8, false, ring);
+        hands([(98, 52)]);
+      case BuddyProp.flag:
+        canvas.drawLine(p(0, 58), p(0, -26), pen(0xFF6B4A2B, 4));
+        canvas.drawPath(
+          Path()
+            ..moveTo(1 * u, -26 * u)
+            ..quadraticBezierTo(18 * u, (-24 + 4 * beat) * u, 34 * u, -16 * u)
+            ..quadraticBezierTo(18 * u, (-8 - 4 * beat) * u, 1 * u, -4 * u)
+            ..close(),
+          fill(0xFF2E9E5B),
+        );
+        hands([(2, 58), (84, 68)]);
+      case BuddyProp.heart:
+        canvas.drawPath(_heart(p(50, 64), 30 * u * (1 + 0.04 * beat)), fill(0xFFFF5C8A));
+        hands([(22, 66), (78, 66)]);
+      case BuddyProp.bulb:
+        final glow = 0.5 + 0.5 * beat;
+        canvas.drawCircle(p(50, -34), 22 * u, Paint()..color = const Color(0xFFFFD54F).withValues(alpha: 0.25 * glow));
+        canvas.drawCircle(p(50, -34), 15 * u, fill(0xFFFFD54F));
+        canvas.drawRRect(box(43, -21, 14, 9, 2), fill(0xFFAEB4C2));
+        final ray = pen(0xFFFFC93C, 3.5);
+        for (final d in [-150.0, -110.0, -70.0, -30.0, 10.0, 170.0]) {
+          final a = d * math.pi / 180;
+          canvas.drawLine(
+            p(50 + 22 * math.cos(a), -34 + 22 * math.sin(a)),
+            p(50 + (28 + 3 * glow) * math.cos(a), -34 + (28 + 3 * glow) * math.sin(a)),
+            ray,
+          );
+        }
+      case BuddyProp.book:
+        canvas.drawPath(
+          Path()
+            ..moveTo(22 * u, 56 * u)
+            ..quadraticBezierTo(36 * u, 50 * u, 50 * u, 58 * u)
+            ..quadraticBezierTo(64 * u, 50 * u, 78 * u, 56 * u)
+            ..lineTo(78 * u, 84 * u)
+            ..quadraticBezierTo(64 * u, 78 * u, 50 * u, 86 * u)
+            ..quadraticBezierTo(36 * u, 78 * u, 22 * u, 84 * u)
+            ..close(),
+          fill(0xFFFFFFFF),
+        );
+        canvas.drawLine(p(50, 58), p(50, 86), pen(0xFFD9D6E2, 2));
+        final l = pen(0xFFB9BDCB, 2.5);
+        for (final y in [64.0, 70.0]) {
+          canvas.drawLine(p(28, y), p(42, y), l);
+          canvas.drawLine(p(58, y), p(72, y), l);
+        }
+        hands([(24, 66), (76, 66)]);
+      case BuddyProp.ball:
+        final up = (math.sin(t * math.pi * 4)).abs();
+        final c = p(50, -16 - 26 * up);
+        canvas.drawCircle(c, 14 * u, fill(0xFFFFC93C));
+        canvas.drawArc(Rect.fromCircle(center: c, radius: 14 * u), 0.3, 2.4, false, pen(0xFFF2994A, 3));
+        canvas.drawCircle(c + Offset(-5 * u, -5 * u), 3.5 * u, fill(0xB3FFFFFF));
+        hands([(14, 30), (86, 30)]);
+      case BuddyProp.bed:
+        canvas.drawPath(
+          Path()
+            ..moveTo(-12 * u, 64 * u)
+            ..quadraticBezierTo(50 * u, 50 * u, 112 * u, 64 * u)
+            ..lineTo(114 * u, 94 * u)
+            ..lineTo(-14 * u, 94 * u)
+            ..close(),
+          fill(0xFFF6B26B),
+        );
+        for (final (x, y) in [(10.0, 76.0), (34.0, 70.0), (60.0, 72.0), (86.0, 70.0), (100.0, 84.0), (22.0, 88.0), (48.0, 86.0), (74.0, 88.0)]) {
+          canvas.drawCircle(p(x, y), 3.2 * u, fill(0xFFFFF3DD));
+        }
+        // its nightcap
+        canvas.drawPath(
+          Path()
+            ..moveTo(18 * u, 14 * u)
+            ..quadraticBezierTo(48 * u, -16 * u, 84 * u, 6 * u)
+            ..quadraticBezierTo(104 * u, -2 * u, 122 * u, 36 * u)
+            ..lineTo(110 * u, 40 * u)
+            ..quadraticBezierTo(100 * u, 18 * u, 84 * u, 14 * u)
+            ..close(),
+          fill(0xFF8C7AE6),
+        );
+        canvas.drawLine(p(18, 15), p(84, 11), pen(0xFFFFFFFF, 7));
+        canvas.drawCircle(p(118, 42), 7 * u, fill(0xFFFFFFFF));
+      case BuddyProp.catchHeart:
+        final fall = (t * 2) % 1;
+        canvas.drawPath(_heart(p(50, -40 + 20 * fall), 18 * u), fill(0xFFFF5C8A));
+        canvas.drawPath(_star(p(22, -40), 6 * u), fill(0xFFFFD54F));
+        canvas.drawPath(_star(p(80, -46), 5 * u), fill(0xFFFFD54F));
+        hands([(10, 26), (90, 26)]);
+      default:
+        break;
+    }
+  }
+
+  /// The little extras round it: steam when cross, stars when dizzy,
+  /// hearts, sparkles, music notes.
+  void _fx(Canvas canvas, double w) {
+    final u = w / 100;
+    Offset p(double x, double y) => Offset(x * u, y * u);
+    final t = wave;
+    if (mood == BuddyMood.angry) {
+      for (final cx in [10.0, 90.0]) {
+        for (final (dx, dy, r) in [(0.0, 0.0, 8.0), (-8.0, -9.0, 6.0), (6.0, -14.0, 7.0), (-2.0, -24.0, 5.0)]) {
+          final k = (t * 2 + dy / 30) % 1;
+          final c = p(cx + dx, -6 + dy - 10 * k);
+          canvas.drawCircle(c, r * u, Paint()..color = Colors.white.withValues(alpha: 0.9 * (1 - k * 0.6)));
+          canvas.drawCircle(
+            c,
+            r * u,
+            Paint()
+              ..color = const Color(0xFFD9D6E2).withValues(alpha: 1 - k * 0.6)
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 2 * u,
+          );
+        }
+      }
+    }
+    if (mood == BuddyMood.dizzy) {
+      for (var i = 0; i < 3; i++) {
+        final a = t * math.pi * 2 + i * math.pi * 2 / 3;
+        canvas.drawPath(
+          _star(p(50 + 52 * math.cos(a), -6 + 14 * math.sin(a)), 7 * u),
+          Paint()..color = i == 1 ? const Color(0xFFB39DFF) : const Color(0xFFFFD54F),
+        );
+      }
+    }
+    if (mood == BuddyMood.love && (prop == BuddyProp.heart || prop == BuddyProp.catchHeart)) {
+      for (var i = 0; i < 3; i++) {
+        final k = (t + i / 3) % 1;
+        final x = [-4.0, 104.0, 88.0][i];
+        canvas.drawPath(
+          _heart(p(x, -10 - 40 * k), [9.0, 11.0, 7.0][i] * u),
+          Paint()..color = const Color(0xFFFF5C8A).withValues(alpha: 1 - k),
+        );
+      }
+    }
+    if (mood == BuddyMood.proud || mood == BuddyMood.wink) {
+      final tw = 0.6 + 0.4 * math.sin(t * math.pi * 4);
+      canvas.drawPath(_star(p(-8, 6), 9 * u * tw), Paint()..color = const Color(0xFFFFD54F));
+      canvas.drawPath(_star(p(108, -6), 11 * u * (1.6 - tw)), Paint()..color = const Color(0xFFFFD54F));
+      canvas.drawPath(_star(p(96, -38), 6 * u * tw), Paint()..color = const Color(0xFFB39DFF));
+    }
+    if (mood == BuddyMood.proud && outfit != 'crown') {
+      canvas.drawPath(
+        Path()
+          ..moveTo(28 * u, 8 * u)
+          ..lineTo(30 * u, -18 * u)
+          ..lineTo(41 * u, -4 * u)
+          ..lineTo(50 * u, -24 * u)
+          ..lineTo(59 * u, -4 * u)
+          ..lineTo(70 * u, -18 * u)
+          ..lineTo(72 * u, 8 * u)
+          ..close(),
+        Paint()..color = const Color(0xFFFFC93C),
+      );
+      canvas.drawCircle(p(50, -2), 3.5 * u, Paint()..color = const Color(0xFFE5484D));
+    }
+    if (prop == BuddyProp.headphones) {
+      final k = t;
+      final note = Paint()..color = Color.lerp(color, Colors.black, 0.3)!.withValues(alpha: 1 - k);
+      final stem = Paint()
+        ..color = note.color
+        ..strokeWidth = 3 * u
+        ..strokeCap = StrokeCap.round;
+      final o = p(118, 4 - 30 * k);
+      canvas.drawCircle(o, 5 * u, note);
+      canvas.drawLine(o + Offset(4 * u, 0), o + Offset(4 * u, -20 * u), stem);
+      final o2 = p(-24, 0 - 30 * ((k + 0.5) % 1));
+      canvas.drawCircle(o2, 5 * u, note..color = note.color.withValues(alpha: 1 - (k + 0.5) % 1));
+      canvas.drawLine(o2 + Offset(4 * u, 0), o2 + Offset(4 * u, -20 * u), stem);
     }
   }
 
@@ -907,6 +1461,48 @@ class _VibeBuddyPageState extends State<VibeBuddyPage> {
             onTap: () => BujjiChatPage.open(context),
           ),
           const _BujjiModelTile(),
+          // how much it does on its own
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Text(
+              "${VibeBuddy.name}'s life",
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: cs.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SegmentedButton<BujjiPace>(
+              segments: const [
+                ButtonSegment(value: BujjiPace.lively, label: Text('Lively')),
+                ButtonSegment(value: BujjiPace.calm, label: Text('Calm')),
+                ButtonSegment(value: BujjiPace.off, label: Text('Off')),
+              ],
+              selected: {BujjiLife.pace},
+              showSelectedIcon: false,
+              onSelectionChanged: (v) async {
+                await BujjiLife.setPace(v.first);
+                setState(() {});
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 4),
+            child: Text(
+              switch (BujjiLife.pace) {
+                BujjiPace.lively =>
+                  'Wanders over to new photos, peeks from behind messages, '
+                      'brings little things for the moment and has moods',
+                BujjiPace.calm =>
+                  'Brings little things and has moods, but stays on the '
+                      'text box',
+                BujjiPace.off => 'Just sits on the text box and reacts',
+              },
+              style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+            ),
+          ),
           SwitchListTile.adaptive(
             title: const Text('Others see it'),
             subtitle: const Text(

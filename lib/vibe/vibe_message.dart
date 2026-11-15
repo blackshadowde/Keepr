@@ -46,6 +46,7 @@ import 'package:vibe/vibe/vibe_swipe_reply.dart';
 import 'package:vibe/vibe/vibe_chunks.dart';
 import 'package:vibe/vibe/vibe_link_preview.dart';
 import 'package:vibe/vibe/vibe_hot_words.dart';
+import 'package:vibe/vibe/buddy/bujji_life.dart';
 
 const Color _ownNameColor = Color(0xFFB5BAC1);
 const Color _otherNameColor = Color(0xFFF2F3F5);
@@ -994,7 +995,10 @@ class VibeMessage extends StatelessWidget {
                         child: VibeGrowOut(left: picLeft, child: w),
                       ),
               );
-              if ((!ticks || bubble) && effect == null) return place(shown);
+              // Bujji can find it on screen and come and sit on it
+              if ((!ticks || bubble) && effect == null) {
+                return place(BujjiSpot(id: event.eventId, child: shown));
+              }
               // Sent/read ticks sit beside the text: after it, or before it
               // on your side so the right edge stays clean.
               return place(Row(
@@ -1002,7 +1006,9 @@ class VibeMessage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 textDirection: side,
                 children: [
-                  Flexible(child: shown),
+                  Flexible(
+                    child: BujjiSpot(id: event.eventId, child: shown),
+                  ),
                   if (effect != null)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 1),

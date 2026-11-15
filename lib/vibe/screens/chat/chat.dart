@@ -74,6 +74,7 @@ import 'package:universal_html/universal_html.dart' as web;
 
 import 'package:vibe/utils/account_bundles.dart';
 import 'package:vibe/utils/localized_exception_extension.dart';
+import 'package:vibe/vibe/buddy/bujji_life.dart';
 import 'send_file_dialog.dart';
 import 'send_location_dialog.dart';
 
@@ -1344,6 +1345,7 @@ class ChatController extends State<ChatPageWithRoom>
 
   void copyEventsAction() {
     Clipboard.setData(ClipboardData(text: _getSelectedEventString()));
+    BujjiLife.use('copy');
     setState(() {
       showEmojiPicker = false;
       selectedEvents.clear();
@@ -1420,6 +1422,8 @@ class ChatController extends State<ChatPageWithRoom>
     final reason = reasonInput.isEmpty ? null : reasonInput;
     if (!mounted) return;
     final slashed = selectedEvents.map((e) => e.eventId).toList();
+    // Bujji sweeps it away
+    BujjiLife.use('delete');
     await VibeSlash.play(context, slashed);
     if (!mounted) return;
     await showFutureLoadingDialog(
@@ -1713,6 +1717,7 @@ class ChatController extends State<ChatPageWithRoom>
   void _startEditingEvent(Event event, {bool clearSelection = false}) {
     final timeline = this.timeline;
     if (timeline == null) return;
+    BujjiLife.use('edit', event.eventId);
 
     final client = currentRoomBundle.firstWhere(
       (c) => c?.userID == event.senderId,
@@ -1890,6 +1895,8 @@ class ChatController extends State<ChatPageWithRoom>
       pinnedEventIds.removeWhere(selectedEventIds.contains);
     } else {
       pinnedEventIds.addAll(selectedEventIds);
+      // Bujji taps the pin in
+      BujjiLife.use('pin', selectedEventIds.firstOrNull);
     }
     showFutureLoadingDialog(
       context: context,

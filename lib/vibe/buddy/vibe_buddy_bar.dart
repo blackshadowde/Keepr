@@ -4,14 +4,17 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:collection/collection.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:go_router/go_router.dart';
 import 'package:matrix/matrix.dart';
+import 'package:sensors_plus/sensors_plus.dart';
 import 'package:vibe/config/setting_keys.dart';
 import 'package:vibe/l10n/l10n.dart';
 import 'package:vibe/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:vibe/vibe/buddy/bujji.dart';
+import 'package:vibe/vibe/buddy/bujji_life.dart';
 import 'package:vibe/vibe/buddy/vibe_buddy.dart';
 import 'package:vibe/vibe/screens/chat/chat.dart';
 import 'package:vibe/vibe/vibe_effects.dart';
@@ -19,7 +22,9 @@ import 'package:vibe/vibe/vibe_haptics.dart';
 import 'package:vibe/vibe/vibe_hot_words.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
 import 'package:vibe/vibe/vibe_pq.dart';
+import 'package:vibe/vibe/vibe_live_location.dart';
 import 'package:vibe/vibe/vibe_send_later.dart';
+import 'package:vibe/widgets/matrix.dart';
 
 /// The buddy's row above the text box: the buddy on the right and, now and
 /// then, a small hint to its left. It watches what you type and what
@@ -39,8 +44,19 @@ class _Hint {
   const _Hint(this.text, this.icon, [this.onTap]);
 }
 
+/// Where Bujji went in the chat, and why: look (a new photo), peek (from
+/// behind your message), typing (their dots), sleep (on the newest
+/// message), hammer (a message you pinned).
+class _Trip {
+  final String spot;
+  final String why;
+  bool back = false;
+  Rect? last;
+  _Trip(this.spot, this.why);
+}
+
 class _VibeBuddyBarState extends State<VibeBuddyBar>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   ChatController get c => widget.controller;
   Room get room => c.room;
 
@@ -60,6 +76,33 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
   late final AnimationController _spring = AnimationController.unbounded(
     vsync: this,
   )..addListener(() => setState(() => _pull = _let * _spring.value));
+
+  // ---- its life: trips round the chat, moods, things it holds ----
+  final _portal = OverlayPortalController();
+  final _home = GlobalKey();
+  late final AnimationController _hopper = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 760),
+  );
+
+  /// Bumped when the chat scrolls, so a visiting Bujji stays on its message.
+  final _moved = ValueNotifier<int>(0);
+  _Trip? _trip;
+  Timer? _tripTimer, _lifeTimer, _crossTimer, _bopTimer;
+  StreamSubscription? _tools, _events, _shake, _playing;
+  ValueNotifier<String?>? _voice;
+
+  /// Held while something lasts (headphones while a voice note plays).
+  BuddyProp? _hold;
+
+  /// Poked too often: cross, then its back to you.
+  bool _cross = false, _away = false;
+  int _pokes = 0, _pokeAt = 0, _shakes = 0, _shakeAt = 0;
+  int _lastWander = 0, _lastIdle = 0, _lastOffer = 0;
+  final _offered = <String>{};
+
+  static int get _now => DateTime.now().millisecondsSinceEpoch;
+  bool get _alive => BujjiLife.pace != BujjiPace.off;
 
   /// Where it was, to lean the way it glides.
   double? _lastX;
@@ -96,6 +139,11 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
     c.scrollController.addListener(_onScroll);
     VibeBuddy.says.addListener(_onSays);
     VibeBuddy.here = room.id;
+    _tools = BujjiLife.tools.listen(_onTool);
+    _events = room.client.onTimelineEvent.stream
+        .where((e) => e.room.id == room.id)
+        .listen(_onEvent);
+    _lifeTimer = Timer.periodic(const Duration(seconds: 25), (_) => _idleLife());
     _lastEventId = room.lastEvent?.eventId;
     _activity();
     _pqTimer = Timer.periodic(const Duration(seconds: 30), (_) => _checkPq());
@@ -126,7 +174,14 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
         final now = room.typingUsers.any((u) => u.id == other);
         if (now && !typing && mounted) {
           _show(BuddyMood.happy, BuddyProp.wave, 1600);
+          // then it hurries over to peek at their dots
+          Future.delayed(const Duration(milliseconds: 550), () {
+            if (mounted && room.typingUsers.any((u) => u.id == other)) {
+              _wander('typing', 'typing', const Duration(seconds: 12));
+            }
+          });
         }
+        if (!now && typing && _trip?.why == 'typing') _comeBack();
         typing = now;
       });
     }
@@ -136,6 +191,15 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
   @override
   void dispose() {
     _spring.dispose();
+    _hopper.dispose();
+    _moved.dispose();
+    for (final s in [_tools, _events, _shake, _playing]) {
+      s?.cancel();
+    }
+    for (final t in [_tripTimer, _lifeTimer, _crossTimer, _bopTimer]) {
+      t?.cancel();
+    }
+    _voice?.removeListener(_onVoice);
     c.sendController.removeListener(_onText);
     VibeBuddy.sent.removeListener(_onSent);
     VibeBuddy.changed.removeListener(_refresh);
@@ -181,13 +245,23 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
       _choices = last != null && !last.me && last.text == a ? last.choices : const [];
       _hop++;
     });
-    _show(BuddyMood.happy, null, 1600);
+    // answering: glasses on, something in hand
+    _show(
+      BuddyMood.smart,
+      a.startsWith('Remind you')
+          ? BuddyProp.bulb
+          : a.startsWith('Found') || a.startsWith('Nothing in Settings')
+          ? BuddyProp.magnifier
+          : BuddyProp.clipboard,
+      2600,
+    );
     _answerTimer = Timer(Duration(seconds: (_choices.isEmpty ? 6 : 14) + a.length ~/ 25), () {
       if (mounted) setState(() => _answer = null);
     });
   }
 
   void _onScroll() {
+    _moved.value++;
     final now = DateTime.now().millisecondsSinceEpoch;
     if (now - _lastScroll < 2000) return;
     _lastScroll = now;
@@ -229,6 +303,22 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
     }
     // let the timeline load, then look for a streak
     Future.delayed(const Duration(seconds: 2), _streak);
+    if (!mounted) return;
+    _listenVoice();
+    _listenShake();
+    // its day: the first chat of the morning, it's having its coffee
+    final now = DateTime.now();
+    if (_alive && now.hour >= 5 && now.hour < 11) {
+      final day = '${now.year}-${now.month}-${now.day}';
+      if (AppSettings.store.getString('keepr.bujji.coffee') != day) {
+        AppSettings.store.setString('keepr.bujji.coffee', day);
+        Future.delayed(const Duration(milliseconds: 900), () {
+          if (mounted && _flash == null) {
+            _show(BuddyMood.sleepy, BuddyProp.coffee, 3600);
+          }
+        });
+      }
+    }
   }
 
   // ---- what you type ----
@@ -236,6 +326,10 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
   void _onText() {
     final text = c.sendController.text;
     _activity();
+    // you're typing: back to the text box
+    if (text.isNotEmpty && _trip != null && _trip!.why != 'hammer') {
+      _comeBack();
+    }
     // typing at night doesn't wake it; say so once
     if (_sleepy && text.trim().isNotEmpty && !_toldAsleep) {
       _toldAsleep = true;
@@ -311,6 +405,8 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
         }
       }
     }
+    // "you're so cute, Bujji": it goes shy
+    if (_alive && BujjiLife.compliment(text)) mood = BuddyMood.shy;
     setState(() {
       _typingMood = mood;
       _gaze = g;
@@ -389,7 +485,7 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
     if (hit == null) return;
     AppSettings.store.setInt(key, hit);
     _say(_Hint('$hit days in a row with $_them', Icons.local_fire_department_rounded),
-        mood: BuddyMood.happy, seconds: 6);
+        mood: _alive ? BuddyMood.proud : BuddyMood.happy, seconds: 6);
     final party = VibeEffects.byId('party');
     if (party != null) VibeEffects.play(context, party);
   }
@@ -416,6 +512,20 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
     if (!mounted) return;
     if (_sleepy != v) setState(() => _sleepy = v);
     VibeBuddy.dozing.value = v && VibeBuddy.on;
+    if (!v && _trip?.why == 'sleep') _comeBack();
+    if (v && (VibeBuddy.night || VibeBuddy.bedtime)) {
+      // late at night it curls up on the newest message
+      final id = c.timeline?.events
+          .firstWhereOrNull((e) => BujjiLife.rectOf(e.eventId) != null)
+          ?.eventId;
+      if (id != null) {
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted && _sleepy) {
+            _wander(id, 'sleep', const Duration(hours: 1));
+          }
+        });
+      }
+    }
   }
 
   void _show(BuddyMood mood, BuddyProp? prop, int ms) {
@@ -444,9 +554,425 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
     });
   }
 
+  // ---- its life ----
+
+  /// Pin, edit, delete, copy: it brings the tool for it.
+  void _onTool((String, String?) t) {
+    if (!mounted || !VibeBuddy.on) return;
+    final (kind, id) = t;
+    _activity(pet: true);
+    switch (kind) {
+      case 'pin':
+        // it climbs onto the message and taps the pin in
+        if (id != null &&
+            _wander(id, 'hammer', const Duration(milliseconds: 2800), force: true)) {
+          for (final ms in [1100, 1950, 2600]) {
+            Future.delayed(Duration(milliseconds: ms), VibeHaptics.selection);
+          }
+          return;
+        }
+        _show(BuddyMood.happy, BuddyProp.hammer, 2600);
+      case 'edit':
+        _show(BuddyMood.happy, BuddyProp.screwdriver, 2200);
+      case 'delete':
+        _show(BuddyMood.idle, BuddyProp.broom, 2600);
+      case 'copy':
+        _show(BuddyMood.smart, BuddyProp.clipboard, 1800);
+    }
+  }
+
+  /// Something new in this chat: what it calls for.
+  void _onEvent(Event raw) {
+    if (!mounted || !VibeBuddy.on || !_alive) return;
+    // only what just happened, not history catching up
+    if (DateTime.now().difference(raw.originServerTs).inSeconds.abs() > 90) {
+      return;
+    }
+    final e = VibePq.open(raw);
+    final mine = e.senderId == room.client.userID;
+    if (e.type == EventTypes.Reaction) {
+      final key = e.content
+              .tryGetMap<String, Object?>('m.relates_to')
+              ?.tryGet<String>('key') ??
+          '';
+      // your heart: it jumps up and catches it
+      if (mine && RegExp('^(\u2764|\u2665|\u{1F60D}|\u{1F970}|\u{1F495}|\u{1F496}|\u{1F497})', unicode: true).hasMatch(key)) {
+        _show(BuddyMood.love, BuddyProp.catchHeart, 2400);
+        setState(() => _hop++);
+      }
+      return;
+    }
+    if (!mine &&
+        (e.type == EventTypes.CallInvite ||
+            (e.type == 'org.matrix.msc3401.call.member' && e.content.isNotEmpty))) {
+      _show(BuddyMood.curious, BuddyProp.phone, 4000);
+      return;
+    }
+    if (e.type != EventTypes.Message ||
+        e.relationshipType == RelationshipTypes.edit) {
+      return;
+    }
+    if (e.content[VibeLive.checkKey] is Map) {
+      _show(BuddyMood.happy, BuddyProp.flag, 2600);
+      return;
+    }
+    switch (e.messageType) {
+      case MessageTypes.Image:
+        if (mine) {
+          _show(BuddyMood.wink, BuddyProp.camera, 2400);
+        } else {
+          // a new photo: it hops over and sits on it to look
+          Future.delayed(const Duration(milliseconds: 900), () {
+            if (mounted &&
+                !_wander(e.eventId, 'look', const Duration(seconds: 5))) {
+              _show(BuddyMood.curious, null, 1800);
+            }
+          });
+        }
+      case MessageTypes.Text || MessageTypes.Notice || MessageTypes.Emote:
+        final text = e.body;
+        final w = BujjiLife.forWords(text, mine: mine);
+        if (w != null) {
+          _show(w.$1, w.$2 == BuddyProp.none ? null : w.$2, 3000);
+        }
+        if (mine && BujjiLife.compliment(text)) {
+          _show(BuddyMood.shy, null, 2600);
+        }
+        // a time someone mentions: it offers a reminder (once a message)
+        final at = Bujji.timeIn(text);
+        if (at != null &&
+            _offered.add(e.eventId) &&
+            _now - _lastOffer > 120000) {
+          _lastOffer = _now;
+          Bujji.offer(text, at, room.id);
+        }
+      default:
+        break;
+    }
+  }
+
+  /// Every little while, if nothing's going on, it does something: peeks
+  /// from behind a message, plays catch, reads, has its coffee.
+  void _idleLife() {
+    if (!mounted || !_alive || !VibeBuddy.on) return;
+    if (_trip != null || _cross || _sleepy || _flash != null) return;
+    if (_hint != null || _answer != null || c.sendController.text.isNotEmpty) {
+      return;
+    }
+    final now = _now;
+    if (now - _lastIdle < 60000) return;
+    final r = math.Random();
+    if (now - _lastWander > 120000 && r.nextDouble() < 0.3 && _peek()) {
+      _lastIdle = now;
+      return;
+    }
+    if (r.nextDouble() > 0.35) return;
+    _lastIdle = now;
+    final h = DateTime.now().hour;
+    if (h >= 13 && h < 17) {
+      _show(BuddyMood.happy, BuddyProp.ball, 3200);
+      setState(() => _hop++);
+    } else if (h >= 19 && h < 22) {
+      _show(BuddyMood.smart, BuddyProp.book, 4500);
+    } else if (h >= 5 && h < 11) {
+      _show(BuddyMood.sleepy, BuddyProp.coffee, 3500);
+    }
+  }
+
+  /// Peeks out from behind your newest message on screen.
+  bool _peek() {
+    final me = room.client.userID;
+    for (final e in (c.timeline?.events ?? const <Event>[]).take(15)) {
+      if (e.senderId != me || e.type != EventTypes.Message) continue;
+      if (BujjiLife.rectOf(e.eventId) != null) {
+        return _wander(e.eventId, 'peek', const Duration(seconds: 4));
+      }
+    }
+    return false;
+  }
+
+  Rect? _homeRect() {
+    final r = _home.currentContext?.findRenderObject();
+    if (r is! RenderBox || !r.attached || !r.hasSize) return null;
+    return r.localToGlobal(Offset.zero) & r.size;
+  }
+
+  /// On screen: below the top bar and above the text box.
+  static bool _onScreen(Rect to, Rect home) =>
+      to.top > 100 && to.top < home.top - 24;
+
+  /// Hops over to [spot] for [stay]. Only when lively, the phone allows
+  /// motion, you're not typing and it's on screen.
+  bool _wander(String spot, String why, Duration stay, {bool force = false}) {
+    if (!mounted || _trip != null || _cross || !VibeBuddy.on) return false;
+    if (BujjiLife.pace != BujjiPace.lively ||
+        (MediaQuery.maybeDisableAnimationsOf(context) ?? false)) {
+      return false;
+    }
+    if (!force && c.sendController.text.isNotEmpty) return false;
+    final to = BujjiLife.rectOf(spot), home = _homeRect();
+    if (to == null || home == null || !_onScreen(to, home)) return false;
+    _lastWander = _now;
+    setState(() => _trip = _Trip(spot, why));
+    _portal.show();
+    VibeHaptics.light();
+    _hopper.forward(from: 0).whenComplete(() {
+      // lands with a squish
+      if (mounted && _trip?.back == false) setState(() => _squish++);
+    });
+    _tripTimer?.cancel();
+    _tripTimer = Timer(stay, _comeBack);
+    return true;
+  }
+
+  void _comeBack() {
+    _tripTimer?.cancel();
+    final trip = _trip;
+    if (trip == null || trip.back || !mounted) return;
+    trip.back = true;
+    _hopper.reverse().whenComplete(() {
+      if (!mounted) return;
+      _portal.hide();
+      setState(() {
+        _trip = null;
+        _squish++;
+      });
+    });
+  }
+
+  /// Bujji on its trip: hopping in an arc from the text box to the message
+  /// and sitting on it (or peeking from behind it).
+  Widget _wanderer(BuildContext context) => AnimatedBuilder(
+    animation: Listenable.merge([_hopper, _moved]),
+    builder: (context, _) {
+      final trip = _trip;
+      final home = _homeRect();
+      final ob = Overlay.maybeOf(context)?.context.findRenderObject();
+      if (trip == null || home == null || ob is! RenderBox || !ob.hasSize) {
+        return const SizedBox.shrink();
+      }
+      var to = BujjiLife.rectOf(trip.spot);
+      if (to == null || !_onScreen(to, home)) {
+        // scrolled away from under it: it comes home
+        if (!trip.back) {
+          WidgetsBinding.instance.addPostFrameCallback((_) => _comeBack());
+        }
+        to = trip.last ?? home;
+      } else {
+        trip.last = to;
+      }
+      const size = 42.0, box = size * 1.3;
+      final start = home.bottomCenter;
+      final end = switch (trip.why) {
+        'typing' => Offset(to.right + box * 0.5, to.bottom - 2),
+        'hammer' => Offset(to.right - box * 0.75, to.top + 4),
+        'peek' => Offset(to.left + box * 0.65, to.top + box * 0.34),
+        _ => Offset(
+          to.center.dx.clamp(to.left + box / 2, math.max(to.left + box / 2, to.right - box / 2)),
+          to.top + 4,
+        ),
+      };
+      final k = Curves.easeInOutCubic.transform(_hopper.value);
+      final ctrl = Offset(
+        (start.dx + end.dx) / 2,
+        math.min(start.dy, end.dy) - 90,
+      );
+      final g = Offset(
+        (1 - k) * (1 - k) * start.dx + 2 * (1 - k) * k * ctrl.dx + k * k * end.dx,
+        (1 - k) * (1 - k) * start.dy + 2 * (1 - k) * k * ctrl.dy + k * k * end.dy,
+      );
+      final p = ob.globalToLocal(g);
+      final there = _hopper.value > 0.98 && !trip.back;
+      final cs = Theme.of(context).colorScheme;
+      final (mood, prop) = switch (trip.why) {
+        'sleep' => (BuddyMood.sleepy, BuddyProp.bed),
+        'hammer' => (BuddyMood.happy, there ? BuddyProp.hammer : BuddyProp.none),
+        _ => (BuddyMood.curious, BuddyProp.none),
+      };
+      final face = GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          VibeHaptics.light();
+          _activity(pet: true);
+          _comeBack();
+        },
+        child: VibeBuddyFace(
+          size: size,
+          color: cs.primary,
+          mood: mood,
+          prop: prop,
+          outfit: VibeBuddy.outfit,
+          gaze: trip.why == 'typing' ? -1 : trip.why == 'peek' ? 1 : 0,
+          look: trip.why == 'sleep' ? 0 : 1,
+          floating: !there,
+          hop: _hop,
+          wiggle: _wiggle,
+          squish: _squish,
+        ),
+      );
+      if (trip.why == 'peek' && _hopper.value > 0.7) {
+        // only its top shows above your message: it peeks from behind it
+        final edge = ob.globalToLocal(Offset(0, to.top)).dy;
+        return Stack(
+          children: [
+            Positioned(
+              left: p.dx - box / 2,
+              top: edge - box,
+              width: box,
+              height: box,
+              child: ClipRect(
+                child: Transform.translate(
+                  offset: Offset(0, p.dy - edge),
+                  child: face,
+                ),
+              ),
+            ),
+          ],
+        );
+      }
+      return Stack(
+        children: [
+          Positioned(
+            left: p.dx - box / 2,
+            top: p.dy - box,
+            width: box,
+            height: box,
+            child: face,
+          ),
+        ],
+      );
+    },
+  );
+
+  // a voice note playing: headphones on, bopping along
+  void _listenVoice() {
+    try {
+      _voice = Matrix.of(context).voiceMessageEventId..addListener(_onVoice);
+    } catch (_) {}
+  }
+
+  void _onVoice() {
+    _playing?.cancel();
+    _playing = null;
+    if (_voice?.value == null || !mounted) {
+      _setHold(null);
+      return;
+    }
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (!mounted || _voice?.value == null) return;
+      final player = Matrix.of(context).audioPlayer;
+      if (player == null) return;
+      _playing = player.playingStream.listen(
+        (on) => _setHold(on && _alive ? BuddyProp.headphones : null),
+      );
+    });
+  }
+
+  void _setHold(BuddyProp? v) {
+    if (!mounted || _hold == v) return;
+    setState(() => _hold = v);
+    _bopTimer?.cancel();
+    if (v == BuddyProp.headphones) {
+      _bopTimer = Timer.periodic(const Duration(milliseconds: 900), (_) {
+        if (mounted) setState(() => _wiggle++);
+      });
+    }
+  }
+
+  // shake the phone: it gets dizzy
+  void _listenShake() {
+    if (kIsWeb) return;
+    try {
+      _shake = userAccelerometerEventStream(
+        samplingPeriod: SensorInterval.uiInterval,
+      ).listen(
+        (a) {
+          if (a.x * a.x + a.y * a.y + a.z * a.z < 16 * 16) return;
+          final now = _now;
+          _shakes = now - _shakeAt < 700 ? _shakes + 1 : 1;
+          _shakeAt = now;
+          if (_shakes >= 3) {
+            _shakes = 0;
+            _dizzy();
+          }
+        },
+        onError: (_) {},
+        cancelOnError: true,
+      );
+    } catch (_) {}
+  }
+
+  void _dizzy() {
+    if (!mounted || !_alive || !VibeBuddy.on || _flash == BuddyMood.dizzy) {
+      return;
+    }
+    VibeHaptics.medium();
+    _show(BuddyMood.dizzy, null, 2600);
+    setState(() => _wiggle++);
+  }
+
+  // poke it again and again: it gets cross and turns its back
+  void _poke() {
+    setState(() => _squish++);
+    if (!_alive || _cross) return;
+    final now = _now;
+    _pokes = now - _pokeAt < 1500 ? _pokes + 1 : 1;
+    _pokeAt = now;
+    if (_pokes >= 6) {
+      _pokes = 0;
+      _getCross();
+    }
+  }
+
+  void _getCross() {
+    _cross = true;
+    VibeHaptics.medium();
+    if (_trip != null) _comeBack();
+    _say(
+      const _Hint('Hmph. Stop poking!', Icons.sentiment_dissatisfied_rounded),
+      mood: BuddyMood.angry,
+      seconds: 3,
+    );
+    _crossTimer?.cancel();
+    _crossTimer = Timer(const Duration(milliseconds: 1600), () {
+      if (!mounted || !_cross) return;
+      setState(() => _away = true);
+      _say(
+        const _Hint('Hold me to make up', Icons.touch_app_outlined),
+        seconds: 4,
+      );
+      _crossTimer = Timer(const Duration(seconds: 5), () {
+        if (mounted) {
+          setState(() {
+            _away = false;
+            _cross = false;
+          });
+        }
+      });
+    });
+  }
+
+  /// Held while cross: friends again.
+  void _makeUp() {
+    _crossTimer?.cancel();
+    VibeHaptics.light();
+    setState(() {
+      _away = false;
+      _cross = false;
+      _hint = null;
+    });
+    _show(BuddyMood.shy, null, 1100);
+    Future.delayed(const Duration(milliseconds: 1100), () {
+      if (!mounted) return;
+      _show(BuddyMood.love, BuddyProp.heart, 2400);
+      setState(() => _hop++);
+    });
+  }
+
   // ---- touch ----
 
   void _tap() {
+    if (_cross) return;
     VibeHaptics.light();
     final wasAsleep = _sleepy;
     _activity(pet: true);
@@ -484,6 +1010,8 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
   void _letGo(DragEndDetails d) {
     VibeHaptics.light();
     _let = _pull;
+    // flung hard: it spins
+    if (d.velocity.pixelsPerSecond.distance > 2400) _dizzy();
     if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) {
       setState(() => _pull = Offset.zero);
       return;
@@ -516,6 +1044,7 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
   }
 
   void _tickle() {
+    if (_cross) return;
     VibeHaptics.medium();
     _activity(pet: true);
     setState(() {
@@ -646,12 +1175,30 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
     final awake = VibeBuddy.bedtime && _typingMood == BuddyMood.idle
         ? BuddyMood.tired
         : _typingMood;
-    final mood = _flash ?? (_sleepy ? BuddyMood.sleepy : awake);
-    final prop = _flashProp ?? (_pq ? BuddyProp.shield : BuddyProp.none);
+    final mood = _cross
+        ? BuddyMood.angry
+        : _flash ??
+              (_sleepy
+                  ? BuddyMood.sleepy
+                  : _hold == BuddyProp.headphones
+                  ? BuddyMood.happy
+                  : awake);
+    final bed = _sleepy && _alive && (VibeBuddy.night || VibeBuddy.bedtime);
+    final prop =
+        _flashProp ??
+        _hold ??
+        (bed
+            ? BuddyProp.bed
+            : _pq
+            ? BuddyProp.shield
+            : BuddyProp.none);
     final hint = _hint;
     final answer = _answer;
     const size = 42.0, box = size * 1.3;
-    return AnimatedSize(
+    return OverlayPortal(
+      controller: _portal,
+      overlayChildBuilder: _wanderer,
+      child: AnimatedSize(
       duration: const Duration(milliseconds: 240),
       curve: Curves.easeOutCubic,
       alignment: Alignment.bottomCenter,
@@ -759,11 +1306,13 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
                       left: x,
                       bottom: 0,
                       child: GestureDetector(
+                        key: _home,
                         behavior: HitTestBehavior.opaque,
-                        onTapDown: (_) => setState(() => _squish++),
+                        onTapDown: (_) => _poke(),
                         onTap: _tap,
                         onDoubleTap: _tickle,
-                        onLongPress: _menu,
+                        // cross: holding it makes up
+                        onLongPress: _cross ? _makeUp : _menu,
                         onPanStart: _grab,
                         onPanUpdate: _stretch,
                         onPanEnd: _letGo,
@@ -778,11 +1327,15 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
                             duration: const Duration(milliseconds: 420),
                             curve: Curves.easeOutCubic,
                             alignment: Alignment.bottomCenter,
-                            child: VibeBuddyFace(
+                            // away visiting a message: it isn't here
+                            child: Opacity(
+                              opacity: _trip == null ? 1 : 0,
+                              child: VibeBuddyFace(
                               size: size,
                               color: cs.primary,
                               mood: mood,
                               prop: prop,
+                              away: _away,
                               outfit: VibeBuddy.outfit,
                               // while pulled it looks the way it's pulled
                               gaze: _pull == Offset.zero
@@ -795,6 +1348,7 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
                               wiggle: _wiggle,
                               squish: _squish,
                             ),
+                            ),
                           ),
                           ),
                         ),
@@ -806,6 +1360,7 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
             ),
           ),
         ],
+      ),
       ),
     );
   }

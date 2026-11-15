@@ -15,6 +15,7 @@ import 'package:vibe/vibe/vibe_haptics.dart';
 import 'package:vibe/vibe/vibe_message_menu.dart';
 import 'package:vibe/vibe/vibe_starred.dart';
 import 'package:vibe/vibe/vibe_threads.dart';
+import 'package:vibe/vibe/buddy/bujji_life.dart';
 
 /// Long-press menu as an orbit: the held message lifts, the chat blurs, and
 /// its actions float round the message's end as small glass buttons on a
@@ -278,6 +279,7 @@ class _OrbitState extends State<_Orbit> with SingleTickerProviderStateMixin {
   void _edit() {
     final timeline = c.timeline;
     if (timeline == null) return;
+    BujjiLife.use('edit', e.eventId);
     final text = e
         .getDisplayEvent(timeline)
         .vibeBodyFallback(
