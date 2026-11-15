@@ -878,7 +878,8 @@ class VibeMessage extends StatelessWidget {
                 final name = sender.calcDisplayname();
                 shown = ConstrainedBox(
                   constraints: BoxConstraints(
-                    maxWidth: MediaQuery.sizeOf(context).width * 0.76,
+                    maxWidth: MediaQuery.sizeOf(context).width * 0.76 +
+                        (last ? 0 : avatarSize / 2 + nestGap),
                   ),
                   child: CustomPaint(
                     painter: _BubblePainter(
@@ -886,10 +887,11 @@ class VibeMessage extends StatelessWidget {
                       left: picLeft,
                       top: first ? 20 : 6,
                       bottom: last ? 20 : 6,
-                      // every bubble of a run reaches to the picture's
-                      // middle, so their edges line up; the last one
-                      // curves in round the picture
-                      reach: avatarSize / 2 + nestGap,
+                      // every bubble of a run ends at the picture's middle,
+                      // so their edges line up; the last one reaches there
+                      // and curves in round the picture, the others sit
+                      // there themselves so their text keeps even padding
+                      reach: last ? avatarSize / 2 + nestGap : 0,
                       cut: last,
                     ),
                     child: Padding(
@@ -979,7 +981,12 @@ class VibeMessage extends StatelessWidget {
                         ],
                       )
                     : Padding(
-                        padding: inset,
+                        padding: bubble
+                            ? EdgeInsets.only(
+                                left: picLeft ? avatarSize / 2 : 0,
+                                right: picLeft ? 0 : avatarSize / 2,
+                              )
+                            : inset,
                         child: VibeGrowOut(left: picLeft, child: w),
                       ),
               );
