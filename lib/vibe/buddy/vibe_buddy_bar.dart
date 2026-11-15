@@ -1367,7 +1367,9 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
                             // away visiting a message: it isn't here
                             child: Opacity(
                               opacity: _trip == null ? 1 : 0,
-                              child: VibeBuddyFace(
+                              child: BujjiSpot(
+                                id: 'tour.bujji',
+                                child: VibeBuddyFace(
                               size: size,
                               color: cs.primary,
                               mood: mood,
@@ -1384,6 +1386,7 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
                               hop: _hop,
                               wiggle: _wiggle,
                               squish: _squish,
+                            ),
                             ),
                             ),
                           ),

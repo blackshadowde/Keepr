@@ -20,6 +20,7 @@ import 'package:vibe/utils/platform_infos.dart';
 import 'package:vibe/widgets/avatar.dart';
 import 'package:vibe/widgets/hover_builder.dart';
 import 'package:vibe/widgets/matrix.dart';
+import 'package:vibe/vibe/buddy/bujji_life.dart';
 import 'package:flutter/material.dart';
 import 'package:matrix/matrix.dart';
 
@@ -241,7 +242,10 @@ class ChatInputRow extends StatelessWidget {
                                       VibeHaptics.medium();
                                       controller.emojiPickerAction();
                                     },
-                              child: SizedBox.square(
+                              // the tour's "Show me where" finds it here
+                              child: BujjiSpot(
+                                id: 'tour.attach',
+                                child: SizedBox.square(
                                 dimension: 40,
                                 child: Icon(
                                   controller.showEmojiPicker
@@ -250,6 +254,7 @@ class ChatInputRow extends StatelessWidget {
                                   key: ValueKey(controller.showEmojiPicker),
                                   size: 26,
                                 ),
+                              ),
                               ),
                             ),
                           ),

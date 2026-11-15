@@ -12,6 +12,7 @@ import 'package:vibe/vibe/buddy/bujji_live.dart';
 import 'package:vibe/vibe/buddy/bujji_model.dart';
 import 'package:vibe/vibe/buddy/bujji_settings.dart';
 import 'package:vibe/vibe/buddy/vibe_buddy.dart';
+import 'package:vibe/vibe/vibe_whats_new.dart';
 
 /// Bujji's memory: things you tell it, reminders you ask for, and your talk
 /// with it. Plain rules (plus, if you download it, a small sentence model
@@ -457,8 +458,14 @@ abstract class Bujji {
         '@bujji open notification settings\n'
         '@bujji turn on dark mode\n'
         '@bujji search typing indicators in settings\n'
+        "@bujji what's new\n"
         '@bujji chat',
       );
+    }
+    // the update tour, told by Bujji
+    if (RegExp(r"^(what('|\u2019)?s new|what is new|new features|(show me )?(the )?tour)$")
+        .hasMatch(low)) {
+      return const BujjiReply("Here's what's new!", act: VibeWhatsNew.tour);
     }
     // Settings: open a page, switch something, find where it is
     final settings = BujjiSettings.answer(low);

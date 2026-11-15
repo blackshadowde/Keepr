@@ -22,6 +22,7 @@ import 'package:vibe/vibe/vibe_typing_pen.dart';
 import 'package:vibe/vibe/vibe_user_sheet.dart';
 import 'package:vibe/vibe/vibe_threads.dart';
 import 'package:vibe/widgets/avatar.dart';
+import 'package:vibe/vibe/buddy/bujji_life.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:matrix/matrix.dart';
@@ -267,7 +268,9 @@ class _ChatTitlePillState extends State<ChatTitlePill> {
                   ? const SizedBox.shrink()
                   : Padding(
                       padding: const EdgeInsetsDirectional.only(start: 8),
-                      child: Material(
+                      child: BujjiSpot(
+                        id: 'tour.threads',
+                        child: Material(
                         color: cs.surfaceContainerHigh.withValues(alpha: 0.9),
                         shape: const CircleBorder(),
                         elevation: 2,
@@ -289,6 +292,7 @@ class _ChatTitlePillState extends State<ChatTitlePill> {
                           ),
                         ),
                       ),
+                      ),
                     ),
             ),
           ),
@@ -300,7 +304,9 @@ class _ChatTitlePillState extends State<ChatTitlePill> {
   Widget _pill(BuildContext context, ColorScheme cs, Room room, String name) {
     // squeezes when pressed, then grows open; only as wide as it needs, so
     // the threads button sits right beside it
-    return VibePressable(
+    return BujjiSpot(
+      id: 'tour.pill',
+      child: VibePressable(
         scale: 0.95,
         child: AnimatedSize(
         duration: vibePillSpring.duration,
@@ -427,6 +433,7 @@ class _ChatTitlePillState extends State<ChatTitlePill> {
             ),
           ),
         ),
+      ),
       ),
     );
   }

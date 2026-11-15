@@ -13,6 +13,10 @@ import 'dart:async';
 import 'package:vibe/vibe/vibe_tour_demos.dart';
 import 'package:vibe/vibe/vibe_hot_words.dart';
 import 'package:vibe/widgets/typing_animation.dart';
+import 'package:vibe/widgets/matrix.dart';
+import 'package:vibe/vibe/buddy/bujji_tour.dart';
+import 'package:vibe/vibe/buddy/vibe_buddy.dart';
+import 'package:matrix/matrix.dart' show Membership;
 import 'package:package_info_plus/package_info_plus.dart';
 
 /// Release notes. NEWEST FIRST. Add a new entry at the top for every
@@ -22,17 +26,13 @@ const vibeReleaseNotes = <({String version, List<String> items})>[
   (
     version: '3.1',
     items: [
-      'Sending shows a pulsing dot (a line runs between two dots while it encrypts), then 1 dot sent, 2 dots delivered, 3 blue dots read',
-      'Questions, menus and settings pages slide up from the bottom and close with a swipe down',
-      'Full-screen effects for words like love, miss you, good morning, good night, hug, kiss, congrats, bye, sweet dreams, hi and welcome',
-      'Back up chats to Google Drive automatically: Settings, Backups, Back up to Google Drive',
-      'Your profile pane looks like Keepr X: your picture blurred behind it, a floating bar and a smaller thought bubble',
-      'Connecting shows three dots in the chat bar that turn green once you\'re connected',
-      'Continue with Google, and your password manager fills in your login',
-      'New messages glide into the chat, and chats slide open and closed more smoothly',
-      'Bold names in the chat list, unread in white, and a red "read up to here" line',
-      'Long messages keep their dots right after the text',
-      'The media pane shows all the photos and videos in the chat',
+      'Bujji, your typing buddy, has a life of its own: it hops onto new photos, brings the right thing (a hammer to pin, a pen while you edit) and tells you about live locations',
+      'Ask @bujji to remember notes and birthdays, set reminders, or open and change settings, all on your phone',
+      'A new map: send a spot, share live for 15 minutes to 8 hours, or check in',
+      'Hold a message and slide onto an action or a reaction',
+      'Threads one tap away, right beside the chat\'s name',
+      'Home: your profile on top, unread chats as cards you can answer right there',
+      'Post-quantum direct chats between Keepr users',
     ],
   ),
   (
@@ -74,6 +74,12 @@ abstract class VibeWhatsNew {
     } catch (_) {}
   }
 
+  /// "@bujji what's new": the whole tour again.
+  static void tour() {
+    final ctx = VibeApp.router.routerDelegate.navigatorKey.currentContext;
+    if (ctx != null && ctx.mounted) VibeTour.open(ctx);
+  }
+
   /// Vibe X's card: the logo, the title, one dot per change (each pops in,
   /// one after another) and a round "Got it".
   static Future<void> show(BuildContext context, String version) async {
@@ -110,6 +116,9 @@ abstract class VibeWhatsNew {
                 children: [
                   Row(
                     children: [
+                      if (VibeBuddy.on)
+                        const BujjiTile(size: 48)
+                      else
                       ClipRRect(
                         borderRadius: BorderRadius.circular(14),
                         child: Image.asset(
@@ -187,7 +196,9 @@ abstract class VibeWhatsNew {
                         VibeTour.open(context);
                       },
                       icon: const Icon(Icons.play_circle_outline_rounded),
-                      label: const Text('Watch the tour'),
+                      label: Text(
+                        VibeBuddy.on ? "Watch Bujji's tour" : 'Watch the tour',
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -337,7 +348,22 @@ class VibeTourItem {
 
   /// The little animation that shows where it is and what it does.
   final VibeDemo? demo;
-  const VibeTourItem(this.icon, this.title, this.body, [this.demo]);
+
+  /// Or a live mockup with Bujji in it.
+  final Widget Function(BuildContext)? show;
+
+  /// "Show me where": the spot in the app Bujji points at, and what it says.
+  final String? where;
+  final String? tip;
+  const VibeTourItem(
+    this.icon,
+    this.title,
+    this.body, [
+    this.demo,
+    this.show,
+    this.where,
+    this.tip,
+  ]);
 }
 
 class VibeTourPage {
@@ -345,130 +371,174 @@ class VibeTourPage {
   final String title;
   final String subtitle;
   final List<VibeTourItem> items;
-  const VibeTourPage(this.icon, this.title, this.subtitle, this.items);
+
+  /// One line for Bujji's hello list.
+  final String short;
+  const VibeTourPage(
+    this.icon,
+    this.title,
+    this.subtitle,
+    this.items, {
+    this.short = '',
+  });
 }
 
 /// This update's tour. For the next big update: change [id] and [version]
-/// and write new pages. The first page lists the others by itself.
+/// and write new pages; each channel plays once per [id].
 const vibeTour = (
-  id: '3.1-keepr',
+  id: '3.1-bujji',
   version: '3.1',
-  // one channel per page, like a server in Keepr
-  channels: <String>[
-    'welcome', 'threads', 'chatting', 'make-it-yours', 'notifications',
-    'privacy', 'themes-and-text', 'home',
-  ],
+  channels: <String>['bujji', 'location', 'chats', 'home', 'security'],
   pages: <VibeTourPage>[
     VibeTourPage(
-      Icons.lock_rounded,
-      'Vibe is now Keepr',
-      'A new name and a new icon. Same account, same chats, same encryption.',
+      Icons.auto_awesome_rounded,
+      'Bujji, your typing buddy',
+      "That's me! I float above the text box, and now I have a life of my own.",
+      short: 'Bujji got a life of its own',
       [
-        VibeTourItem(Icons.badge_outlined, 'A new name',
-            'Vibe is now Keepr everywhere: the app, the website and the store.', VibeDemo.rename),
-        VibeTourItem(Icons.apps_rounded, 'A new icon',
-            'A white chat bubble with a lock, on a smooth dark blue background.'),
-        VibeTourItem(Icons.verified_user_outlined, 'Nothing to set up',
-            'Your chats, keys and settings carry on as before.'),
+        VibeTourItem(
+          Icons.handyman_outlined,
+          'I bring the right thing',
+          "A hammer when you pin, a pen while you edit (I keep it until it's sent), a broom when you delete, coffee in the morning, headphones for a voice note.",
+          null,
+          BujjiTourDemos.tools,
+          'tour.bujji',
+          'Here I am, above the text box. Tap me, or drag me and let me go.',
+        ),
+        VibeTourItem(
+          Icons.photo_outlined,
+          'A life of my own',
+          "I hop onto a new photo to look, peek from behind your messages, run over to someone's typing dots and nap on the newest message at night. Start typing and I'm back.",
+          null,
+          BujjiTourDemos.life,
+        ),
+        VibeTourItem(
+          Icons.sentiment_satisfied_alt_rounded,
+          'Moods',
+          'I hug a heart when someone sends love, wink at a hello, go shy when you call me cute and get dizzy if you shake the phone. Poke me too much and I turn my back; hold me to make up.',
+        ),
+        VibeTourItem(
+          Icons.alternate_email_rounded,
+          'Ask me',
+          '"@bujji remind me to call mom at 6 pm", "@bujji turn on dark mode", "@bujji open notification settings". All on your phone, no AI.',
+        ),
+        VibeTourItem(
+          Icons.tune_rounded,
+          'Your pace',
+          'Settings, Typing buddy: Lively, Calm (I stay on the text box) or Off.',
+        ),
       ],
     ),
     VibeTourPage(
-      VibeThreads.icon,
-      'Threads',
-      'Keep side conversations out of the main chat.',
+      Icons.place_rounded,
+      'Location',
+      'A brand new map: pinch, turn and tilt it in 3D, light or dark with the app.',
+      short: 'A new map, live and check-ins',
       [
-        VibeTourItem(Icons.add_comment_outlined, 'Start one from any message',
-            'Long-press a message, then Create thread.', VibeDemo.threadCreate),
-        VibeTourItem(Icons.edit_outlined, 'Give it a name',
-            'Tap the thread\'s name to rename it. Without a name, it\'s called after its first message.', VibeDemo.threadRename),
-        VibeTourItem(Icons.push_pin_outlined, 'Pinned until you close it',
-            'Threads stay in the chat\'s side pane until you close them.'),
+        VibeTourItem(
+          Icons.place_outlined,
+          'Send a spot',
+          'Your picture is the pin, and the card shows how far it is. Open it for Google Maps, Waze or directions.',
+          null,
+          BujjiTourDemos.map,
+          'tour.attach',
+          'Tap + and pick Location to send a spot, share live or check in.',
+        ),
+        VibeTourItem(
+          Icons.share_location_outlined,
+          'Live, or a check-in',
+          "Share live for 15 minutes, 1 hour or 8 hours, or check in. I tell you when they're close, when they arrive, or if a check-in is missed.",
+          null,
+          BujjiTourDemos.live,
+        ),
+        VibeTourItem(
+          Icons.map_outlined,
+          'Everyone on one map',
+          "Everyone sharing in a chat, with the time each has left, the way they're heading and their trail.",
+        ),
+        VibeTourItem(
+          Icons.notifications_outlined,
+          'Stop from anywhere',
+          "A bar on the home screen shows when you're sharing, and the notification has Stop and +30 min.",
+        ),
       ],
     ),
     VibeTourPage(
       Icons.chat_bubble_rounded,
-      'Chatting',
-      'Small things that make every chat quicker.',
+      'Chats',
+      "Bubbles curve round the sender's picture, and a new message grows out of their typing dots.",
+      short: 'Hold and slide, threads by the name',
       [
-        VibeTourItem(Icons.call_to_action_outlined, 'Keep a chat docked',
-            'Open another chat from the top pill, or pull a chat\'s name down, and it waits under the text box. Swipe it up to go back.', VibeDemo.dock),
-        VibeTourItem(Icons.search_rounded, 'Search in a chat',
-            'Results as you type, with arrows to step through every match.', VibeDemo.search),
-        VibeTourItem(Icons.format_quote_rounded, 'Quote part of a message',
-            'Swipe to reply and hold a moment to pick the words you want.', VibeDemo.quote),
-        VibeTourItem(Icons.photo_library_outlined, 'Photo stacks',
-            'Four or more photos sent together show as one grid.', VibeDemo.stack),
-        VibeTourItem(Icons.touch_app_outlined, 'Double tap, your way',
-            'React, reply, quote, bookmark or copy: you choose.', VibeDemo.doubleTap),
-      ],
-    ),
-    VibeTourPage(
-      Icons.palette_rounded,
-      'Make it yours',
-      'Customisation has more to play with.',
-      [
-        VibeTourItem(Icons.more_horiz_rounded, 'Your own typing indicator',
-            'Up to three emojis, an animation and a phrase others see while you type.', VibeDemo.typing),
-        VibeTourItem(Icons.music_note_outlined, 'Notification sounds',
-            'Keepr chime, Pop, Bell or Pluck, each with a play button.', VibeDemo.sounds),
-        VibeTourItem(Icons.thunderstorm_outlined, 'Weather on screen',
-            'Rain, sunny day or winter words fill the screen with their own scene.', VibeDemo.weather),
-        VibeTourItem(Icons.gif_box_outlined, 'Animated profile pictures',
-            'GIF profile pictures play in profiles and chat details.', VibeDemo.avatar),
-      ],
-    ),
-    VibeTourPage(
-      Icons.notifications_active_rounded,
-      'Notifications',
-      'Messages arrive, and read ones tidy themselves up.',
-      [
-        VibeTourItem(Icons.refresh_rounded, 'Back on its own',
-            'If the phone stops Keepr in the background, it starts again within 15 minutes.', VibeDemo.restart),
-        VibeTourItem(Icons.done_all_rounded, 'Read here, cleared there',
-            'Reading a chat on another device clears its notification.', VibeDemo.clearRead),
-        VibeTourItem(Icons.error_outline_rounded, 'Know when a message fails',
-            'A notification tells you if a message couldn\'t be sent.', VibeDemo.failed),
-        VibeTourItem(Icons.mic_none_rounded, 'Voice messages everywhere',
-            'Voice messages recorded on Android now play on every phone.', VibeDemo.voice),
-      ],
-    ),
-    VibeTourPage(
-      Icons.key_rounded,
-      'Privacy',
-      'Direct chats change their key even more often.',
-      [
-        VibeTourItem(Icons.key_rounded, 'A fresh key for every message',
-            'With strict encryption, every message gets its own new key, in direct chats and groups alike.', VibeDemo.dmKeys),
-        VibeTourItem(Icons.translate_rounded, 'Keepr in every language',
-            'Every translation now says Keepr, and invites point to Keepr\'s website.'),
-      ],
-    ),
-    VibeTourPage(
-      Icons.format_paint_rounded,
-      'Themes and text',
-      'More looks, and text that\'s easier to read.',
-      [
-        VibeTourItem(Icons.download_rounded, 'Import HyDE themes',
-            'In the Glass look, import any theme from HyDE\'s gallery or from a GitHub link, with its colours and wallpapers.', VibeDemo.hydeImport),
-        VibeTourItem(Icons.label_outline_rounded, 'Your name in a pill',
-            'Show your name in a coloured pill in chats, like a group tag. Set it in your status.', VibeDemo.namePill),
-        VibeTourItem(Icons.text_fields_rounded, 'Bigger, clearer text',
-            'Names, channels, titles and settings are bigger and bolder; names in chats match your text size.', VibeDemo.textScale),
-        VibeTourItem(Icons.gif_box_outlined, 'Animated pictures from your profile',
-            'GIFs picked from your profile\'s Photo button stay animated too.', VibeDemo.avatar),
+        VibeTourItem(
+          Icons.swipe_rounded,
+          'Hold and slide',
+          'Hold a message and, without lifting, slide onto an action or a reaction. Let go to pick it.',
+          null,
+          BujjiTourDemos.slide,
+        ),
+        VibeTourItem(
+          VibeThreads.icon,
+          'Threads beside the name',
+          "Every thread in the chat is one tap away, right beside its name. Close any of them with its X.",
+          null,
+          BujjiTourDemos.threads,
+          'tour.threads',
+          "Every thread in this chat is behind this button. Once a chat has a thread, it sits right beside the chat's name.",
+        ),
+        VibeTourItem(
+          Icons.poll_outlined,
+          'Polls and View once',
+          'Ask with a poll, or send a photo that can be opened only once.',
+        ),
+        VibeTourItem(
+          Icons.mail_outline_rounded,
+          'Invites',
+          'See who invited you, with Accept and Decline right there.',
+        ),
       ],
     ),
     VibeTourPage(
       Icons.home_rounded,
       'Home',
-      'Opening Keepr feels livelier, and muted chats stay quiet.',
+      'Everything on one screen.',
+      short: 'You on top, unread as cards',
       [
-        VibeTourItem(Icons.animation_rounded, 'Chats bounce in',
-            'After the dots, your chats spring in one by one. Turn it off in Customisation, Start-up animation.', VibeDemo.homeBounce),
-        VibeTourItem(Icons.notifications_off_outlined, 'Muted means quiet',
-            'Muted chats no longer show pop-ups or side pictures. Want them anyway? Notifications, Pop-ups for muted chats.', VibeDemo.mutedQuiet),
-        VibeTourItem(Icons.more_horiz_rounded, 'Your typing indicator, everywhere',
-            'It now reaches direct chats started after you set it.', VibeDemo.typing),
+        VibeTourItem(
+          Icons.dashboard_outlined,
+          'You on top, unread as cards',
+          'Your profile sits on top, Chats and Spaces show their unread counts, and unread chats are cards you can answer right there.',
+          null,
+          BujjiTourDemos.home,
+          'tour.profile',
+          'Your profile is on top. Unread chats show below as cards you can answer right there.',
+        ),
+      ],
+    ),
+    VibeTourPage(
+      Icons.shield_rounded,
+      'Security',
+      'Direct chats between Keepr users get an extra post-quantum layer.',
+      short: 'Post-quantum direct chats',
+      [
+        VibeTourItem(
+          Icons.enhanced_encryption_outlined,
+          'Post-quantum direct chats',
+          'ML-KEM-768 (libcrux, formally verified) inside the normal encryption. Look for the lock beside the name.',
+          null,
+          BujjiTourDemos.pq,
+          'tour.pill',
+          "A lock beside the chat's name means its new messages get the post-quantum layer.",
+        ),
+        VibeTourItem(
+          Icons.key_rounded,
+          'A fresh key for every message',
+          'With strict encryption, every message gets its own new key.',
+        ),
+        VibeTourItem(
+          Icons.login_rounded,
+          "Your server's own sign-in",
+          "Sign in through your server's page; your sign-in and keys stay in the phone's secure storage.",
+        ),
       ],
     ),
   ],
@@ -481,19 +551,20 @@ const vibeTour = (
 class VibeTour extends StatefulWidget {
   /// The channels to show (indexes into [vibeTour]); all when null.
   final List<int>? only;
-  const VibeTour({this.only, super.key});
 
-  static String _seenKey(String channel) => 'chat.keepr.tour_ch.$channel';
+  /// Back from "Show me where": straight to this channel (an index into
+  /// [vibeTour]), its messages all there, without the hello.
+  final int? start;
+  const VibeTour({this.only, this.start, super.key});
 
-  /// Channels of this tour not seen yet. Someone who watched the first
-  /// version of the tour (one flag for all of it) has seen its 5 channels.
-  static List<int> unseen() {
-    final old = AppSettings.store.getBool('chat.keepr.tour_seen.3.1-keepr') == true;
-    return [
-      for (final (i, c) in vibeTour.channels.indexed)
-        if (AppSettings.store.getBool(_seenKey(c)) != true && !(old && i < 5)) i,
-    ];
-  }
+  static String _seenKey(String channel) =>
+      'chat.keepr.tour_ch.${vibeTour.id}.$channel';
+
+  /// Channels of this tour not seen yet.
+  static List<int> unseen() => [
+    for (final (i, c) in vibeTour.channels.indexed)
+      if (AppSettings.store.getBool(_seenKey(c)) != true) i,
+  ];
 
   static Future<void> markSeen(List<int> channels) async {
     for (final i in channels) {
@@ -501,11 +572,14 @@ class VibeTour extends StatefulWidget {
     }
   }
 
-  static Future<void> open(BuildContext context, {List<int>? only}) =>
-      Navigator.of(context, rootNavigator: true).push(
+  static Future<void> open(
+    BuildContext context, {
+    List<int>? only,
+    int? start,
+  }) => Navigator.of(context, rootNavigator: true).push(
         PageRouteBuilder<void>(
           transitionDuration: const Duration(milliseconds: 380),
-          pageBuilder: (_, _, _) => VibeTour(only: only),
+          pageBuilder: (_, _, _) => VibeTour(only: only, start: start),
           transitionsBuilder: (_, a, _, child) => FadeTransition(
             opacity: a,
             child: SlideTransition(
@@ -534,6 +608,11 @@ class _VibeTourState extends State<VibeTour> {
   late final List<String> _channels = [for (final i in _ids) vibeTour.channels[i]];
   late final List<int> _shown = List.filled(_pages.length, 0);
   bool _typing = false;
+
+  /// Told by Bujji (unless it's off): it says hi first and cheers at the end.
+  final bool _bujji = VibeBuddy.on;
+  late bool _hello = _bujji && widget.start == null;
+  bool _end = false;
   Timer? _timer;
   final _scroll = ScrollController();
 
@@ -545,7 +624,52 @@ class _VibeTourState extends State<VibeTour> {
   @override
   void initState() {
     super.initState();
+    final start = widget.start;
+    if (start != null) {
+      // back from "Show me where": that channel, as it was
+      final k = _ids.indexOf(start);
+      if (k >= 0) {
+        _ch = k;
+        for (var i = 0; i <= k; i++) {
+          _shown[i] = _pages[i].items.length + 1;
+        }
+      }
+      return;
+    }
+    if (!_hello) _postNext(first: true);
+  }
+
+  void _start() {
+    VibeHaptics.medium();
+    setState(() => _hello = false);
     _postNext(first: true);
+  }
+
+  /// "Show me where": the real screen, with Bujji pointing at the spot.
+  Future<void> _where(VibeTourItem it) async {
+    final spot = it.where;
+    if (spot == null) return;
+    final back = _ids[_ch];
+    final client = Matrix.of(context).client;
+    Navigator.of(context).pop();
+    if (spot == 'tour.profile') {
+      VibeApp.router.go('/rooms');
+    } else {
+      final room = client.rooms
+          .where((r) => r.membership == Membership.join && !r.isSpace)
+          .firstOrNull;
+      if (room != null) VibeApp.router.go('/rooms/${room.id}');
+    }
+    await BujjiCoach.point(
+      spot,
+      orSpot: spot == 'tour.threads' ? 'tour.pill' : null,
+      title: it.title,
+      body: it.tip ?? it.body,
+      back: () {
+        final ctx = VibeApp.router.routerDelegate.navigatorKey.currentContext;
+        if (ctx != null && ctx.mounted) VibeTour.open(ctx, start: back);
+      },
+    );
   }
 
   @override
@@ -597,7 +721,15 @@ class _VibeTourState extends State<VibeTour> {
   }
 
   void _finish() {
+    if (_bujji && !_end) {
+      // Bujji cheers, with every channel ticked
+      VibeHaptics.medium();
+      setState(() => _end = true);
+      VibeHotWords.play(context, VibeScene.party);
+      return;
+    }
     Navigator.of(context).pop();
+    if (_end) return;
     final ctx = VibeApp.router.routerDelegate.navigatorKey.currentContext;
     if (ctx != null && ctx.mounted) VibeHotWords.play(ctx, VibeScene.party);
   }
@@ -606,6 +738,24 @@ class _VibeTourState extends State<VibeTour> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final shown = _shown[_ch];
+    if (_hello) {
+      return BujjiHello(
+        version: vibeTour.version,
+        channels: [
+          for (final (k, p) in _pages.indexed) (p.icon, _channels[k], p.short),
+        ],
+        onStart: _start,
+        onLater: () => Navigator.of(context).pop(),
+      );
+    }
+    if (_end) {
+      return BujjiDone(
+        channels: [
+          for (final (k, p) in _pages.indexed) (p.icon, _channels[k], p.short),
+        ],
+        onDone: () => Navigator.of(context).pop(),
+      );
+    }
     return PopScope(
       canPop: _ch == 0,
       onPopInvokedWithResult: (pop, _) {
@@ -621,16 +771,21 @@ class _VibeTourState extends State<VibeTour> {
                 padding: const EdgeInsets.fromLTRB(16, 10, 8, 6),
                 child: Row(
                   children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.asset(
-                        'assets/logo/mini/logo_mini.png',
-                        width: 36,
-                        height: 36,
-                        errorBuilder: (_, _, _) =>
-                            Container(width: 36, height: 36, color: _blurple),
-                      ),
-                    ),
+                    _bujji
+                        ? const BujjiTile(size: 36)
+                        : ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.asset(
+                              'assets/logo/mini/logo_mini.png',
+                              width: 36,
+                              height: 36,
+                              errorBuilder: (_, _, _) => Container(
+                                width: 36,
+                                height: 36,
+                                color: _blurple,
+                              ),
+                            ),
+                          ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
@@ -641,7 +796,9 @@ class _VibeTourState extends State<VibeTour> {
                             style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
                           ),
                           Text(
-                            'Keepr ${vibeTour.version}',
+                            _bujji
+                                ? 'Keepr ${vibeTour.version} · with Bujji'
+                                : 'Keepr ${vibeTour.version}',
                             style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
                           ),
                         ],
@@ -685,24 +842,42 @@ class _VibeTourState extends State<VibeTour> {
                       name: _channels[_ch],
                       title: _page.title,
                       icon: _page.icon,
+                      bujji: _bujji && _channels[_ch] == 'bujji',
                     ),
                     for (var k = 0; k < shown; k++)
                       _TourMessage(
                         key: ValueKey('$_ch-$k'),
                         first: k == 0,
+                        bujji: _bujji,
                         title: k == 0 ? null : _page.items[k - 1].title,
                         body: k == 0 ? _page.subtitle : _page.items[k - 1].body,
                         demo: k == 0 ? null : _page.items[k - 1].demo,
+                        show: k == 0 ? null : _page.items[k - 1].show,
+                        onWhere: k == 0 || _page.items[k - 1].where == null
+                            ? null
+                            : () => _where(_page.items[k - 1]),
                       ),
                     if (_typing)
                       Padding(
                         padding: const EdgeInsets.fromLTRB(52, 6, 0, 6),
                         child: Row(
                           children: [
+                            // Bujji bounces on its own typing dots
+                            if (_bujji) ...[
+                              VibeBuddyFace(
+                                size: 22,
+                                color: cs.primary,
+                                mood: BuddyMood.curious,
+                                outfit: VibeBuddy.outfit,
+                                floating: true,
+                                hop: shown,
+                              ),
+                              const SizedBox(width: 6),
+                            ],
                             const TypingAnimation(size: 6),
                             const SizedBox(width: 8),
                             Text(
-                              'Keepr is typing…',
+                              _bujji ? 'Bujji is typing…' : 'Keepr is typing…',
                               style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
                             ),
                           ],
@@ -745,7 +920,7 @@ class _VibeTourState extends State<VibeTour> {
                         !_allShown
                             ? 'Show more'
                             : _lastChannel
-                            ? 'Start chatting'
+                            ? (_bujji ? 'Done' : 'Start chatting')
                             : '# ${_channels[_ch + 1]}',
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
@@ -819,7 +994,13 @@ class _ChannelHeader extends StatelessWidget {
   final String name;
   final String title;
   final IconData icon;
-  const _ChannelHeader({required this.name, required this.title, required this.icon});
+  final bool bujji;
+  const _ChannelHeader({
+    required this.name,
+    required this.title,
+    required this.icon,
+    this.bujji = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -836,7 +1017,16 @@ class _ChannelHeader extends StatelessWidget {
               color: cs.surfaceContainerHigh,
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, size: 28, color: _blurple),
+            child: bujji
+                ? Center(
+                    child: VibeBuddyFace(
+                      size: 38,
+                      color: cs.primary,
+                      mood: BuddyMood.happy,
+                      outfit: VibeBuddy.outfit,
+                    ),
+                  )
+                : Icon(icon, size: 28, color: _blurple),
           ),
           const SizedBox(height: 10),
           Text(
@@ -858,14 +1048,20 @@ class _ChannelHeader extends StatelessWidget {
 /// for a feature, its live mockup. Slides in like a new message.
 class _TourMessage extends StatefulWidget {
   final bool first;
+  final bool bujji;
   final String? title;
   final String body;
   final VibeDemo? demo;
+  final Widget Function(BuildContext)? show;
+  final VoidCallback? onWhere;
   const _TourMessage({
     required this.first,
     required this.title,
     required this.body,
     required this.demo,
+    this.bujji = false,
+    this.show,
+    this.onWhere,
     super.key,
   });
 
@@ -901,7 +1097,9 @@ class _TourMessageState extends State<_TourMessage>
             children: [
               SizedBox(
                 width: 40,
-                child: widget.first
+                child: widget.first && widget.bujji
+                    ? const BujjiTile(size: 40)
+                    : widget.first
                     ? ClipOval(
                         child: Image.asset(
                           'assets/logo/mini/logo_mini.png',
@@ -923,7 +1121,10 @@ class _TourMessageState extends State<_TourMessage>
                     if (widget.first)
                       Row(
                         children: [
-                          const Text('Keepr', style: TextStyle(fontWeight: FontWeight.w800)),
+                          Text(
+                            widget.bujji ? 'Bujji' : 'Keepr',
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
                           const SizedBox(width: 6),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
@@ -971,6 +1172,36 @@ class _TourMessageState extends State<_TourMessage>
                         child: SizedBox(
                           height: 220,
                           child: FittedBox(child: SizedBox(width: 300, child: VibeDemoView(widget.demo!))),
+                        ),
+                      ),
+                    if (widget.show != null)
+                      Container(
+                        margin: const EdgeInsets.only(top: 8),
+                        clipBehavior: Clip.antiAlias,
+                        decoration: BoxDecoration(
+                          color: cs.surfaceContainer,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
+                        ),
+                        child: FittedBox(
+                          child: SizedBox(
+                            width: 300,
+                            height: 200,
+                            child: widget.show!(context),
+                          ),
+                        ),
+                      ),
+                    if (widget.onWhere != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: ActionChip(
+                          avatar: Icon(Icons.touch_app_outlined, size: 16, color: cs.onPrimaryContainer),
+                          label: const Text('Show me where'),
+                          labelStyle: TextStyle(fontWeight: FontWeight.w700, color: cs.onPrimaryContainer),
+                          backgroundColor: cs.primaryContainer,
+                          side: BorderSide.none,
+                          shape: const StadiumBorder(),
+                          onPressed: widget.onWhere,
                         ),
                       ),
                   ],

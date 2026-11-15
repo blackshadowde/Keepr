@@ -24,6 +24,7 @@ import 'package:vibe/vibe/vibe_swipe.dart';
 import 'package:vibe/vibe/vibe_user_bar.dart';
 import 'package:vibe/widgets/matrix.dart';
 import 'package:vibe/vibe/vibe_live_map.dart';
+import 'package:vibe/vibe/buddy/bujji_life.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:go_router/go_router.dart';
@@ -541,7 +542,10 @@ class _HomeTop extends StatelessWidget {
         children: [
           // your profile bar sits on top: name (or "Chats" / "Spaces" for
           // a moment after switching), search and settings
-          VibeUserRow(flash: flash, onSearch: onSearch),
+          BujjiSpot(
+            id: 'tour.profile',
+            child: VibeUserRow(flash: flash, onSearch: onSearch),
+          ),
           // sharing your live location (or a check-in): who with, Stop
           const VibeLiveBar(),
           // Chats / Spaces with their unread counts, + at the end (a little
