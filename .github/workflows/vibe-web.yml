@@ -2,6 +2,11 @@ name: Keepr web (GitHub Pages)
 
 on:
   workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'Put it on GitHub Pages (off: only build it, to check)'
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -47,6 +52,7 @@ jobs:
 
   deploy:
     needs: build
+    if: ${{ inputs.deploy }}
     runs-on: ubuntu-24.04
     environment:
       name: github-pages

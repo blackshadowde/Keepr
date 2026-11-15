@@ -4,6 +4,10 @@ targets = [
   "armv7-linux-androideabi",
   "aarch64-linux-android",
   "x86_64-linux-android",
+  # iPhone and its simulators
+  "aarch64-apple-ios",
+  "aarch64-apple-ios-sim",
+  "x86_64-apple-ios",
   # the computer that runs the tests
   "x86_64-unknown-linux-gnu",
 ]
