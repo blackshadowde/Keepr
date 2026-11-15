@@ -273,7 +273,10 @@ Future<void> _tryPushHelper(
           RtcNotificationType.ring &&
       PlatformInfos.isMobile &&
       AppSettings.vibeNativeCalls.value) {
-    await _showIncomingCall(event, l10n);
+    // with Keepr open, its own ringing dialog answers instead
+    if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+      await _showIncomingCall(event, l10n);
+    }
     return;
   }
 

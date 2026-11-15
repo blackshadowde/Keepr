@@ -11,6 +11,8 @@ import 'package:vibe/vibe/vibe_motion.dart';
 import 'package:vibe/widgets/vibe_app.dart';
 import 'package:vibe/utils/matrix_live_kit_calls/matrix_live_kit_call.dart';
 import 'package:vibe/widgets/matrix.dart';
+import 'package:vibe/widgets/incoming_call_dialog.dart';
+import 'package:vibe/utils/platform_infos.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:matrix/matrix.dart';
@@ -276,6 +278,10 @@ abstract class VibeCall {
   static void watch(Client client) {
     _sub?.cancel();
     _sub = client.onTimelineEvent.stream.listen((e) {
+      if (e.type == RtcNotificationContent.eventType) {
+        _ringNative(client, e);
+        return;
+      }
       final i = info(e);
       if (i == null || i['ended'] == true || e.senderId == client.userID) {
         return;
@@ -288,6 +294,33 @@ abstract class VibeCall {
       final ctx = VibeApp.router.routerDelegate.navigatorKey.currentContext;
       if (ctx == null || !ctx.mounted || _inCall) return;
       _ring(ctx, room, e, i);
+    });
+  }
+
+  /// A native call ringing you while Keepr is open on the phone (in the
+  /// background, the phone's own call screen rings instead).
+  static void _ringNative(Client client, Event e) {
+    if (!AppSettings.vibeNativeCalls.value || !PlatformInfos.isMobile) return;
+    if (e.senderId == client.userID) return;
+    if (e.tryParseRtcNotificationContent()?.notificationType !=
+        RtcNotificationType.ring) {
+      return;
+    }
+    if (!_seen.add(e.eventId)) return;
+    if (DateTime.now().difference(e.originServerTs).inSeconds.abs() > 45) {
+      return;
+    }
+    if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+      return;
+    }
+    final ctx = VibeApp.router.routerDelegate.navigatorKey.currentContext;
+    if (ctx == null || !ctx.mounted || _inCall) return;
+    final video = e.content.tryGet<String>('m.call.intent') != 'voice';
+    showDialog<bool>(
+      context: ctx,
+      builder: (_) => IncomingCallDialog(event: e),
+    ).then((join) {
+      if (join == true && ctx.mounted) openNative(ctx, e.room, video: video);
     });
   }
 
