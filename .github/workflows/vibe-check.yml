@@ -101,3 +101,29 @@ jobs:
           get() { mkdir -p "$2"; curl -sfL -o "$2/model.onnx" "https://huggingface.co/$1/resolve/main/onnx/model_quantized.onnx"; curl -sfL -o "$2/tokenizer.json" "https://huggingface.co/$1/resolve/main/tokenizer.json"; ls -la "$2"; sha256sum "$2"/*; }
           get Xenova/all-MiniLM-L6-v2 /tmp/small
           KEEPR_MODEL_DIR=/tmp/small cargo test --release -- --ignored --nocapture matches_meaning
+
+  # Puts Bujji's optional model in this repository's releases (once), so the
+  # app downloads it from here. A prerelease: the app's update check and
+  # Obtainium only look at full releases.
+  mirror:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Bujji model release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          R="$GITHUB_REPOSITORY"
+          if gh release view bujji-model-1 -R "$R" >/dev/null 2>&1; then
+            gh release view bujji-model-1 -R "$R" --json assets -q '.assets[]|"\(.name) \(.size)"'
+            exit 0
+          fi
+          mkdir m && cd m
+          curl -sfL -o model.onnx https://huggingface.co/Xenova/all-MiniLM-L6-v2/resolve/main/onnx/model_quantized.onnx
+          curl -sfL -o tokenizer.json https://huggingface.co/Xenova/all-MiniLM-L6-v2/resolve/main/tokenizer.json
+          sha256sum model.onnx tokenizer.json | tee sums.txt
+          gh release create bujji-model-1 model.onnx tokenizer.json -R "$R" --prerelease --target vibe-next \
+            --title "Bujji model 1" \
+            --notes "Optional on-device sentence model for Bujji's notes (all-MiniLM-L6-v2, Apache-2.0, quantized ONNX). Downloaded only when you turn it on in Settings > Style > Typing buddy. $(cat sums.txt | tr '\n' ' ')"

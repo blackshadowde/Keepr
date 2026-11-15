@@ -353,8 +353,7 @@ class _AttachSheetState extends State<_AttachSheet> {
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
                         _Action(
-                          icon: Icons.photo_library_rounded,
-                          color: const Color(0xFF8B6CFF),
+                          icon: Icons.photo_outlined,
                           label: 'Photos',
                           active: true,
                           onTap: VibeUpdater.fromPlay
@@ -366,14 +365,12 @@ class _AttachSheetState extends State<_AttachSheet> {
                           ),
                         ),
                         _Action(
-                          icon: Icons.person_rounded,
-                          color: const Color(0xFF2F8CFF),
+                          icon: Icons.person_outline_rounded,
                           label: 'Contacts',
                           onTap: _contacts,
                         ),
                         _Action(
-                          icon: Icons.insert_drive_file_rounded,
-                          color: const Color(0xFFFF9F2E),
+                          icon: Icons.attach_file_rounded,
                           label: 'Files',
                           onTap: () {
                             Navigator.of(context).pop();
@@ -383,8 +380,7 @@ class _AttachSheetState extends State<_AttachSheet> {
                           },
                         ),
                         _Action(
-                          icon: Icons.bar_chart_rounded,
-                          color: const Color(0xFF14B88F),
+                          icon: Icons.poll_outlined,
                           label: 'Poll',
                           onTap: () {
                             Navigator.of(context).pop();
@@ -394,8 +390,7 @@ class _AttachSheetState extends State<_AttachSheet> {
                           },
                         ),
                         _Action(
-                          icon: Icons.location_on_rounded,
-                          color: const Color(0xFFFF4F6D),
+                          icon: Icons.location_on_outlined,
                           label: 'Location',
                           onTap: () {
                             Navigator.of(context).pop();
@@ -424,13 +419,11 @@ class _Action extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool active;
-  final Color color;
   final VoidCallback onTap;
 
   const _Action({
     required this.icon,
     required this.label,
-    required this.color,
     required this.onTap,
     this.active = false,
   });
@@ -438,51 +431,44 @@ class _Action extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    // each action its own bright colour, a white icon in a round tile
-    return VibePressable(
-      scale: 0.9,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color.lerp(color, Colors.white, 0.18)!,
-                      color,
-                    ],
+    // a soft tonal pill with a plain icon, in the theme's colours
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Material(
+              color: active ? cs.secondaryContainer : cs.surfaceContainerHighest,
+              shape: const StadiumBorder(),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: onTap,
+                child: SizedBox(
+                  width: 62,
+                  height: 44,
+                  child: Icon(
+                    icon,
+                    size: 24,
+                    color: active
+                        ? cs.onSecondaryContainer
+                        : cs.onSurfaceVariant,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: color.withValues(alpha: 0.35),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Icon(icon, color: Colors.white, size: 26),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  color: active ? cs.onSurface : cs.onSurfaceVariant,
-                  fontSize: 12.5,
-                  fontWeight: active ? FontWeight.w700 : FontWeight.w600,
                 ),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: cs.onSurface,
+                fontSize: 12.5,
+                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
+          ],
         ),
       ),
     );
