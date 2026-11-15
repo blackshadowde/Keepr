@@ -4,7 +4,6 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:matrix/matrix.dart';
 import 'package:vibe/l10n/l10n.dart';
@@ -30,6 +29,15 @@ abstract class VibeMessageOrbit {
     _anchor = r;
     _at = DateTime.now();
   }
+
+  /// The finger that opened the menu, still down: where it moves and where
+  /// it lifts. The held message's own gesture reports it, so the menu
+  /// follows it even though it opened on top.
+  static final _finger = StreamController<(Offset, bool)>.broadcast();
+
+  static void move(Offset global) => _finger.add((global, false));
+
+  static void release(Offset global) => _finger.add((global, true));
 
   /// The orbit for [event], or the plain sheet when the message's place
   /// isn't known (photo stacks and the like).
@@ -99,12 +107,18 @@ class _OrbitState extends State<_Orbit> {
   ChatController get c => widget.controller;
   Event get e => widget.event;
 
+  StreamSubscription<(Offset, bool)>? _follow;
+
+  /// Where the finger was first seen, and whether it has really glided.
+  Offset? _start;
+  bool _glided = false;
+
   @override
   void initState() {
     super.initState();
     // the finger that opened the menu is still down: follow it until it
     // lifts, so you can slide onto an action and let go
-    GestureBinding.instance.pointerRouter.addGlobalRoute(_onPointer);
+    _follow = VibeMessageOrbit._finger.stream.listen(_onFinger);
   }
 
   @override
@@ -116,27 +130,44 @@ class _OrbitState extends State<_Orbit> {
   void _stopFollowing() {
     if (!_following) return;
     _following = false;
-    GestureBinding.instance.pointerRouter.removeGlobalRoute(_onPointer);
+    _follow?.cancel();
   }
 
-  void _onPointer(PointerEvent p) {
-    if (!mounted || _closing) return;
-    if (p is PointerMoveEvent) {
-      int? hit;
-      for (var i = 0; i < _spots.length; i++) {
-        if ((_spots[i] - p.position).distance < _btn * 0.8) hit = i;
+  /// The nearest action within reach of [p], if any.
+  int? _near(Offset p) {
+    int? hit;
+    var best = _btn * 0.95;
+    for (var i = 0; i < _spots.length; i++) {
+      final d = (_spots[i] - p).distance;
+      if (d < best) {
+        best = d;
+        hit = i;
       }
-      if (hit != _hover) {
-        if (hit != null) VibeHaptics.selection();
-        setState(() => _hover = hit);
-      }
-      setState(() => _finger = p.position);
-    } else if (p is PointerUpEvent || p is PointerCancelEvent) {
-      _stopFollowing();
-      final picked = _hover;
-      setState(() => _finger = null);
-      if (p is PointerUpEvent && picked != null) _pick(picked);
     }
+    return hit;
+  }
+
+  void _onFinger((Offset, bool) f) {
+    if (!mounted || _closing) return;
+    final (p, up) = f;
+    _start ??= p;
+    if ((p - _start!).distance > 18) _glided = true;
+    if (!up) {
+      final hit = _near(p);
+      if (hit != _hover && hit != null) VibeHaptics.selection();
+      setState(() {
+        _hover = hit;
+        _finger = p;
+      });
+      return;
+    }
+    // lifted: on an action, that's the pick; anywhere else the menu stays
+    // open for a tap
+    _stopFollowing();
+    // only a glide picks; a plain hold and lift leaves the menu open
+    final picked = _glided ? (_near(p) ?? _hover) : null;
+    setState(() => _finger = null);
+    if (picked != null) _pick(picked);
   }
 
   late final List<_Action> _actions = _build();

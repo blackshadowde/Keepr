@@ -1193,6 +1193,14 @@ class VibeMessage extends StatelessWidget {
                             onSelect(event);
                           }
                         },
+                  // keep following the finger after the menu opens, so it
+                  // can glide onto an action and let go
+                  onLongPressMoveUpdate: longPressSelect
+                      ? null
+                      : (d) => VibeMessageOrbit.move(d.globalPosition),
+                  onLongPressEnd: longPressSelect
+                      ? null
+                      : (d) => VibeMessageOrbit.release(d.globalPosition),
                   onDoubleTap:
                       AppSettings.doubleTapToReact.value &&
                           event.room.canSendDefaultMessages

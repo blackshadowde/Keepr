@@ -71,7 +71,7 @@ pub fn embed(text: &str) -> Result<Vec<f32>, String> {
         feed.push(t.into());
     }
     let out = m.plan.run(feed).map_err(|e| e.to_string())?;
-    let h = out[0].to_array_view::<f32>().map_err(|e| e.to_string())?;
+    let h = out[0].to_plain_array_view::<f32>().map_err(|e| e.to_string())?;
     let shape = h.shape().to_vec();
     if shape.len() != 3 {
         return Err(format!("unexpected output {:?}", shape));
