@@ -52,12 +52,14 @@ pub fn embed(text: &str) -> Result<Vec<f32>, String> {
     let m = guard.as_ref().ok_or("no model")?;
     let enc = m.tok.encode(text, true).map_err(|e| e.to_string())?;
     let ids = enc.get_ids();
+    // the tokenizer may pad; only real tokens count
+    let real = enc.get_attention_mask();
     let used = ids.len().min(LEN);
     let mut id = vec![0i64; LEN];
     let mut mask = vec![0i64; LEN];
     for i in 0..used {
         id[i] = ids[i] as i64;
-        mask[i] = 1;
+        mask[i] = if real.get(i).copied().unwrap_or(1) > 0 { 1 } else { 0 };
     }
     let types = vec![0i64; LEN];
     let mut feed: TVec<TValue> = tvec![];
@@ -84,6 +86,9 @@ pub fn embed(text: &str) -> Result<Vec<f32>, String> {
     // mean of the real tokens, then unit length
     let mut v = vec![0f32; dims];
     for t in 0..used {
+        if mask[t] == 0 {
+            continue;
+        }
         for d in 0..dims {
             v[d] += h[[0, t, d]];
         }
@@ -152,6 +157,11 @@ mod tests {
     fn matches_meaning() {
         let dir = std::env::var("KEEPR_MODEL_DIR").expect("KEEPR_MODEL_DIR");
         load(&format!("{dir}/model.onnx"), &format!("{dir}/tokenizer.json")).unwrap();
+        {
+            let g = MODEL.lock().unwrap();
+            let e = g.as_ref().unwrap().tok.encode("how do I reach naren", true).unwrap();
+            println!("tokens {} real {}", e.get_ids().len(), e.get_attention_mask().iter().sum::<u32>());
+        }
         let q = embed("how do I reach naren").unwrap();
         let phone = embed("naren phone number: 12257383929").unwrap();
         let bday = embed("gowthu birthday: 15 November").unwrap();
