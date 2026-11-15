@@ -3,6 +3,8 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'dart:math' as math;
+
 import 'package:vibe/vibe/vibe_sticker.dart';
 import 'package:vibe/config/app_config.dart';
 import 'package:vibe/config/setting_keys.dart';
@@ -108,14 +110,12 @@ class ImageBubble extends StatelessWidget {
                           fit: fit,
                           animated: animated && !VibeLowData.on,
                           isThumbnail: thumbnailOnly,
-                          placeholder: event.messageType == MessageTypes.Sticker
-                              ? null
-                              : (_) => _ImageBubblePlaceholder(
-                                  event: event,
-                                  width: width,
-                                  height: height,
-                                  fit: fit,
-                                ),
+                          placeholder: (_) => _ImageBubblePlaceholder(
+                            event: event,
+                            width: width,
+                            height: height,
+                            fit: fit,
+                          ),
                         )
                       : _ImageBubblePlaceholder(
                           event: event,
@@ -171,17 +171,96 @@ class _ImageBubblePlaceholder extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final blurHashString =
-        event.infoMap.tryGet<String>('xyz.amorgan.blurhash') ??
-        'LEHV6nWB2yk8pyo0adR*.7kCMdnj';
-    return SizedBox(
-      width: width,
-      height: height,
-      child: BlurHash(
-        blurhash: blurHashString,
+    final blurHashString = event.infoMap.tryGet<String>(
+      'xyz.amorgan.blurhash',
+    );
+    // a photo with its own preview shows its colours while it loads
+    if (blurHashString != null && !event.isVibeSticker) {
+      return SizedBox(
         width: width,
         height: height,
-        fit: fit,
+        child: BlurHash(
+          blurhash: blurHashString,
+          width: width,
+          height: height,
+          fit: fit,
+        ),
+      );
+    }
+    // stickers, and pictures without one: a soft shape in the app's colours
+    return _LoadingShimmer(
+      width: width,
+      height: height,
+      sticker: event.isVibeSticker,
+    );
+  }
+}
+
+/// A tonal rounded shape with a light sweeping across it and a small icon:
+/// what a sticker or picture looks like until it arrives.
+class _LoadingShimmer extends StatefulWidget {
+  final double width, height;
+  final bool sticker;
+  const _LoadingShimmer({
+    required this.width,
+    required this.height,
+    required this.sticker,
+  });
+
+  @override
+  State<_LoadingShimmer> createState() => _LoadingShimmerState();
+}
+
+class _LoadingShimmerState extends State<_LoadingShimmer>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _sweep = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1500),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _sweep.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final base = cs.surfaceContainerHigh;
+    final light = Color.lerp(cs.surfaceContainerHighest, cs.primary, 0.1)!;
+    final side = math.min(widget.width, widget.height);
+    final still = MediaQuery.of(context).disableAnimations;
+    if (still) _sweep.stop();
+    final icon = Icon(
+      widget.sticker ? Icons.emoji_emotions_outlined : Icons.image_outlined,
+      size: (side * 0.26).clamp(18.0, 34.0),
+      color: cs.onSurfaceVariant.withValues(alpha: 0.45),
+    );
+    return SizedBox(
+      width: widget.width,
+      height: widget.height,
+      child: ClipRRect(
+        // stickers have no frame, so the shape carries its own corners
+        borderRadius: BorderRadius.circular(widget.sticker ? side * 0.22 : 0),
+        child: AnimatedBuilder(
+          animation: _sweep,
+          child: Center(child: icon),
+          builder: (context, icon) {
+            final t = still ? 0.5 : _sweep.value;
+            return DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment(-2.2 + 3.4 * t, -0.4),
+                  end: Alignment(-1.0 + 3.4 * t, 0.4),
+                  colors: [base, light, base],
+                  stops: const [0.1, 0.5, 0.9],
+                ),
+              ),
+              child: icon,
+            );
+          },
+        ),
       ),
     );
   }
