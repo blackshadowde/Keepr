@@ -54,18 +54,24 @@ abstract class VibeMessageOrbit {
         controller.timeline == null) {
       return VibeMessageMenu.sheet(context, controller, event);
     }
-    return Navigator.of(context, rootNavigator: true).push(
-      PageRouteBuilder<void>(
-        opaque: false,
-        transitionDuration: const Duration(milliseconds: 420),
-        reverseTransitionDuration: const Duration(milliseconds: 220),
-        pageBuilder: (_, _, _) => _Orbit(
-          controller: controller,
-          event: event,
-          anchor: anchor,
-        ),
+    final done = Completer<void>();
+    late final OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (_) => _Orbit(
+        controller: controller,
+        event: event,
+        anchor: anchor,
+        onClosed: () {
+          entry.remove();
+          if (!done.isCompleted) done.complete();
+        },
       ),
     );
+    // on top of the chat, not a new page: opening a page cancels every
+    // finger that's down, so the one still holding the message couldn't
+    // glide onto an action
+    Overlay.of(context, rootOverlay: true).insert(entry);
+    return done.future;
   }
 }
 
@@ -83,26 +89,41 @@ class _Orbit extends StatefulWidget {
   final ChatController controller;
   final Event event;
   final Rect anchor;
+  final VoidCallback onClosed;
   const _Orbit({
     required this.controller,
     required this.event,
     required this.anchor,
+    required this.onClosed,
   });
 
   @override
   State<_Orbit> createState() => _OrbitState();
 }
 
-class _OrbitState extends State<_Orbit> {
+class _OrbitState extends State<_Orbit> with SingleTickerProviderStateMixin {
   static const _r = 118.0; // actions
   static const _rIn = 64.0; // reactions
   static const _btn = 44.0;
 
+  late final AnimationController _anim = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 420),
+    reverseDuration: const Duration(milliseconds: 220),
+  )..forward();
+
+  /// The action under the finger (0 and up), or a reaction (-1 and down).
   int? _hover;
   Offset? _finger;
   bool _following = true;
   bool _closing = false;
   List<Offset> _spots = const [];
+  List<Offset> _rSpots = const [];
+
+  /// A new finger after the menu opened: where it went down, and whether it
+  /// has slid (then letting go on an action picks it).
+  Offset? _down;
+  bool _slid = false;
 
   ChatController get c => widget.controller;
   Event get e => widget.event;
@@ -124,6 +145,7 @@ class _OrbitState extends State<_Orbit> {
   @override
   void dispose() {
     _stopFollowing();
+    _anim.dispose();
     super.dispose();
   }
 
@@ -133,7 +155,8 @@ class _OrbitState extends State<_Orbit> {
     _follow?.cancel();
   }
 
-  /// The nearest action within reach of [p], if any.
+  /// The nearest action (or quick reaction, as -1 - i) within reach of
+  /// [p], if any.
   int? _near(Offset p) {
     int? hit;
     var best = _btn * 0.95;
@@ -144,7 +167,60 @@ class _OrbitState extends State<_Orbit> {
         hit = i;
       }
     }
+    for (var i = 0; i < _rSpots.length; i++) {
+      final d = (_rSpots[i] - p).distance;
+      if (d < best && d < 26) {
+        best = d;
+        hit = -1 - i;
+      }
+    }
     return hit;
+  }
+
+  Offset? _spot(int? i) => i == null
+      ? null
+      : i >= 0
+      ? _spots[i]
+      : _rSpots[-1 - i];
+
+  /// The finger slid onto something new: light it up with a tick.
+  void _hoverAt(Offset p) {
+    final hit = _near(p);
+    if (hit != _hover && hit != null) VibeHaptics.selection();
+    setState(() {
+      _hover = hit;
+      _finger = p;
+    });
+  }
+
+  // a new finger on the open menu: slide across the actions, let go on one
+  void _onDown(PointerDownEvent p) {
+    if (_closing) return;
+    _stopFollowing();
+    _down = p.position;
+    _slid = false;
+  }
+
+  void _onMove(PointerMoveEvent p) {
+    final d = _down;
+    if (d == null || _closing) return;
+    if (!_slid && (p.position - d).distance < 12) return;
+    _slid = true;
+    _hoverAt(p.position);
+  }
+
+  void _onUp(PointerUpEvent p) {
+    final slid = _slid;
+    _down = null;
+    _slid = false;
+    if (!slid || _closing) return;
+    // a tap is left to the buttons; a slide picks where it lets go
+    final picked = _near(p.position);
+    setState(() {
+      _finger = null;
+      _hover = null;
+    });
+    if (picked != null) _pick(picked);
   }
 
   void _onFinger((Offset, bool) f) {
@@ -153,12 +229,7 @@ class _OrbitState extends State<_Orbit> {
     _start ??= p;
     if ((p - _start!).distance > 18) _glided = true;
     if (!up) {
-      final hit = _near(p);
-      if (hit != _hover && hit != null) VibeHaptics.selection();
-      setState(() {
-        _hover = hit;
-        _finger = p;
-      });
+      _hoverAt(p);
       return;
     }
     // lifted: on an action, that's the pick; anywhere else the menu stays
@@ -176,10 +247,18 @@ class _OrbitState extends State<_Orbit> {
     if (_closing) return;
     _closing = true;
     _stopFollowing();
-    Navigator.of(context).pop();
+    setState(() {
+      _hover = null;
+      _finger = null;
+    });
+    _anim.reverse().whenComplete(widget.onClosed);
   }
 
   void _pick(int i) {
+    if (i < 0) {
+      _react(_reactions[-1 - i]);
+      return;
+    }
     VibeHaptics.medium();
     final a = _actions[i];
     _close().then((_) => a.run());
@@ -325,7 +404,7 @@ class _OrbitState extends State<_Orbit> {
     final dark = Theme.of(context).brightness == Brightness.dark;
     final size = MediaQuery.sizeOf(context);
     final pad = MediaQuery.paddingOf(context);
-    final route = ModalRoute.of(context)!.animation!;
+    final route = _anim;
     final own = e.senderId == e.room.client.userID;
     final side = own ? -1.0 : 1.0; // the orbit opens away from the edge
 
@@ -378,13 +457,19 @@ class _OrbitState extends State<_Orbit> {
       for (var i = 0; i < n; i++)
         at(_r, n <= 1 ? 0 : -span / 2 + i * span / (n - 1)),
     ];
+    final reacts = e.room.canSendDefaultMessages;
+    _rSpots = [
+      if (reacts)
+        for (var i = 0; i < _reactions.length; i++)
+          at(_rIn, -70 + i * 140 / (_reactions.length - 1)),
+    ];
     final glass = dark
         ? const Color(0xDC262932)
         : cs.surfaceContainerHighest.withValues(alpha: 0.95);
     final iconInk = dark ? const Color(0xFFDADDE8) : cs.onSurface;
     final hi = Color.lerp(cs.primary, Colors.white, 0.45)!;
 
-    return AnimatedBuilder(
+    final orbit = AnimatedBuilder(
       animation: route,
       builder: (context, _) {
         final t = Curves.easeOut.transform(route.value);
@@ -444,7 +529,7 @@ class _OrbitState extends State<_Orbit> {
                       alpha: 0.07,
                     ),
                     finger: _finger,
-                    target: _hover == null ? null : _spots[_hover!],
+                    target: _spot(_hover),
                     trail: cs.primary,
                   ),
                 ),
@@ -491,7 +576,7 @@ class _OrbitState extends State<_Orbit> {
               ),
             ),
             // quick reactions on the inner arc; hold one for all emoji
-            if (e.room.canSendDefaultMessages)
+            if (reacts)
               for (var i = 0; i < _reactions.length; i++)
                 _place(
                   Offset.lerp(
@@ -508,9 +593,14 @@ class _OrbitState extends State<_Orbit> {
                       onTap: () => _react(_reactions[i]),
                       onLongPress: _allEmoji,
                       child: Center(
-                        child: Text(
-                          _reactions[i],
-                          style: const TextStyle(fontSize: 19),
+                        // grows while a sliding finger is on it
+                        child: AnimatedScale(
+                          scale: _hover == -1 - i ? 1.45 : 1,
+                          duration: const Duration(milliseconds: 140),
+                          child: Text(
+                            _reactions[i],
+                            style: const TextStyle(fontSize: 19),
+                          ),
                         ),
                       ),
                     ),
@@ -523,6 +613,23 @@ class _OrbitState extends State<_Orbit> {
           ),
         );
       },
+    );
+    // Back closes it; once closing, touches go through to the chat
+    return BackButtonListener(
+      onBackButtonPressed: () async {
+        _close();
+        return true;
+      },
+      child: IgnorePointer(
+        ignoring: _closing,
+        child: Listener(
+          onPointerDown: _onDown,
+          onPointerMove: _onMove,
+          onPointerUp: _onUp,
+          onPointerCancel: (_) => _down = null,
+          child: orbit,
+        ),
+      ),
     );
   }
 
