@@ -9,6 +9,7 @@ import 'package:async/async.dart';
 import 'package:vibe/utils/platform_infos.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:managed_configurations/managed_configurations.dart';
 import 'package:matrix/matrix_api_lite/utils/logs.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -73,8 +74,8 @@ enum AppSettings<T> {
   // colorSchemeSeed stored as ARGB int
   colorSchemeSeedInt<int>('chat.keepr.color_scheme_seed', 0xFF5865F2),
   emojiSuggestionLocale<String>('emoji_suggestion_locale', ''),
-  enableSoftLogout<bool>('chat.keepr.enable_soft_logout', false),
-  enableMatrixNativeOIDC<bool>('chat.keepr.enable_matrix_native_oidc', false),
+  enableSoftLogout<bool>('chat.keepr.enable_soft_logout', true),
+  enableMatrixNativeOIDC<bool>('chat.keepr.enable_matrix_native_oidc', true),
   presetHomeserver<String>('chat.keepr.preset_homeserver', ''),
   welcomeText<String>('chat.keepr.welcome_text', ''),
   website<String>('chat.keepr.website_url', 'https://get-keepr.github.io'),
@@ -169,12 +170,21 @@ enum AppSettings<T> {
   benchmarksInLogs<bool>('chat.keepr.benchmarks_in_logs', false);
 
   final String key;
-  final T defaultValue;
+  final T _defaultValue;
 
-  const AppSettings(this.key, this.defaultValue);
+  const AppSettings(this.key, this._defaultValue);
 
   static SharedPreferences get store => _store!;
   static SharedPreferences? _store;
+
+  /// Presets from a company's device management (MDM), by setting name.
+  static Map<String, Object?>? _managed;
+
+  T get defaultValue {
+    final managed = _managed?[name];
+    if (managed is T) return managed;
+    return _defaultValue;
+  }
 
   static Future<void> reset({bool loadWebConfigFile = true}) async {
     // only these settings: signed-in accounts and everything else stay
@@ -228,6 +238,14 @@ enum AppSettings<T> {
         AppSettings.doubleTapToReact.key,
         PlatformInfos.isMobile,
       );
+    }
+    // presets from device management (MDM)
+    if (PlatformInfos.isMobile) {
+      try {
+        _managed = await ManagedConfigurations().getManagedConfigurations;
+      } catch (e) {
+        Logs().v('[ConfigLoader] no managed configuration', e);
+      }
     }
     if (kIsWeb && loadWebConfigFile) {
       try {

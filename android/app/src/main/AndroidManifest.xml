@@ -192,5 +192,10 @@
              it boot broadcasts, so it needn't be open to other apps. -->
         <receiver android:name="com.pravera.flutter_foreground_task.service.RebootReceiver"
             android:exported="false" tools:replace="android:exported" />
+
+        <!-- Lets a company's device management preset the server and
+             welcome text -->
+        <meta-data android:name="android.content.APP_RESTRICTIONS"
+            android:resource="@xml/app_restrictions" />
     </application>
 </manifest>
