@@ -5,6 +5,7 @@
 
 import 'dart:async';
 
+import 'package:vibe/vibe/buddy/bujji_home.dart';
 import 'package:vibe/vibe/vibe_glass.dart';
 import 'package:vibe/vibe/screens/chat_list/chat_list.dart';
 import 'package:vibe/utils/stream_extension.dart';
@@ -553,6 +554,12 @@ class _HomeTop extends StatelessWidget {
                   onHold: onLockedChats,
                 ),
                 const Spacer(),
+                // Bujji: its notes and reminders, and a face that follows
+                // your inbox and the clock
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: BujjiHome(unread: chatsUnread),
+                ),
                 Semantics(
                   label: 'Join or create a community',
                   button: true,
@@ -572,6 +579,8 @@ class _HomeTop extends StatelessWidget {
               ],
             ),
           ),
+          // birthdays and reminders Bujji has for today
+          const BujjiToday(),
           // pinned chats as pictures, when there are any
           if (quick.isNotEmpty)
             SizedBox(

@@ -10,6 +10,7 @@ import 'package:vibe/vibe/vibe_quote.dart';
 import 'package:vibe/vibe/vibe_threads.dart';
 import 'package:vibe/vibe/vibe_chat_dock.dart';
 import 'package:vibe/vibe/vibe_strict.dart';
+import 'package:vibe/vibe/buddy/bujji.dart';
 import 'package:vibe/vibe/buddy/vibe_buddy.dart';
 import 'package:vibe/vibe/vibe_pq.dart';
 import 'package:vibe/vibe/vibe_typing_style.dart';
@@ -915,6 +916,19 @@ class ChatController extends State<ChatPageWithRoom>
       );
     }
     if (sendController.text.trim().isEmpty) return;
+    // "@bujji …" is for Bujji: answered on this phone, never sent
+    final toBujji = VibeBuddy.on ? Bujji.forBujji(sendController.text) : null;
+    if (toBujji != null) {
+      sendController.clear();
+      final reply = await Bujji.handle(toBujji, roomId: room.id);
+      if (!mounted) return;
+      if (reply.openChat) {
+        await BujjiChatPage.open(context);
+      } else {
+        VibeBuddy.says.value = reply.text;
+      }
+      return;
+    }
     // the buddy asks first if it looks like a password or card number
     if (!await VibeBuddy.allowSend(context, sendController.text)) return;
     if (!mounted) return;

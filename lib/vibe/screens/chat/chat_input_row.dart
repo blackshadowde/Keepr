@@ -3,6 +3,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'package:vibe/vibe/vibe_haptics.dart';
 import 'package:vibe/vibe/vibe_pending_files.dart';
 import 'package:vibe/vibe/vibe_dialog.dart';
 import 'package:emoji_picker_flutter/locales/default_emoji_set_locale.dart';
@@ -133,28 +134,10 @@ class ChatInputRow extends StatelessWidget {
                       : const SizedBox.shrink(),
                 ]
               : <Widget>[
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(10, 0, 0, 8),
-                    child: Material(
-                      color: theme.colorScheme.surfaceContainer,
-                      shape: const CircleBorder(),
-                      clipBehavior: Clip.antiAlias,
-                      child: SizedBox(
-                        width: 44,
-                        height: 44,
-                        child: IconButton(
-                          padding: EdgeInsets.zero,
-                          tooltip: 'Attach',
-                          icon: const Icon(Icons.add, size: 24),
-                          onPressed: () =>
-                              VibeAttachSheet.show(context, controller),
-                        ),
-                      ),
-                    ),
-                  ),
+                  // + lives inside the text box now, so the box is wider
                   Expanded(
                     child: Container(
-                      margin: const EdgeInsets.fromLTRB(8, 6, 0, 3),
+                      margin: const EdgeInsets.fromLTRB(10, 6, 0, 3),
                       // Vibgram proportions: slimmer pill, so the whole
                       // "# Message | name" hint fits.
                       padding: const EdgeInsets.fromLTRB(6, 4, 2, 4),
@@ -238,16 +221,37 @@ class ChatInputRow extends StatelessWidget {
                               ),
                             ),
                           ),
-                          IconButton(
-                            tooltip: L10n.of(context).emojis,
-                            visualDensity: VisualDensity.compact,
-                            icon: Icon(
-                              controller.showEmojiPicker
-                                  ? Icons.keyboard
-                                  : Icons.sentiment_satisfied_alt_outlined,
-                              key: ValueKey(controller.showEmojiPicker),
+                          // +: tap for attachments, hold for emoji (and the
+                          // keyboard comes back with a tap while they show)
+                          Tooltip(
+                            message: controller.showEmojiPicker
+                                ? 'Keyboard'
+                                : 'Attach · hold for emoji',
+                            child: InkResponse(
+                              radius: 22,
+                              onTap: controller.showEmojiPicker
+                                  ? controller.emojiPickerAction
+                                  : () => VibeAttachSheet.show(
+                                      context,
+                                      controller,
+                                    ),
+                              onLongPress: controller.showEmojiPicker
+                                  ? null
+                                  : () {
+                                      VibeHaptics.medium();
+                                      controller.emojiPickerAction();
+                                    },
+                              child: SizedBox.square(
+                                dimension: 40,
+                                child: Icon(
+                                  controller.showEmojiPicker
+                                      ? Icons.keyboard
+                                      : Icons.add_rounded,
+                                  key: ValueKey(controller.showEmojiPicker),
+                                  size: 26,
+                                ),
+                              ),
                             ),
-                            onPressed: controller.emojiPickerAction,
                           ),
                           // Camera lives in the + sheet (like Vibgram), so the
                           // text field gets the room for the full hint.

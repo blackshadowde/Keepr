@@ -8,6 +8,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:matrix/matrix.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:vibe/config/setting_keys.dart';
+import 'package:vibe/vibe/buddy/bujji.dart';
 import 'package:vibe/vibe/vibe_status.dart';
 import 'package:vibe/widgets/adaptive_dialogs/show_ok_cancel_alert_dialog.dart';
 
@@ -59,6 +60,9 @@ abstract class VibeBuddy {
   /// Fires when a message goes out (the chat bumps it; the buddy hops).
   static final sent = ValueNotifier<int>(0);
 
+  /// Bujji's answer to something you asked it in a chat (the bar shows it).
+  static final says = ValueNotifier<String?>(null);
+
   /// Fires when its settings change.
   static final changed = ValueNotifier<int>(0);
 
@@ -75,7 +79,7 @@ abstract class VibeBuddy {
   static bool get bedtime => DateTime.now().hour >= 22;
 
   static bool get on => AppSettings.store.getBool(_on) ?? true;
-  static String get name => AppSettings.store.getString(_name) ?? 'Mochi';
+  static String get name => AppSettings.store.getString(_name) ?? 'Bujji';
   static bool get shared => AppSettings.store.getBool(_share) ?? true;
   static String get outfit => AppSettings.store.getString(_outfit) ?? 'none';
   static int get count => AppSettings.store.getInt(_count) ?? 0;
@@ -834,12 +838,19 @@ class _VibeBuddyPageState extends State<VibeBuddyPage> {
               textCapitalization: TextCapitalization.words,
               decoration: const InputDecoration(labelText: 'Name'),
               onSubmitted: (v) => VibeBuddy.set(
-                name: v.trim().isEmpty ? 'Mochi' : v.trim(),
+                name: v.trim().isEmpty ? 'Bujji' : v.trim(),
               ),
               onChanged: (v) {
                 if (v.trim().isNotEmpty) VibeBuddy.set(name: v.trim());
               },
             ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.sticky_note_2_outlined),
+            title: Text('${VibeBuddy.name}\'s notes and reminders'),
+            subtitle: const Text('Or type @bujji chat in any chat'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => BujjiChatPage.open(context),
           ),
           SwitchListTile.adaptive(
             title: const Text('Others see it'),

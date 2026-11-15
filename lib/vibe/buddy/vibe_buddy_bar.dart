@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import 'package:matrix/matrix.dart';
 import 'package:vibe/config/setting_keys.dart';
 import 'package:vibe/l10n/l10n.dart';
 import 'package:vibe/utils/matrix_sdk_extensions/matrix_locals.dart';
+import 'package:vibe/vibe/buddy/bujji.dart';
 import 'package:vibe/vibe/buddy/vibe_buddy.dart';
 import 'package:vibe/vibe/screens/chat/chat.dart';
 import 'package:vibe/vibe/vibe_effects.dart';
@@ -75,6 +77,7 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
     VibeBuddy.sent.addListener(_onSent);
     VibeBuddy.changed.addListener(_refresh);
     c.scrollController.addListener(_onScroll);
+    VibeBuddy.says.addListener(_onSays);
     _lastEventId = room.lastEvent?.eventId;
     _activity();
     _pqTimer = Timer.periodic(const Duration(seconds: 30), (_) => _checkPq());
@@ -118,8 +121,16 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
     VibeBuddy.sent.removeListener(_onSent);
     VibeBuddy.changed.removeListener(_refresh);
     c.scrollController.removeListener(_onScroll);
+    VibeBuddy.says.removeListener(_onSays);
     VibeBuddy.dozing.value = false;
-    for (final t in [_flashTimer, _hintTimer, _idle, _deleteReset, _pqTimer]) {
+    for (final t in [
+      _flashTimer,
+      _hintTimer,
+      _idle,
+      _deleteReset,
+      _pqTimer,
+      _answerTimer,
+    ]) {
       t?.cancel();
     }
     _presence?.cancel();
@@ -130,6 +141,26 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
   void _refresh() {
     if (!VibeBuddy.on) VibeBuddy.dozing.value = false;
     if (mounted) setState(() {});
+  }
+
+  /// Bujji answered something you asked it here.
+  String? _answer;
+  Timer? _answerTimer;
+
+  void _onSays() {
+    final a = VibeBuddy.says.value;
+    if (a == null || !mounted) return;
+    VibeBuddy.says.value = null;
+    _activity(pet: true);
+    _answerTimer?.cancel();
+    setState(() {
+      _answer = a;
+      _hop++;
+    });
+    _show(BuddyMood.happy, null, 1600);
+    _answerTimer = Timer(Duration(seconds: 6 + a.length ~/ 25), () {
+      if (mounted) setState(() => _answer = null);
+    });
   }
 
   void _onScroll() {
@@ -205,7 +236,10 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
 
     var mood = BuddyMood.idle;
     _Hint? hint;
-    if (text.trim().isNotEmpty) {
+    if (Bujji.forBujji(text) != null) {
+      // talking to Bujji: it listens, nothing else chimes in
+      mood = BuddyMood.happy;
+    } else if (text.trim().isNotEmpty) {
       if (VibeBuddy.looksSecret(text)) {
         mood = BuddyMood.cover;
         if (!_toldSecret) {
@@ -493,6 +527,21 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
     }
   }
 
+  /// Where the cursor is along the text box, from its left edge.
+  double _caretX(double fieldWidth) {
+    final text = c.sendController.text;
+    if (text.isEmpty) return 0;
+    final tp = TextPainter(
+      text: TextSpan(text: text, style: const TextStyle(fontSize: 16)),
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: math.max(40, fieldWidth));
+    final x = tp
+        .getOffsetForCaret(TextPosition(offset: text.length), Rect.zero)
+        .dx;
+    tp.dispose();
+    return x;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!VibeBuddy.on) return const SizedBox.shrink();
@@ -504,102 +553,153 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
     final mood = _flash ?? (_sleepy ? BuddyMood.sleepy : awake);
     final prop = _flashProp ?? (_pq ? BuddyProp.shield : BuddyProp.none);
     final hint = _hint;
-    return SizedBox(
-      height: 46,
-      child: Padding(
-        padding: const EdgeInsets.only(left: 16, right: 18),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Expanded(
+    final answer = _answer;
+    const size = 42.0, box = size * 1.3;
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.bottomCenter,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // what Bujji says back, above it
+          if (answer != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
               child: Align(
-                alignment: Alignment.bottomRight,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 220),
-                  transitionBuilder: (child, a) => FadeTransition(
-                    opacity: a,
-                    child: ScaleTransition(
-                      scale: Tween(begin: 0.9, end: 1.0).animate(a),
-                      alignment: Alignment.bottomRight,
-                      child: child,
+                alignment: Alignment.centerLeft,
+                child: Material(
+                  color: cs.secondaryContainer,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(18),
+                    topRight: Radius.circular(18),
+                    bottomLeft: Radius.circular(4),
+                    bottomRight: Radius.circular(18),
+                  ),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(18),
+                    onTap: () {
+                      setState(() => _answer = null);
+                      BujjiChatPage.open(context);
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(14, 9, 14, 9),
+                      child: Text(
+                        answer,
+                        maxLines: 8,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14.5,
+                          height: 1.35,
+                          color: cs.onSecondaryContainer,
+                        ),
+                      ),
                     ),
                   ),
-                  child: hint == null
-                      ? const SizedBox.shrink()
-                      : Padding(
-                          key: ValueKey(hint.text),
-                          padding: const EdgeInsets.only(bottom: 10, right: 4),
-                          child: Material(
-                            color: cs.surfaceContainerHigh,
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(16),
-                              topRight: Radius.circular(16),
-                              bottomLeft: Radius.circular(16),
-                              bottomRight: Radius.circular(4),
-                            ),
-                            elevation: 2,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(16),
-                              onTap: hint.onTap == null
-                                  ? () => setState(() => _hint = null)
-                                  : () {
-                                      setState(() => _hint = null);
-                                      hint.onTap!();
-                                    },
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 7,
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(hint.icon, size: 16, color: cs.primary),
-                                    const SizedBox(width: 6),
-                                    Flexible(
-                                      child: Text(
-                                        hint.text,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w600,
-                                          color: cs.onSurface,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
                 ),
               ),
             ),
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: _tap,
-              onDoubleTap: _tickle,
-              onLongPress: _menu,
-              child: Semantics(
-                label: VibeBuddy.name,
-                button: true,
-                child: VibeBuddyFace(
-                  size: 34,
-                  color: cs.primary,
-                  mood: mood,
-                  prop: prop,
-                  outfit: VibeBuddy.outfit,
-                  gaze: _gaze,
-                  hop: _hop,
-                  wiggle: _wiggle,
+          SizedBox(
+            height: box + 4,
+            child: LayoutBuilder(
+              builder: (context, cons) {
+                final w = cons.maxWidth;
+                // the text box starts 26 px in; + and send take ~140 px
+                final field = w - 140;
+                final x = (26 + _caretX(field) - box / 2).clamp(
+                  6.0,
+                  w - box - 6,
+                );
+                final onLeft = x < w / 2;
+                return Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    if (hint != null)
+                      Positioned(
+                        left: onLeft ? x + box - 4 : 12,
+                        right: onLeft ? 12 : w - x - 4,
+                        bottom: 10,
+                        child: Align(
+                          alignment: onLeft
+                              ? Alignment.bottomLeft
+                              : Alignment.bottomRight,
+                          child: _bubble(hint, cs, onLeft),
+                        ),
+                      ),
+                    // Bujji walks along the box with your words
+                    AnimatedPositioned(
+                      duration: const Duration(milliseconds: 380),
+                      curve: Curves.easeOutBack,
+                      left: x,
+                      bottom: 0,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: _tap,
+                        onDoubleTap: _tickle,
+                        onLongPress: _menu,
+                        child: Semantics(
+                          label: VibeBuddy.name,
+                          button: true,
+                          child: VibeBuddyFace(
+                            size: size,
+                            color: cs.primary,
+                            mood: mood,
+                            prop: prop,
+                            outfit: VibeBuddy.outfit,
+                            gaze: _gaze,
+                            hop: _hop,
+                            wiggle: _wiggle,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _bubble(_Hint hint, ColorScheme cs, bool fromLeft) => Material(
+    color: cs.surfaceContainerHigh,
+    elevation: 2,
+    borderRadius: BorderRadius.only(
+      topLeft: const Radius.circular(16),
+      topRight: const Radius.circular(16),
+      bottomLeft: Radius.circular(fromLeft ? 4 : 16),
+      bottomRight: Radius.circular(fromLeft ? 16 : 4),
+    ),
+    child: InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () {
+        setState(() => _hint = null);
+        hint.onTap?.call();
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(hint.icon, size: 16, color: cs.primary),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                hint.text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: cs.onSurface,
                 ),
               ),
             ),
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
 }
