@@ -1,7 +1,9 @@
 package app.keepr.chat
 
+import io.flutter.embedding.android.FlutterFragment
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.embedding.engine.dart.DartExecutor.DartEntrypoint
 
 import android.content.Context
 import android.os.Build
@@ -103,6 +105,13 @@ class MainActivity : FlutterFragmentActivity() {
         // do nothing, because the engine was been configured in provideEngine
     }
 
+    // Leaving with Back keeps the app running, so coming back is instant
+    // and pushes keep using the same engine.
+    override fun createFlutterFragment(): FlutterFragment =
+        super.createFlutterFragment().apply {
+            arguments?.putBoolean("destroy_engine_with_fragment", false)
+        }
+
     companion object {
         private const val PICK_BACKUP = 4711
         var current: MainActivity? = null
@@ -128,6 +137,18 @@ class MainActivity : FlutterFragmentActivity() {
             // revives Keepr every 15 min if the phone stopped it
             VibeCheckWorker.schedule(app)
             engine = eng
+            return eng
+        }
+
+        /** The app's engine, started if needed: UnifiedPush pushes run in
+         *  it instead of in an engine of their own. */
+        fun provideRunningEngine(context: Context): FlutterEngine {
+            engine?.let { return it }
+            val eng = provideEngine(context)
+            eng.localizationPlugin.sendLocalesToFlutter(
+                context.resources.configuration
+            )
+            eng.dartExecutor.executeDartEntrypoint(DartEntrypoint.createDefault())
             return eng
         }
     }

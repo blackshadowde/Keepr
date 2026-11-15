@@ -138,6 +138,16 @@
              android:foregroundServiceType="shortService"
              tools:node="merge" />
 
+        <!-- UnifiedPush pushes use the app's engine (see UnifiedPushService) -->
+        <service android:name="org.unifiedpush.flutter.connector.UnifiedPushService"
+            tools:node="remove" />
+        <service android:name=".UnifiedPushService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="org.unifiedpush.android.connector.PUSH_EVENT"/>
+            </intent-filter>
+        </service>
+
         <service android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
              android:foregroundServiceType="shortService|remoteMessaging"
              android:exported="false">

@@ -430,7 +430,14 @@ class BackgroundPush {
         await setupFirebase(client);
       }
     }
+    openRoomFromNotification();
+  }
 
+  /// Opens the chat of the notification that started the app. With
+  /// [newActivity] (the app was left with Back and its engine kept), the
+  /// notification may have brought it back.
+  void openRoomFromNotification({bool newActivity = false}) {
+    if (newActivity) _wentToRoomOnStartup = false;
     // ignore: unawaited_futures
     _flutterLocalNotificationsPlugin.getNotificationAppLaunchDetails().then((
       details,

@@ -372,13 +372,21 @@ class MatrixState extends State<Matrix> {
     }
   }
 
+  AppLifecycleState? _lifecycleState;
+
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    // left with Back (engine kept), now back: maybe from a notification
+    final wasDetached = _lifecycleState == AppLifecycleState.detached;
+    _lifecycleState = state;
+    if (wasDetached) {
+      backgroundPush?.openRoomFromNotification(newActivity: true);
+    }
     // locked chats ask for the fingerprint again after leaving Vibe
     if (state == AppLifecycleState.paused) VibeLock.relock();
     if (state == AppLifecycleState.resumed) VibeNowPlaying.poke();
     final foreground =
-        state != AppLifecycleState.inactive &&
-        state != AppLifecycleState.paused;
+        // only on screen counts (left with Back is "detached")
+        state == AppLifecycleState.resumed;
     for (final client in widget.clients) {
       // Vibe privacy: "Hide online and last seen" always sends offline.
       client.syncPresence = VibePrivacy.presenceFor(
