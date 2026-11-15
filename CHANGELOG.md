@@ -5,6 +5,7 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 
 ## 2026-11-15
 
+- Material (wallpaper) colours follow the phone again: change your wallpaper or Material colours and Keepr picks them up as soon as you come back to it. Since Keepr keeps running in the background, it only read them when it started ([1df43e029](https://github.com/blackshadowde/keepr/commit/1df43e029))
 - iPhone and web builds work again: the post-quantum module now builds for iPhone, and on the web (where it can't run) it says it isn't available instead of stopping the build ([aae2b0597](https://github.com/blackshadowde/keepr/commit/aae2b0597))
 - Bujji has a life of its own. It hops over to a new photo and sits on it to look, peeks out from behind your message now and then, hurries over to someone's typing dots, and late at night curls up asleep on the newest message under its blanket and nightcap; start typing and it hops straight back ([cd63603d0](https://github.com/blackshadowde/keepr/commit/cd63603d0))
 - Bujji brings the right thing: a hammer to tap the pin in when you pin a message, a screwdriver when you edit, a broom when you delete, a clipboard when you copy; an umbrella when rain comes up, a party popper for a birthday, coffee in the morning, a camera when you send a photo, a phone when a call rings, headphones (and a little dance) while a voice note plays, a flag for a check-in, and it jumps up to catch your heart reactions ([cd63603d0](https://github.com/blackshadowde/keepr/commit/cd63603d0))
