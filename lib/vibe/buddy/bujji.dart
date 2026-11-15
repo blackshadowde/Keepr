@@ -332,11 +332,11 @@ abstract class Bujji {
       if (RegExp(r'birthday|anniversary|bday').hasMatch(key)) {
         final at = DateTime(day.year, day.month, day.day, 9);
         reminders.removeWhere((r) {
-          final same = r.yearly && r.text == "It's ${_cap(key)}";
+          final same = r.yearly && r.text == "${_cap(key)} today";
           if (same) _cancel(r);
           return same;
         });
-        final r = BujjiReminder(_id(), "It's ${_cap(key)}", at.millisecondsSinceEpoch, true, null);
+        final r = BujjiReminder(_id(), "${_cap(key)} today", at.millisecondsSinceEpoch, true, null);
         reminders.add(r);
         _schedule(r);
         extra = " I'll remind you every year that morning.";
@@ -457,8 +457,9 @@ abstract class Bujji {
       if (!ampm && h <= 12) {
         // no am or pm: the next time that hour comes round, afternoon for
         // small numbers ("at 3" is 3 pm)
-        if (h >= 1 && h <= 7) t = t.add(const Duration(hours: 12));
-        if (dayOffset == 0 && t.isBefore(now) && h < 12) {
+        if (h >= 1 && h <= 7) {
+          t = t.add(const Duration(hours: 12));
+        } else if (dayOffset == 0 && t.isBefore(now) && h < 12) {
           final pm = t.add(const Duration(hours: 12));
           t = pm.isAfter(now) ? pm : t;
         }

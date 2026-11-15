@@ -33,6 +33,10 @@ jobs:
           echo "### Code check" >> "$GITHUB_STEP_SUMMARY"
           tail -1 analyze.txt >> "$GITHUB_STEP_SUMMARY"
 
+      # Bujji's memory rules, with real sentences
+      - name: Bujji tests
+        run: flutter test test/bujji_test.dart
+
       # The full analyzer output (warnings and hints too) as a check on the
       # commit, readable from the GitHub API and the commit's Checks tab.
       - name: Analyzer report
