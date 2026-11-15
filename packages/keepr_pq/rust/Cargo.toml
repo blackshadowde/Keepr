@@ -18,6 +18,10 @@ getrandom = "0.3"
 aes-gcm = "0.10"
 hkdf = "0.12"
 sha2 = "0.10"
+# Bujji's optional on-device matching: a small sentence model run with
+# tract (pure Rust ONNX) and the Hugging Face tokenizer (no C code).
+tract-onnx = "0.21"
+tokenizers = { version = "0.21", default-features = false, features = ["unstable_wasm"] }
 
 [profile.release]
 opt-level = 3

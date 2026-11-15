@@ -78,3 +78,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: cargo test --release
+
+  # Bujji's optional sentence models, run with the Rust module: the files
+  # and their sizes, and a real meaning check with each.
+  models:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: packages/keepr_pq/rust
+    steps:
+      - uses: actions/checkout@v4
+      - name: Files
+        run: |
+          for r in Xenova/all-MiniLM-L6-v2 Xenova/paraphrase-multilingual-MiniLM-L12-v2; do
+            echo "== $r"
+            curl -s "https://huggingface.co/api/models/$r/tree/main/onnx" | python3 -c "import json,sys; [print(f['path'], f.get('size')) for f in json.load(sys.stdin)]"
+            curl -s "https://huggingface.co/api/models/$r/tree/main" | python3 -c "import json,sys; [print(f['path'], f.get('size')) for f in json.load(sys.stdin) if f['type']=='file']"
+          done
+      - name: Meaning check
+        run: |
+          set -e
+          get() { mkdir -p "$2"; curl -sfL -o "$2/model.onnx" "https://huggingface.co/$1/resolve/main/onnx/model_quantized.onnx"; curl -sfL -o "$2/tokenizer.json" "https://huggingface.co/$1/resolve/main/tokenizer.json"; ls -la "$2"; sha256sum "$2"/*; }
+          get Xenova/all-MiniLM-L6-v2 /tmp/small
+          get Xenova/paraphrase-multilingual-MiniLM-L12-v2 /tmp/multi
+          KEEPR_MODEL_DIR=/tmp/small cargo test --release -- --ignored --nocapture matches_meaning
+          KEEPR_MODEL_DIR=/tmp/multi cargo test --release -- --ignored --nocapture matches_meaning

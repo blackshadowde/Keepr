@@ -4,6 +4,8 @@
 //! Three C functions; every buffer has a fixed size (see the constants).
 //! Each returns 0 on success, a negative number on failure.
 
+pub mod embed;
+
 use libcrux_ml_kem::mlkem768::{
     self, MlKem768Ciphertext, MlKem768PrivateKey, MlKem768PublicKey,
 };
