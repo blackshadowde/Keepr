@@ -272,8 +272,15 @@ class _ChatTitlePillState extends State<ChatTitlePill> {
                         shape: const CircleBorder(),
                         elevation: 2,
                         shadowColor: Colors.black26,
+                        clipBehavior: Clip.antiAlias,
+                        // as tall as the pill (36 picture + 4 + 4)
                         child: IconButton(
                           tooltip: 'Threads',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints.tightFor(
+                            width: 44,
+                            height: 44,
+                          ),
                           icon: const Icon(VibeThreads.icon, size: 20),
                           onPressed: () => VibeThreads.showList(
                             context,
@@ -291,10 +298,9 @@ class _ChatTitlePillState extends State<ChatTitlePill> {
   }
 
   Widget _pill(BuildContext context, ColorScheme cs, Room room, String name) {
-    return Align(
-      alignment: AlignmentDirectional.centerStart,
-      // squeezes when pressed, then grows open
-      child: VibePressable(
+    // squeezes when pressed, then grows open; only as wide as it needs, so
+    // the threads button sits right beside it
+    return VibePressable(
         scale: 0.95,
         child: AnimatedSize(
         duration: vibePillSpring.duration,
@@ -421,7 +427,6 @@ class _ChatTitlePillState extends State<ChatTitlePill> {
             ),
           ),
         ),
-      ),
       ),
     );
   }

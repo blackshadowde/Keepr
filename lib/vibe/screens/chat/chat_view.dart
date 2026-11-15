@@ -216,17 +216,15 @@ class ChatView extends StatelessWidget {
                     : _pill(controller)
                     ? const []
                     : [
-                  // in a thread: rename / close it, in one menu
+                  // in a thread: rename it, or close it (any thread, one
+                  // tap, so it's always there to see)
                   if (!controller.selectMode &&
-                      controller.activeThreadId != null)
-                    PopupMenuButton<String>(
-                      tooltip: 'Thread options',
-                      onSelected: (v) async {
+                      controller.activeThreadId != null) ...[
+                    IconButton(
+                      tooltip: 'Rename thread',
+                      icon: const Icon(Icons.edit_outlined),
+                      onPressed: () async {
                         final id = controller.activeThreadId!;
-                        if (v == 'close') {
-                          controller.closeThreadForGood();
-                          return;
-                        }
                         final root = await controller.room.getEventById(id);
                         if (!context.mounted) return;
                         await VibeThreads.rename(
@@ -236,33 +234,13 @@ class ChatView extends StatelessWidget {
                           root,
                         );
                       },
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(
-                          value: 'rename',
-                          child: Row(
-                            children: [
-                              Icon(Icons.edit_outlined),
-                              SizedBox(width: 12),
-                              Text('Rename thread'),
-                            ],
-                          ),
-                        ),
-                        if (VibeThreads.isPinned(
-                          controller.room.id,
-                          controller.activeThreadId!,
-                        ))
-                          const PopupMenuItem(
-                            value: 'close',
-                            child: Row(
-                              children: [
-                                Icon(Icons.close),
-                                SizedBox(width: 12),
-                                Text('Close thread'),
-                              ],
-                            ),
-                          ),
-                      ],
                     ),
+                    IconButton(
+                      tooltip: 'Close thread',
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: controller.closeThreadForGood,
+                    ),
+                  ],
                   if (controller.selectMode) ...[
                     if (controller.canEditSelectedEvents)
                       IconButton(

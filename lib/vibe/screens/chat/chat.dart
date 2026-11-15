@@ -315,10 +315,13 @@ class ChatController extends State<ChatPageWithRoom>
     }
   }
 
-  void enterThread(String eventId) => setState(() {
-    activeThreadId = eventId;
-    selectedEvents.clear();
-  });
+  void enterThread(String eventId) {
+    VibeThreads.reopen(room.id, eventId);
+    setState(() {
+      activeThreadId = eventId;
+      selectedEvents.clear();
+    });
+  }
 
   /// True while an open thread slides out before the chat comes back.
   bool threadClosing = false;

@@ -33,6 +33,26 @@ abstract class VibeThreads {
     revision.value++;
   }
 
+  /// Threads closed here that the server still lists (started anywhere);
+  /// hidden from the list until opened again.
+  static String _closedKey(String roomId) => 'keepr.threads_closed.$roomId';
+
+  static List<String> closed(String roomId) =>
+      AppSettings.store.getStringList(_closedKey(roomId)) ?? const [];
+
+  static Future<void> _setClosed(String roomId, String eventId, bool c) async {
+    final list = List<String>.of(closed(roomId))..remove(eventId);
+    if (c) list.insert(0, eventId);
+    await AppSettings.store.setStringList(_closedKey(roomId), list.take(200).toList());
+    _any.remove(roomId);
+    revision.value++;
+  }
+
+  /// Opening a closed thread brings it back to the list.
+  static void reopen(String roomId, String eventId) {
+    if (closed(roomId).contains(eventId)) _setClosed(roomId, eventId, false);
+  }
+
   static String _titleKey(String roomId, String eventId) =>
       'keepr.thread_title.$roomId.$eventId';
 
@@ -129,6 +149,7 @@ abstract class VibeThreads {
     );
     if (ok != true) return false;
     await remove(roomId, eventId);
+    await _setClosed(roomId, eventId, true);
     return true;
   }
 
@@ -137,9 +158,10 @@ abstract class VibeThreads {
   /// Whether a chat has any threads (pinned here, or started anywhere).
   static Future<bool> hasAny(Room room) {
     if (ids(room.id).isNotEmpty) return Future.value(true);
+    final gone = closed(room.id);
     return _any[room.id] ??= room.client
-        .getThreadRoots(room.id, limit: 1)
-        .then((r) => r.chunk.isNotEmpty)
+        .getThreadRoots(room.id, limit: gone.isEmpty ? 1 : 50)
+        .then((r) => r.chunk.any((e) => !gone.contains(e.eventId)))
         .catchError((_) => false);
   }
 
@@ -150,13 +172,14 @@ abstract class VibeThreads {
     Room room, {
     required void Function(String eventId) onOpen,
   }) async {
-    final pinned = ids(room.id);
     Future<List<String>> others() async {
       try {
         final r = await room.client.getThreadRoots(room.id, limit: 50);
+        final pinned = ids(room.id), gone = closed(room.id);
         return [
           for (final e in r.chunk)
-            if (!pinned.contains(e.eventId)) e.eventId,
+            if (!pinned.contains(e.eventId) && !gone.contains(e.eventId))
+              e.eventId,
         ];
       } catch (_) {
         return const [];
@@ -192,13 +215,12 @@ abstract class VibeThreads {
                 ].join(' · '),
                 maxLines: 1,
               ),
-              trailing: mine
-                  ? IconButton(
-                      tooltip: 'Close thread',
-                      icon: const Icon(Icons.close_rounded),
-                      onPressed: () => confirmClose(context, room.id, id),
-                    )
-                  : null,
+              // any thread can be closed, pinned or not
+              trailing: IconButton(
+                tooltip: 'Close thread',
+                icon: const Icon(Icons.close_rounded),
+                onPressed: () => confirmClose(context, room.id, id),
+              ),
               onTap: () {
                 Navigator.of(context).pop();
                 onOpen(id);
