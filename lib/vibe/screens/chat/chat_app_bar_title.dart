@@ -14,6 +14,7 @@ import 'package:vibe/l10n/l10n.dart';
 import 'package:vibe/vibe/screens/chat/chat.dart';
 import 'package:vibe/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:vibe/utils/sync_status_localization.dart';
+import 'package:vibe/utils/verified_room_extension.dart';
 import 'package:vibe/vibe/vibe_connection.dart';
 import 'package:vibe/vibe/vibe_status.dart';
 import 'package:vibe/vibe/vibe_strict.dart';
@@ -87,14 +88,29 @@ class ChatAppBarTitle extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.w700,
-                  ),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    if (room.allUsersVerified)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4),
+                        child: Icon(
+                          Icons.verified,
+                          size: 17,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                  ],
                 ),
                 if (dmUser != null && !AppSettings.vibeStatusBubble.value)
                   VibeStatusLine(room: room, userId: dmUser),
@@ -295,6 +311,21 @@ class _ChatTitlePillState extends State<ChatTitlePill> {
                                     ),
                                   ),
                                 ),
+                                // everyone here is verified
+                                if (room.allUsersVerified)
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 4),
+                                    child: Tooltip(
+                                      message: 'Verified',
+                                      child: Icon(
+                                        Icons.verified,
+                                        size: 15,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
+                                      ),
+                                    ),
+                                  ),
                                 // new messages get the post-quantum layer
                                 if (VibePq.on(room))
                                   Padding(
