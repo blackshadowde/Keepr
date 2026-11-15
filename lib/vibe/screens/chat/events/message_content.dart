@@ -147,7 +147,11 @@ class MessageContent extends StatelessWidget {
           case MessageTypes.Location:
             if (VibeLive.parse(event.content.tryGet<String>('geo_uri')) !=
                 null) {
-              return VibeLocationCard(event: event, eventId: event.eventId);
+              return VibeLocationCard(
+                event: event,
+                eventId: event.eventId,
+                timeline: timeline,
+              );
             }
             continue textmessage;
           case MessageTypes.Text:

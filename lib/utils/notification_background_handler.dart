@@ -11,6 +11,7 @@ import 'package:collection/collection.dart';
 import 'package:vibe/l10n/l10n.dart';
 import 'package:vibe/utils/client_manager.dart';
 import 'package:vibe/utils/push_helper.dart';
+import 'package:vibe/vibe/vibe_live_location.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_vodozemac/flutter_vodozemac.dart' as vod;
 import 'package:go_router/go_router.dart';
@@ -118,6 +119,8 @@ Future<void> notificationTap(
     'Notification action handler started',
     notificationResponse.notificationResponseType.name,
   );
+  // the live location notification: Stop, +30 min, Open
+  if (await VibeLive.onNotification(notificationResponse, router)) return;
   final payload = VibePushPayload.fromString(
     notificationResponse.payload ?? '',
   );

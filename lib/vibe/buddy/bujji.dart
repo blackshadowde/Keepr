@@ -8,6 +8,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/intl.dart';
 import 'package:timezone/timezone.dart' as tz;
+import 'package:vibe/vibe/buddy/bujji_live.dart';
 import 'package:vibe/vibe/buddy/bujji_model.dart';
 import 'package:vibe/vibe/buddy/vibe_buddy.dart';
 
@@ -344,6 +345,21 @@ abstract class Bujji {
     return reply;
   }
 
+  /// Bujji tells you something on its own (live locations, check-ins):
+  /// a line in its chat, and above the typing bar when that chat is open.
+  static Future<void> tell(
+    String text, {
+    String? roomId,
+    List<BujjiChoice> choices = const [],
+  }) async {
+    await load();
+    log.add(
+      BujjiLine(false, text, DateTime.now().millisecondsSinceEpoch, choices),
+    );
+    await _save();
+    if (roomId != null && VibeBuddy.here == roomId) VibeBuddy.says.value = text;
+  }
+
   /// One of the buttons under an answer was tapped.
   static Future<BujjiReply> choose(BujjiChoice c, {String? roomId}) async {
     await load();
@@ -351,7 +367,14 @@ abstract class Bujji {
     final said = _unclear ?? '';
     final first = _words(said).firstOrNull;
     BujjiReply reply;
-    if (c.id.startsWith('note:')) {
+    if (c.id.startsWith('live:') || c.id.startsWith('check:')) {
+      reply = BujjiReply(await BujjiLive.act(c.id));
+      log.add(
+        BujjiLine(false, reply.text, DateTime.now().millisecondsSinceEpoch),
+      );
+      await _save();
+      return reply;
+    } else if (c.id.startsWith('note:')) {
       final n = notes.where((n) => n.id == c.id.substring(5)).firstOrNull;
       reply = n == null
           ? const BujjiReply("I don't have that any more.")

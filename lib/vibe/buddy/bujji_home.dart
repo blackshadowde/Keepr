@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:vibe/vibe/buddy/bujji.dart';
+import 'package:vibe/vibe/buddy/bujji_live.dart';
+import 'package:vibe/vibe/vibe_live_location.dart';
 import 'package:vibe/vibe/buddy/vibe_buddy.dart';
 import 'package:vibe/vibe/vibe_haptics.dart';
 
@@ -97,10 +100,66 @@ class BujjiToday extends StatelessWidget {
   const BujjiToday({super.key});
 
   @override
-  Widget build(BuildContext context) => ValueListenableBuilder<int>(
-    valueListenable: Bujji.changed,
-    builder: (context, _, _) {
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: Listenable.merge([Bujji.changed, BujjiLive.sharing]),
+    builder: (context, _) {
       if (!VibeBuddy.on) return const SizedBox.shrink();
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [_live(context), _reminders(context)],
+      );
+    },
+  );
+
+  /// Someone sharing their live location with you: who, and for how long.
+  Widget _live(BuildContext context) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final on = BujjiLive.sharing.value.where((s) => s.until > now).toList();
+    if (on.isEmpty) return const SizedBox.shrink();
+    final cs = Theme.of(context).colorScheme;
+    final s = on.first;
+    final more = on.length > 1 ? '  +${on.length - 1}' : '';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 2, 16, 6),
+      child: Material(
+        color: cs.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: () => context.go('/rooms/${s.roomId}'),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Row(
+              children: [
+                const VibeLiveDot(),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    '${s.name} is sharing live · ${VibeLive.left(s.until)} left$more',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: cs.onSurface,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                  color: cs.onSurfaceVariant,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _reminders(BuildContext context) {
       final now = DateTime.now();
       final items = Bujji.today()
           .where((r) => r.yearly || r.next.isAfter(now))
@@ -156,8 +215,7 @@ class BujjiToday extends StatelessWidget {
           ),
         ),
       );
-    },
-  );
+  }
 }
 
 /// Hold Bujji on the home screen: tell it something or ask it, without

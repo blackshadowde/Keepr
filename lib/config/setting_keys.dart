@@ -151,6 +151,9 @@ enum AppSettings<T> {
   vibeCallServer<String>('chat.keepr.call_server', ''),
   // native (LiveKit) calls when the server offers them; Element Call when off
   vibeNativeCalls<bool>('chat.keepr.native_calls', false),
+  // street names under the location pin, looked up with Photon (off: only
+  // the coordinates; the spot never leaves the phone for a name)
+  vibeMapNames<bool>('chat.keepr.map_names', false),
   // a LiveKit service to use when the server doesn't name one (empty: none)
   fallbackLiveKitInstance<String>('chat.keepr.fallback_live_kit_instance', ''),
   // Where automatic backups go when picked (Google Drive file), '' = this phone

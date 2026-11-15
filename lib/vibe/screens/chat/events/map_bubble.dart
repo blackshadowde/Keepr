@@ -3,112 +3,60 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import 'package:vibe/l10n/l10n.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
-import 'package:vibe/config/app_config.dart';
 import 'package:vibe/vibe/vibe_live_location.dart';
+import 'package:vibe/vibe/vibe_map.dart';
 
-/// Map tiles in dark mode: the same map, turned dark and grey.
-const vibeMapNight = ColorFilter.matrix(<double>[
-  -0.2126, -0.7152, -0.0722, 0, 255,
-  -0.2126, -0.7152, -0.0722, 0, 255,
-  -0.2126, -0.7152, -0.0722, 0, 255,
-  0, 0, 0, 1, 0,
-]);
-
-/// The map itself, dark in dark mode.
-Widget vibeMapTiles(BuildContext context, {required Widget map}) =>
-    Theme.of(context).brightness == Brightness.dark
-    ? ColorFiltered(colorFilter: vibeMapNight, child: map)
-    : map;
-
-TileLayer vibeTileLayer() => TileLayer(
-  maxZoom: 20,
-  minZoom: 0,
-  urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-  userAgentPackageName: AppConfig.appId,
-  subdomains: const ['a', 'b', 'c'],
-);
-
-/// A round pin in the theme colour; its tip marks the middle of the map
-/// it's centred on.
-class VibeMapPin extends StatelessWidget {
-  const VibeMapPin({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Transform.translate(
-      offset: const Offset(0, -19),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 28,
-            height: 28,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: cs.primary,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 3),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x55000000),
-                  blurRadius: 8,
-                  offset: Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Container(
-              width: 8,
-              height: 8,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Container(width: 3, height: 10, color: cs.primary),
-        ],
-      ),
-    );
-  }
-}
-
-/// A shared place as a card: the map on top, what it is underneath. Tap to
-/// open it in a maps app.
+/// A shared place as a card the shape of a message bubble: a small map with
+/// the sender's picture as the pin, the place and how far it is underneath.
+/// Tap to open the map.
 class MapBubble extends StatelessWidget {
   final double latitude;
   final double longitude;
   final double zoom;
   final double width;
   final double height;
-  final double radius;
   final VoidCallback? onTap;
   final String? title;
   final String? sub;
 
-  /// Live location: a pulsing dot by the title.
+  /// "Live · 42 min left", on the map.
+  final String? tag;
+
+  /// Live location: the tag's dot pulses.
   final bool live;
 
-  /// Instead of the arrow at the end (Stop sharing).
+  /// The pin: usually the sender's picture.
+  final Widget? picture;
+
+  /// Only roughly here: a circle this many metres round instead of a pin.
+  final double? meters;
+
+  /// At the end of the text (Stop sharing).
   final Widget? action;
+  final Color? color;
+  final Color? ink;
 
   const MapBubble({
     required this.latitude,
     required this.longitude,
     this.zoom = 15.0,
-    this.width = 280,
-    this.height = 150,
-    this.radius = 20.0,
+    this.width = 264,
+    this.height = 148,
     this.onTap,
     this.title,
     this.sub,
+    this.tag,
     this.live = false,
+    this.picture,
+    this.meters,
     this.action,
+    this.color,
+    this.ink,
     super.key,
   });
 
@@ -116,14 +64,19 @@ class MapBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final dark = Theme.of(context).brightness == Brightness.dark;
+    final bg =
+        color ??
+        Color.alphaBlend(
+          cs.surfaceContainerHigh,
+          dark ? const Color(0xFF1B1B1F) : const Color(0xFFF1F1F4),
+        );
+    final fg = ink ?? cs.onSurface;
+    final at = LatLng(latitude, longitude);
     return ConstrainedBox(
       constraints: BoxConstraints(maxWidth: width),
       child: Material(
-        color: Color.alphaBlend(
-          cs.surfaceContainerHigh,
-          dark ? const Color(0xFF1B1B1F) : const Color(0xFFF1F1F4),
-        ),
-        borderRadius: BorderRadius.circular(radius),
+        color: bg,
+        borderRadius: BorderRadius.circular(24),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
@@ -131,86 +84,90 @@ class MapBubble extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SizedBox(
-                height: height,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    // the map doesn't move here; a tap opens it
-                    IgnorePointer(
-                      child: vibeMapTiles(
-                        context,
-                        map: FlutterMap(
-                          key: ValueKey('$latitude,$longitude'),
-                          options: MapOptions(
-                            initialCenter: LatLng(latitude, longitude),
-                            initialZoom: zoom,
-                            interactionOptions: const InteractionOptions(
-                              flags: InteractiveFlag.none,
-                            ),
+              Padding(
+                padding: const EdgeInsets.all(6),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(18),
+                  child: SizedBox(
+                    height: height,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        _Later(
+                          child: VibeMap(
+                            key: ValueKey('$latitude,$longitude'),
+                            center: at,
+                            zoom: meters != null && meters! > 300 ? 13 : zoom,
+                            interactive: false,
+                            marks: [
+                              if (meters != null)
+                                VibeMapMark(
+                                  id: 'area',
+                                  at: at,
+                                  meters: meters,
+                                  size: Size.zero,
+                                  child: const SizedBox.shrink(),
+                                )
+                              else if (picture != null)
+                                VibeMapMark(
+                                  id: 'pin',
+                                  at: at,
+                                  size: VibePicturePin.box(34),
+                                  anchor: Alignment.bottomCenter,
+                                  child: VibePicturePin(
+                                    picture: picture!,
+                                    size: 34,
+                                  ),
+                                ),
+                            ],
                           ),
-                          children: [vibeTileLayer()],
                         ),
-                      ),
+                        if (tag != null)
+                          Positioned(
+                            left: 8,
+                            top: 8,
+                            child: VibeLiveTag(text: tag!, live: live),
+                          ),
+                      ],
                     ),
-                    const Center(child: VibeMapPin()),
-                    Positioned(
-                      right: 8,
-                      bottom: 5,
-                      child: Text(
-                        '© OpenStreetMap',
-                        style: TextStyle(
-                          fontSize: 9,
-                          color: dark ? Colors.white70 : Colors.black54,
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                padding: const EdgeInsets.fromLTRB(14, 6, 10, 12),
                 child: Row(
                   children: [
-                    live
-                        ? const SizedBox(
-                            width: 20,
-                            child: Center(child: VibeLiveDot()),
-                          )
-                        : Icon(Icons.place_rounded, size: 20, color: cs.primary),
-                    const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             title ?? 'Location',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 14.5,
+                              fontSize: 15.5,
                               fontWeight: FontWeight.w700,
-                              color: cs.onSurface,
+                              height: 1.25,
+                              color: fg,
                             ),
                           ),
+                          const SizedBox(height: 2),
                           Text(
                             sub ??
                                 '${latitude.toStringAsFixed(5)}, '
                                     '${longitude.toStringAsFixed(5)}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                              fontSize: 12,
-                              color: cs.onSurfaceVariant,
+                              fontSize: 12.5,
+                              color: fg.withValues(alpha: 0.7),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    action ?? Tooltip(
-                      message: L10n.of(context).openInMaps,
-                      child: Icon(
-                        Icons.north_east_rounded,
-                        size: 18,
-                        color: cs.onSurfaceVariant,
-                      ),
-                    ),
+                    ?action,
                   ],
                 ),
               ),
@@ -220,4 +177,73 @@ class MapBubble extends StatelessWidget {
       ),
     );
   }
+}
+
+/// "● Live · 42 min left" in a small white pill.
+class VibeLiveTag extends StatelessWidget {
+  final String text;
+  final bool live;
+  const VibeLiveTag({required this.text, this.live = true, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 4, 10, 4),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
+          BoxShadow(color: Color(0x26000000), blurRadius: 6, offset: Offset(0, 2)),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (live) ...[const VibeLiveDot(), const SizedBox(width: 6)],
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: cs.onSurface,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The map in a card starts a moment after the card shows, so flicking
+/// through the chat doesn't start a map for every card going by.
+class _Later extends StatefulWidget {
+  final Widget child;
+  const _Later({required this.child});
+
+  @override
+  State<_Later> createState() => _LaterState();
+}
+
+class _LaterState extends State<_Later> {
+  bool _show = false;
+  Timer? _t;
+
+  @override
+  void initState() {
+    super.initState();
+    _t = Timer(const Duration(milliseconds: 280), () {
+      if (mounted) setState(() => _show = true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _t?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      _show ? widget.child : const VibeMapShimmer();
 }

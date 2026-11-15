@@ -37,7 +37,6 @@ dependencies:
   flutter_local_notifications: ^22.3.0
   flutter_localizations:
     sdk: flutter
-  flutter_map: ^8.3.1
   flutter_new_badger: ^2.0.0
   flutter_secure_storage: ^11.0.0
   flutter_webrtc: ^1.6.2+hotfix.3
@@ -60,6 +59,7 @@ dependencies:
   latlong2: ^0.10.1
   local_auth: ^3.0.2
   managed_configurations: ^1.2.0
+  maplibre: ^0.3.7+1
   matrix: ^16.0.4
   mime: ^2.0.0
   photo_manager: ^3.0.0

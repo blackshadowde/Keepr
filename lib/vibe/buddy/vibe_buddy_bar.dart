@@ -86,6 +86,7 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
     VibeBuddy.changed.addListener(_refresh);
     c.scrollController.addListener(_onScroll);
     VibeBuddy.says.addListener(_onSays);
+    VibeBuddy.here = room.id;
     _lastEventId = room.lastEvent?.eventId;
     _activity();
     _pqTimer = Timer.periodic(const Duration(seconds: 30), (_) => _checkPq());
@@ -130,6 +131,7 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
     VibeBuddy.changed.removeListener(_refresh);
     c.scrollController.removeListener(_onScroll);
     VibeBuddy.says.removeListener(_onSays);
+    if (VibeBuddy.here == room.id) VibeBuddy.here = null;
     VibeBuddy.dozing.value = false;
     for (final t in [
       _leanTimer,

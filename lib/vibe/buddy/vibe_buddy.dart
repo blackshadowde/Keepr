@@ -63,6 +63,9 @@ abstract class VibeBuddy {
   /// Bujji's answer to something you asked it in a chat (the bar shows it).
   static final says = ValueNotifier<String?>(null);
 
+  /// The chat open now (its typing bar shows what Bujji says about it).
+  static String? here;
+
   /// Fires when its settings change.
   static final changed = ValueNotifier<int>(0);
 

@@ -19,6 +19,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart'
 import 'package:vibe/vibe/vibe_mention_controller.dart';
 import 'package:vibe/vibe/vibe_reply_thread.dart';
 import 'package:vibe/vibe/vibe_dialog.dart';
+import 'package:vibe/vibe/vibe_motion.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -1317,8 +1318,12 @@ class ChatController extends State<ChatPageWithRoom>
   }
 
   Future<void> sendLocationAction() async {
-    await showVibeDialog(
+    // one sheet with the map in it; the map keeps your finger
+    await showVibeSheet(
       context: context,
+      isScrollControlled: true,
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
       builder: (c) => SendLocationDialog(room: room),
     );
   }
