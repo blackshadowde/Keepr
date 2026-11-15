@@ -8,7 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:latlong2/latlong.dart';
+import 'package:latlong2/latlong.dart' show Distance, LatLng;
 import 'package:maplibre/maplibre.dart' as ml;
 import 'package:url_launcher/url_launcher_string.dart';
 
