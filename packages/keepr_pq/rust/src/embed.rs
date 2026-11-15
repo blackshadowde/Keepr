@@ -14,7 +14,7 @@ use tract_onnx::prelude::*;
 const LEN: usize = 128;
 
 struct Model {
-    plan: TypedRunnableModel<TypedModel>,
+    plan: std::sync::Arc<TypedRunnableModel>,
     tok: Tokenizer,
     /// Input names in the model's order.
     inputs: Vec<String>,
