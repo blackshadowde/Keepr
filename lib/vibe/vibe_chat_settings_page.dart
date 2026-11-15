@@ -123,6 +123,14 @@ class _VibeChatSettingsPageState extends State<VibeChatSettingsPage> {
                 setting: AppSettings.swipeRightToLeftToReply,
               ),
               SettingsSwitchListTile.adaptive(
+                title: 'Native calls (beta)',
+                subtitle:
+                    'Calls straight through your server when it offers them, '
+                    'ringing like a phone call and working with Element X. '
+                    'Off: calls use Element Call.',
+                setting: AppSettings.vibeNativeCalls,
+              ),
+              SettingsSwitchListTile.adaptive(
                 title: L10n.of(context).showThumbnailsInTimeline,
                 setting: AppSettings.showThumbnailsInTimeline,
               ),

@@ -16,6 +16,7 @@ import 'package:vibe/vibe/vibe_haptics.dart';
 import 'package:vibe/vibe/vibe_web_scale.dart';
 import 'package:vibe/widgets/theme_builder.dart';
 import 'package:flutter/material.dart';
+import 'package:vibe/widgets/layouts/call_overlay.dart';
 import 'package:go_router/go_router.dart';
 import 'package:matrix/matrix.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -120,7 +121,9 @@ class VibeApp extends StatelessWidget {
             store: store,
             child: VibeTapHaptics(
               child: VibeActivityHost(
-                child: VibeLaunch(child: testWidget ?? child!),
+                child: VibeLaunch(
+                  child: CallOverlay(child: testWidget ?? child!),
+                ),
               ),
             ),
           ),

@@ -5,6 +5,9 @@
 
 import 'package:vibe/vibe/vibe_now_playing.dart';
 import 'package:vibe/vibe/vibe_call.dart';
+import 'package:flutter_callkit_incoming/entities/entities.dart';
+import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
+import 'package:livekit_client/livekit_client.dart' as lk;
 import 'package:vibe/vibe/vibe_lock.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -73,6 +76,15 @@ class MatrixState extends State<Matrix> {
   SharedPreferences get store => widget.store;
 
   BackgroundPush? backgroundPush;
+
+  /// The chat whose native call is open (shown over the app), if any.
+  final ValueNotifier<String?> activeCallRoomId = ValueNotifier(null);
+  final ValueNotifier<CallPosition> callPosition = ValueNotifier(
+    CallPosition.fullScreen,
+  );
+
+  /// Whether that call starts with the camera on.
+  bool activeCallVideo = true;
 
   Client get client {
     if (_activeClient < 0 || _activeClient >= widget.clients.length) {
@@ -209,9 +221,66 @@ class MatrixState extends State<Matrix> {
     super.initState();
     _listener = AppLifecycleListener(onStateChange: didChangeAppLifecycleState);
     initMatrix();
+    _listenToCallKit();
   }
 
   AppLifecycleListener? _listener;
+
+  StreamSubscription? _callKitSub;
+
+  /// The phone's call screen: answering opens the native call, ending it
+  /// closes it.
+  void _listenToCallKit() {
+    if (!PlatformInfos.isMobile) return;
+    _callKitSub = FlutterCallkitIncoming.onEvent.listen((event) async {
+      switch (event) {
+        case CallEventActionCallAccept():
+          _joinCallKit(event.callKitParams);
+          break;
+        case CallEventActionCallEnded():
+          final roomId = event.callKitParams.extra?.tryGet<String>('roomId');
+          if (roomId != null && activeCallRoomId.value == roomId) {
+            activeCallRoomId.value = null;
+          }
+          break;
+        case CallEventActionCallIncoming() || CallEventActionCallStart()
+            when PlatformInfos.isIOS:
+          // so iOS sets up the call's audio itself
+          lk.AudioManager.instance.setEngineAvailability(.none);
+          break;
+        case CallEventActionCallToggleAudioSession() when PlatformInfos.isIOS:
+          await lk.AudioManager.instance.setEngineAvailability(
+            event.isActive ? .defaultAvailability : .none,
+          );
+          break;
+        default:
+          break;
+      }
+    });
+    lk.AudioManager.instance.setAudioSessionManagementMode(
+      lk.AudioSessionManagementMode.externalCallSystem,
+    );
+    // opened by answering a call
+    FlutterCallkitIncoming.activeCalls().then((calls) {
+      final params = calls.firstOrNull;
+      if (params != null) _joinCallKit(params);
+    });
+  }
+
+  void _joinCallKit(CallKitParams params) {
+    final roomId = params.extra?.tryGet<String>('roomId');
+    final clientName = params.extra?.tryGet<String>('clientName');
+    final client = clientName == null ? null : getClientByName(clientName);
+    final room = roomId == null ? null : client?.getRoomById(roomId);
+    final context = VibeApp.router.routerDelegate.navigatorKey.currentContext;
+    if (room == null || context == null) return;
+    setActiveClient(room.client);
+    VibeCall.openNative(
+      context,
+      room,
+      video: params.extra?.tryGet<String>('intent') != 'voice',
+    );
+  }
 
   void _registerSubs(String name) {
     final c = getClientByName(name);
@@ -404,6 +473,7 @@ class MatrixState extends State<Matrix> {
   @override
   void dispose() {
     _listener?.dispose();
+    _callKitSub?.cancel();
 
     for (final sub in onRoomKeyRequestSub.values) {
       sub.cancel();
@@ -469,3 +539,6 @@ class MatrixState extends State<Matrix> {
     file.save(context);
   }
 }
+
+/// Where an open native call sits: full screen, or small at the top.
+enum CallPosition { fullScreen, top }

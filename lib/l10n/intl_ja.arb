@@ -2190,5 +2190,14 @@
     "enableBiometrics": "生体認証を有効にする",
     "disableBiometrics": "生体認証を無効にする",
     "unlockWithBiometrics": "生体認証でロック解除",
-    "loadingMessages": "メッセージを読み込み中..."
+    "loadingMessages": "メッセージを読み込み中...",
+    "callBack": "かけ直す",
+    "incomingCall": "着信",
+    "missedCall": "不在着信",
+    "noDevicesFound": "デバイスが見つかりません",
+    "raiseHand": "挙手する",
+    "selectCamera": "カメラを選択",
+    "selectMicrophone": "マイクを選択",
+    "selectSpeaker": "スピーカーを選択",
+    "startCall": "通話開始"
 }

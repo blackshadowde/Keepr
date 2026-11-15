@@ -2256,5 +2256,8 @@
     "versionWithNumber": "Versija: {version}",
     "logs": "Žurnalai",
     "matrixId": "„Matrix“ ID",
-    "decline": "Atmesti"
+    "decline": "Atmesti",
+    "enterCall": "Įeiti į skambutį",
+    "incomingCall": "Gaunamas skambutis",
+    "waitingForParticipant": "Laukiama dalyvio..."
 }

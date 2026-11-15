@@ -32,6 +32,9 @@ import 'package:http/http.dart' as http;
 import 'package:matrix/matrix.dart' hide Result;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:synchronized/synchronized.dart';
+import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
+import 'package:vibe/utils/call_kit_params.dart';
+import 'package:vibe/utils/matrix_live_kit_calls/matrix_live_kit_call.dart';
 
 final Map<String, DateTime> lastReceivedPushNotification = {};
 
@@ -260,6 +263,17 @@ Future<void> _tryPushHelper(
 
   if (!client.pushruleEvaluator.match(event).notify) {
     Logs().i('Push helper: filtered by client-side push rules.');
+    return;
+  }
+
+  // a native call ringing you (Element X, FluffyChat, Keepr): the phone's
+  // own call screen
+  if (event.type == RtcNotificationContent.eventType &&
+      event.tryParseRtcNotificationContent()?.notificationType ==
+          RtcNotificationType.ring &&
+      PlatformInfos.isMobile &&
+      AppSettings.vibeNativeCalls.value) {
+    await _showIncomingCall(event, l10n);
     return;
   }
 
@@ -694,5 +708,52 @@ Future<void> cancelNotificationsOnSync(
     }
   } catch (e) {
     Logs().w('Could not clear read notifications', e);
+  }
+}
+
+/// Rings with the phone's call screen until it's answered (here or on
+/// another device), declined, or the caller gives up.
+Future<void> _showIncomingCall(Event event, L10n l10n) async {
+  final callId = '${event.room.id}|${event.room.client.clientName}';
+  final activeCalls = await FlutterCallkitIncoming.activeCalls();
+  if (activeCalls.any((call) => call.id == callId)) {
+    Logs().d('Already ringing for this call', callId);
+    return;
+  }
+  final intentStr = event.content.tryGet<String>('m.call.intent');
+  final intent =
+      MatrixRtcCallIntent.values.singleWhereOrNull(
+        (i) => i.name == intentStr,
+      ) ??
+      MatrixRtcCallIntent.video;
+  final timeout =
+      event.tryParseRtcNotificationContent()?.lifetime ??
+      RtcNotificationContent.defaultLifetime;
+  final params = await buildCallKitParams(
+    event.room,
+    l10n: l10n,
+    intent: intent,
+    timeout: timeout,
+  );
+  final until = DateTime.now().add(timeout);
+  await FlutterCallkitIncoming.showCallkitIncoming(params);
+
+  while (DateTime.now().isBefore(until)) {
+    await event.room.client.oneShotSync();
+    if (!event.room.hasActiveMatrixRtcCall) {
+      Logs().i('The other side ended the call');
+      await FlutterCallkitIncoming.endCall(params.id);
+      break;
+    }
+    if (event.room.ownMatrixRtcMembership != null) break;
+    if (event.room.getActiveMatrixRtcMembers().any(
+      (member) =>
+          member.senderId == event.room.client.userID! &&
+          member.deviceId != event.room.client.deviceID!,
+    )) {
+      Logs().i('Answered on another device');
+      await FlutterCallkitIncoming.endCall(params.id);
+      break;
+    }
   }
 }

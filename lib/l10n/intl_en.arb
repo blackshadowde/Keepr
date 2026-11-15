@@ -2794,5 +2794,31 @@
                 "type": "String"
             }
         }
-    }
+    },
+    "callBack": "Call back",
+    "countActiveCallMembers": "{count} active call members",
+    "@countActiveCallMembers": {
+        "placeholders": {
+            "count": {
+                "type": "int"
+            }
+        }
+    },
+    "enterCall": "Enter call",
+    "hangUp": "Hang up",
+    "incomingCall": "Incoming call",
+    "missedCall": "Missed call",
+    "noDevicesFound": "No devices found",
+    "preferSpeaker": "Prefer speaker",
+    "raiseHand": "Raise hand",
+    "selectCamera": "Select camera",
+    "selectMicrophone": "Select microphone",
+    "selectSpeaker": "Select speaker",
+    "startCall": "Start call",
+    "startScreensharing": "Start screensharing",
+    "stopRaiseHand": "Stop raise hand",
+    "stopScreensharing": "Stop screensharing",
+    "toggleCamera": "Toggle camera",
+    "toggleMicrophone": "Toggle microphone",
+    "waitingForParticipant": "Waiting for participant..."
 }

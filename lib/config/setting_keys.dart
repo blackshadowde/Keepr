@@ -149,6 +149,10 @@ enum AppSettings<T> {
   vibeHiddenStickerPacks<String>('chat.keepr.hidden_sticker_packs', ''),
   // Element Call server for calls ('' = the default, call.element.io)
   vibeCallServer<String>('chat.keepr.call_server', ''),
+  // native (LiveKit) calls when the server offers them; Element Call when off
+  vibeNativeCalls<bool>('chat.keepr.native_calls', false),
+  // a LiveKit service to use when the server doesn't name one (empty: none)
+  fallbackLiveKitInstance<String>('chat.keepr.fallback_live_kit_instance', ''),
   // Where automatic backups go when picked (Google Drive file), '' = this phone
   vibeBackupCloudUri<String>('chat.keepr.backup_cloud_uri', ''),
   vibeNtfyTopic<String>('chat.keepr.ntfy_topic', ''),

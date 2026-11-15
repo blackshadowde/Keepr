@@ -63,6 +63,7 @@ import 'package:vibe/vibe/vibe_slash.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:vibe/utils/matrix_live_kit_calls/matrix_live_kit_call.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mime/mime.dart';
@@ -822,6 +823,12 @@ class ChatController extends State<ChatPageWithRoom>
     // We do not set read marker if timeline is empty
     final timeline = this.timeline;
     if (timeline == null || timeline.events.isEmpty) return;
+
+    // a call ringing here stays unread, so it keeps ringing elsewhere
+    if (room.hasActiveMatrixRtcCall &&
+        timeline.events.first.type == RtcNotificationContent.eventType) {
+      return;
+    }
 
     final setOnLatestEvent = eventId == null;
     eventId ??= timeline.events.firstWhereOrNull((event) {

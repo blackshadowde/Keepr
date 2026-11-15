@@ -9,6 +9,8 @@ import 'package:vibe/config/setting_keys.dart';
 import 'package:vibe/vibe/vibe_haptics.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
 import 'package:vibe/widgets/vibe_app.dart';
+import 'package:vibe/utils/matrix_live_kit_calls/matrix_live_kit_call.dart';
+import 'package:vibe/widgets/matrix.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:matrix/matrix.dart';
@@ -72,12 +74,65 @@ abstract class VibeCall {
 
   static bool _inCall = false;
 
-  /// Start a call from the chat pane ("voice-call" / "video-call").
+  /// Start a call from the chat pane ("voice-call" / "video-call"): a
+  /// native call when that's switched on and possible here, otherwise (or
+  /// with [element]) Element Call.
   static Future<void> startFrom(
     BuildContext context,
     Room room, {
     required bool video,
-  }) => _open(context, room, video: video);
+    bool element = false,
+  }) async {
+    if (!element && await nativeAvailable(room)) {
+      if (!context.mounted) return;
+      return openNative(context, room, video: video);
+    }
+    if (!context.mounted) return;
+    return _open(context, room, video: video);
+  }
+
+  /// Whether a server has a native call service, per account.
+  static final Map<String, bool> _native = {};
+
+  /// Native calls are switched on, and this chat already has one going or
+  /// the server offers a call service.
+  static Future<bool> nativeAvailable(Room room) async {
+    if (!AppSettings.vibeNativeCalls.value) return false;
+    if (room.hasActiveMatrixRtcCall) return true;
+    final key = room.client.userID ?? '';
+    final known = _native[key];
+    if (known != null) return known;
+    try {
+      final urls = await room.client.getLiveKitServiceUrls();
+      return _native[key] = urls.isNotEmpty;
+    } catch (e) {
+      Logs().w('Keepr call: no native call service found', e);
+      return false;
+    }
+  }
+
+  /// Opens the native call screen over the app.
+  static Future<void> openNative(
+    BuildContext context,
+    Room room, {
+    required bool video,
+  }) async {
+    stopRinging();
+    final matrix = Matrix.of(context);
+    // the preview starts the camera even for a voice call (it's muted)
+    final perms = await [Permission.microphone, Permission.camera].request();
+    if (perms[Permission.microphone] != PermissionStatus.granted) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Keepr needs the microphone for calls')),
+        );
+      }
+      return;
+    }
+    matrix.activeCallVideo = video;
+    matrix.callPosition.value = CallPosition.fullScreen;
+    matrix.activeCallRoomId.value = room.id;
+  }
 
   /// Voice or video? (kept for older entry points)
   static Future<void> pickAndStart(BuildContext context, Room room) async {
