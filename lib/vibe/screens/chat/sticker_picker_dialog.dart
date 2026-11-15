@@ -17,9 +17,13 @@ class StickerPickerDialog extends StatefulWidget {
   final Room room;
   final void Function(ImagePackImageContent) onSelected;
 
+  /// Stickers, or the chat's custom emoji (for reactions).
+  final ImagePackUsage usage;
+
   const StickerPickerDialog({
     required this.onSelected,
     required this.room,
+    this.usage = ImagePackUsage.sticker,
     super.key,
   });
 
@@ -39,7 +43,7 @@ class StickerPickerDialogState extends State<StickerPickerDialog> {
     final hidden = VibeStickers.hidden();
     // Your personal pack is split into its packs (Vibey, Love, imported…)
     final stickerPacks = <String, ImagePackContent>{};
-    widget.room.getImagePacks(ImagePackUsage.sticker).forEach((slug, pack) {
+    widget.room.getImagePacks(widget.usage).forEach((slug, pack) {
       if (slug == 'user') {
         final groups = <String, Map<String, Object?>>{};
         pack.images.forEach((k, v) {

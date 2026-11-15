@@ -7,15 +7,19 @@ import 'package:vibe/vibe/vibe_haptics.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
 import 'package:vibe/vibe/vibe_settings_style.dart';
 import 'package:flutter/material.dart';
+import 'package:matrix/matrix.dart';
+import 'package:vibe/vibe/screens/chat/sticker_picker_dialog.dart';
 
 Color get _blurple => VibePalette.accent;
 
 /// Vibe's emoji picker for reactions: Vibe colours, a search box at the top,
-/// a row of animated favourites, then every emoji by category.
+/// a row of animated favourites, then every emoji by category. With a
+/// [room] that has custom emoji, a Custom tab shows them (picking one gives
+/// its mxc:// link, which reactions show as the image).
 abstract class VibeEmojiSheet {
   static const _popular = ['❤️', '👍', '😂', '🔥', '😮', '😢', '🎉', '🙏'];
 
-  static Future<String?> pick(BuildContext context) {
+  static Future<String?> pick(BuildContext context, {Room? room}) {
     return showVibeSheet<String>(
       context: context,
       useRootNavigator: true,
@@ -27,13 +31,14 @@ abstract class VibeEmojiSheet {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      builder: (ctx) => const RepaintBoundary(child: _Sheet()),
+      builder: (ctx) => RepaintBoundary(child: _Sheet(room: room)),
     );
   }
 }
 
 class _Sheet extends StatefulWidget {
-  const _Sheet();
+  final Room? room;
+  const _Sheet({this.room});
 
   @override
   State<_Sheet> createState() => _SheetState();
@@ -45,6 +50,7 @@ class _SheetState extends State<_Sheet> {
   final _utils = EmojiPickerUtils();
   List<Emoji> _results = const [];
   String _query = '';
+  bool _custom = false;
 
   @override
   void dispose() {
@@ -77,6 +83,9 @@ class _SheetState extends State<_Sheet> {
     final t1 = VibeSettingsStyle.text(context);
     final t2 = VibeSettingsStyle.text2(context);
     final height = MediaQuery.sizeOf(context).height * 0.62;
+    final room = widget.room;
+    final hasCustom =
+        room != null && room.getImagePacks(ImagePackUsage.emoticon).isNotEmpty;
     final keyboard = MediaQuery.viewInsetsOf(context).bottom;
 
     final searchBox = Container(
@@ -209,10 +218,33 @@ class _SheetState extends State<_Sheet> {
         height: height,
         child: Column(
           children: [
-            searchBox,
-            if (_query.isEmpty) popular,
-            // The big emoji grid is built once the pane has slid up.
-            Expanded(child: VibeSettled(child: body)),
+            if (hasCustom)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                child: SegmentedButton<bool>(
+                  showSelectedIcon: false,
+                  segments: const [
+                    ButtonSegment(value: false, label: Text('Emoji')),
+                    ButtonSegment(value: true, label: Text('Custom')),
+                  ],
+                  selected: {_custom},
+                  onSelectionChanged: (s) => setState(() => _custom = s.first),
+                ),
+              ),
+            if (_custom && room != null)
+              Expanded(
+                child: StickerPickerDialog(
+                  room: room,
+                  usage: ImagePackUsage.emoticon,
+                  onSelected: (image) => _pick(image.url.toString()),
+                ),
+              )
+            else ...[
+              searchBox,
+              if (_query.isEmpty) popular,
+              // The big emoji grid is built once the pane has slid up.
+              Expanded(child: VibeSettled(child: body)),
+            ],
           ],
         ),
       ),

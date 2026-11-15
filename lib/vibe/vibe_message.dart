@@ -1120,6 +1120,7 @@ class VibeMessage extends StatelessWidget {
                                                   onPressed: () async {
                                                     final emoji = await VibeEmojiSheet.pick(
                                                       context,
+                                                      room: event.room,
                                                     );
                                                     if (emoji == null) {
                                                       return;

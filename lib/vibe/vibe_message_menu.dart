@@ -127,7 +127,7 @@ class _Menu extends StatelessWidget {
     final parent = controller.context;
     _close();
     if (!parent.mounted) return;
-    final emoji = await VibeEmojiSheet.pick(parent);
+    final emoji = await VibeEmojiSheet.pick(parent, room: event.room);
     if (emoji != null) await event.room.sendReaction(event.eventId, emoji);
   }
 

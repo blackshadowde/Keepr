@@ -315,7 +315,7 @@ class _OrbitState extends State<_Orbit> {
     final parent = c.context;
     await _close();
     if (!parent.mounted) return;
-    final emoji = await VibeEmojiSheet.pick(parent);
+    final emoji = await VibeEmojiSheet.pick(parent, room: e.room);
     if (emoji != null) await e.room.sendReaction(e.eventId, emoji);
   }
 
