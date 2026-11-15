@@ -169,9 +169,13 @@ class _MxcImageState extends State<MxcImage> {
     try {
       await _load();
     } on Exception catch (e) {
-      // The download helper throws a plain Exception for any non-200 answer
-      // (rate limit, 5xx ...), so retry on every kind of failure.
+      // Retry on failures (rate limit, 5xx, no connection …), but not when
+      // the server says the file is gone.
       if (!mounted) return;
+      if (e is MatrixException && e.error == MatrixError.M_NOT_FOUND) {
+        Logs().d('Image not on the server', e);
+        return;
+      }
       if (_attempt >= _backoffSeconds.length) {
         Logs().w('Giving up loading mxc image', e);
         return;

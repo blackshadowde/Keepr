@@ -52,7 +52,9 @@ class StateMessage extends StatelessWidget {
                       child: Text.rich(
                         TextSpan(
                           children: [
-                            if (event.type != EventTypes.Encrypted)
+                            // a deleted message isn't "can't decrypt"
+                            if (event.type != EventTypes.Encrypted ||
+                                event.redacted)
                               TextSpan(
                                 text: event.vibeBodyFallback(
                                   MatrixLocals(L10n.of(context)),

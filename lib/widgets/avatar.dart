@@ -52,8 +52,9 @@ class Avatar extends StatelessWidget {
     final name = this.name?.trim();
     if (name == null || name.isEmpty) return '@';
     final words = name.split(' ');
-    if (words.length <= 1) return name.substring(0, 1);
-    return '${words.first.substring(0, 1)}${words.last.substring(0, 1)}';
+    // whole characters, so an emoji or accented letter isn't cut in half
+    if (words.length <= 1) return name.characters.first;
+    return '${words.first.characters.first}${words.last.characters.first}';
   }
 
   Widget _dot(ThemeData theme, Color dotColor) {

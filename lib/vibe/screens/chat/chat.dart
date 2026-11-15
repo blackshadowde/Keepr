@@ -759,16 +759,14 @@ class ChatController extends State<ChatPageWithRoom>
     setReadMarker();
   }
 
-  Future<void>? _setReadMarkerFuture;
+  /// The event a read marker is being sent for right now.
+  String? _setReadMarkerEventId;
 
   void setReadMarker({String? eventId}) {
     // Do not send read markers when app is not in foreground
     if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
       return;
     }
-
-    // We are already setting a read marker
-    if (_setReadMarkerFuture != null) return;
 
     // We only set read marker if we are at the bottom
     if (_scrolledUp) return;
@@ -781,24 +779,40 @@ class ChatController extends State<ChatPageWithRoom>
     if (timeline == null || timeline.events.isEmpty) return;
 
     final setOnLatestEvent = eventId == null;
-    eventId ??= timeline.events
-        .firstWhereOrNull(
-          (event) => room.pushRuleState == PushRuleState.notify
-              ? room.client.pushruleEvaluator.match(event).notify
-              : {
-                      EventTypes.Message,
-                      EventTypes.Encrypted,
-                      EventTypes.Sticker,
-                    }.contains(event.type) &&
-                    event.eventId.isValidMatrixIdStrict(),
-        )
-        ?.eventId;
+    eventId ??= timeline.events.firstWhereOrNull((event) {
+      // the newest event
+      if (event.eventId == room.lastEvent?.eventId) return true;
+      if (room.pushRuleState != PushRuleState.notify) {
+        return {
+              EventTypes.Message,
+              EventTypes.Encrypted,
+              EventTypes.Sticker,
+            }.contains(event.type) &&
+            event.eventId.isValidMatrixIdStrict();
+      }
+      if (room.client.pushruleEvaluator.match(event).notify) return true;
+      // the server's push rules saw it still encrypted
+      final original = event.originalSource;
+      return original != null &&
+          room.client.pushruleEvaluator
+              .match(Event.fromMatrixEvent(original, room))
+              .notify;
+    })?.eventId;
+
+    // still unread: the newest event
+    if (setOnLatestEvent && (room.hasNewMessages || room.isUnread)) {
+      eventId ??=
+          room.lastEvent?.eventId ?? timeline.events.firstOrNull?.eventId;
+    }
 
     // There is no event we could place a read marker
     if (eventId == null) return;
 
     // This is a sending event, we do not set a readmarker yet
     if (eventId.isValidMatrixIdStrict() == false) return;
+
+    // Already sending a read marker for this event (a newer one still goes)
+    if (_setReadMarkerEventId == eventId) return;
 
     // Already set a read marker on this event (and the server agrees)
     if (room.fullyRead == eventId && room.notificationCount == 0) return;
@@ -812,10 +826,11 @@ class ChatController extends State<ChatPageWithRoom>
     }
 
     Logs().d('Set read marker...', eventId);
+    // Vibe: if the request fails (bad connection) it tries again a few
+    // times, so this chat doesn't stop sending read markers.
+    final sending = _setReadMarkerEventId = eventId;
     // ignore: unawaited_futures
-    // Vibe: if the request fails (bad connection) the old code never cleared
-    // the future, so this chat stopped sending read markers until reopened.
-    _setReadMarkerFuture = timeline
+    timeline
         .setReadMarker(
           eventId: eventId,
           public: AppSettings.sendPublicReadReceipts.value,
@@ -832,7 +847,7 @@ class ChatController extends State<ChatPageWithRoom>
           return 0;
         })
         .whenComplete(() {
-          _setReadMarkerFuture = null;
+          if (_setReadMarkerEventId == sending) _setReadMarkerEventId = null;
         });
   }
 
@@ -1509,10 +1524,20 @@ class ChatController extends State<ChatPageWithRoom>
   Future<void> scrollToEventId(
     String eventId, {
     bool highlightEvent = true,
+    bool timelineReloaded = false,
   }) async {
     final foundEvent = timeline!.events.firstWhereOrNull(
       (event) => event.eventId == eventId,
     );
+
+    // a message in a thread: go to the thread's first message
+    final threadRootId =
+        foundEvent?.relationshipType == RelationshipTypes.thread
+        ? foundEvent?.relationshipEventId
+        : null;
+    if (activeThreadId == null && threadRootId != null) {
+      return scrollToEventId(threadRootId, highlightEvent: highlightEvent);
+    }
 
     final eventIndex = foundEvent == null
         ? -1
@@ -1524,6 +1549,9 @@ class ChatController extends State<ChatPageWithRoom>
               .indexOf(foundEvent);
 
     if (eventIndex == -1) {
+      // loaded but hidden, or still not there after reloading: stop, instead
+      // of reloading forever
+      if (foundEvent != null || timelineReloaded) return;
       setState(() {
         timeline = null;
         _scrolledUp = false;
@@ -1536,7 +1564,11 @@ class ChatController extends State<ChatPageWithRoom>
       });
       await loadTimelineFuture;
       WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-        scrollToEventId(eventId);
+        scrollToEventId(
+          eventId,
+          highlightEvent: highlightEvent,
+          timelineReloaded: true,
+        );
       });
       return;
     }
@@ -1587,14 +1619,15 @@ class ChatController extends State<ChatPageWithRoom>
     if (emoji == null) return;
     final text = sendController.text;
     final selection = sendController.selection;
-    final newText = sendController.text.isEmpty
-        ? emoji.emoji
-        : text.replaceRange(selection.start, selection.end, emoji.emoji);
+    // no cursor in the box yet: add it at the end
+    final valid = selection.isValid && selection.start >= 0;
+    final start = valid ? selection.start : text.length;
+    final end = valid ? selection.end : text.length;
     sendController.value = TextEditingValue(
-      text: newText,
+      text: text.replaceRange(start, end, emoji.emoji),
       selection: TextSelection.collapsed(
         // don't forget an UTF-8 combined emoji might have a length > 1
-        offset: selection.baseOffset + emoji.emoji.length,
+        offset: start + emoji.emoji.length,
       ),
     );
   }

@@ -228,6 +228,7 @@ class PublicRoomDialog extends StatelessWidget {
                             ).scale(1),
                             textAlign: .start,
                             options: const LinkifyOptions(humanize: false),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                             linkStyle: TextStyle(
                               color: theme.colorScheme.primary,
                               decoration: TextDecoration.underline,

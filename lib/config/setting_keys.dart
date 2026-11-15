@@ -177,7 +177,10 @@ enum AppSettings<T> {
   static SharedPreferences? _store;
 
   static Future<void> reset({bool loadWebConfigFile = true}) async {
-    await AppSettings._store!.clear();
+    // only these settings: signed-in accounts and everything else stay
+    for (final setting in AppSettings.values) {
+      await AppSettings.store.remove(setting.key);
+    }
     await init(loadWebConfigFile: loadWebConfigFile);
   }
 

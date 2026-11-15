@@ -31,8 +31,12 @@ import 'package:flutter_shortcuts_new/flutter_shortcuts_new.dart';
 import 'package:http/http.dart' as http;
 import 'package:matrix/matrix.dart' hide Result;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:synchronized/synchronized.dart';
 
 final Map<String, DateTime> lastReceivedPushNotification = {};
+
+/// One push at a time, so two arriving together don't race on the database.
+final _pushLock = Lock();
 
 /// Events already notified (Direct connection and the Firebase backup can
 /// both deliver the same message): each is shown once.
@@ -77,14 +81,17 @@ Future<void> pushHelper(
   l10n ??= await lookupL10n(PlatformDispatcher.instance.locale);
 
   try {
-    await _tryPushHelper(
-      notification,
-      knownEvent: knownEvent,
-      clients: clients,
-      l10n: l10n,
-      activeRoomId: activeRoomId,
-      flutterLocalNotificationsPlugin: flutterLocalNotificationsPlugin,
-    ).timeout(const Duration(seconds: 30));
+    final strings = l10n;
+    await _pushLock.synchronized(
+      () => _tryPushHelper(
+        notification,
+        knownEvent: knownEvent,
+        clients: clients,
+        l10n: strings,
+        activeRoomId: activeRoomId,
+        flutterLocalNotificationsPlugin: flutterLocalNotificationsPlugin,
+      ).timeout(const Duration(seconds: 30)),
+    );
   } catch (e, s) {
     if (e.toString() == 'Exception: Client is not logged in.') {
       Logs().w('Ignore push notification, when not logged in', e);
@@ -133,7 +140,8 @@ Future<void> pushHelper(
     }
     rethrow;
   } finally {
-    ForegroundServices.stopService('background_push');
+    // another push still waiting keeps the service running
+    if (!_pushLock.locked) ForegroundServices.stopService('background_push');
   }
 }
 

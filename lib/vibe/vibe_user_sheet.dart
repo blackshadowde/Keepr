@@ -221,7 +221,7 @@ class _SheetState extends State<_Sheet> {
                     child: Text(
                       displayName.isEmpty
                           ? '@'
-                          : displayName.substring(0, 1).toUpperCase(),
+                          : displayName.characters.first.toUpperCase(),
                       style: TextStyle(
                         fontSize: 96,
                         fontWeight: FontWeight.bold,

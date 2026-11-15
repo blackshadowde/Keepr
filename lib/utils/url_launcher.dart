@@ -67,9 +67,8 @@ class UrlLauncher {
     if (!{'https', 'http'}.contains(uri.scheme)) {
       // just launch non-https / non-http uris directly
 
-      // we need to transmute geo URIs on desktop and on iOS
-      if ((!PlatformInfos.isMobile || PlatformInfos.isIOS) &&
-          uri.scheme == 'geo') {
+      // we need to transmute geo URIs on every platform
+      if (uri.scheme == 'geo') {
         final latlong = uri.path
             .split(';')
             .first
@@ -85,6 +84,13 @@ class UrlLauncher {
             // https://developer.apple.com/library/archive/featuredarticles/iPhoneURLScheme_Reference/MapLinks/MapLinks.html
             final ll = '${latlong.first},${latlong.last}';
             launchUrlString('https://maps.apple.com/?q=$ll&sll=$ll');
+          } else if (PlatformInfos.isAndroid) {
+            // Google Maps ignores the coordinates in the path of geo URIs and
+            // only puts a pin on the q parameter; the label stops it snapping
+            // to the nearest named place
+            final ll = '${latlong.first},${latlong.last}';
+            final label = Uri.encodeComponent('Shared location');
+            launchUrlString('geo:$ll?q=$ll($label)');
           } else {
             // transmute geo URIs on desktop to openstreetmap links, as those usually can't handle
             // geo URIs

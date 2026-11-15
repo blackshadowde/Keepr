@@ -307,7 +307,7 @@ class _LoginState extends State<Login> {
                     onChanged: checkWellKnownWithCoolDown,
                     controller: usernameController,
                     textInputAction: TextInputAction.next,
-                    keyboardType: TextInputType.emailAddress,
+                    // the normal keyboard, which has the : of @name:server
                     autofillHints: loading
                         ? null
                         : [AutofillHints.username],

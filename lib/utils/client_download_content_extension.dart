@@ -51,7 +51,8 @@ extension ClientDownloadContentExtension on Client {
           : {'authorization': 'Bearer $accessToken'},
     );
     if (response.statusCode != 200) {
-      throw Exception();
+      // the server's own error (not found, rate limited …), not a blank one
+      unexpectedResponse(response, response.bodyBytes);
     }
     var imageData = response.bodyBytes;
 
