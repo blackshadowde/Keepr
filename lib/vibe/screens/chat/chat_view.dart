@@ -22,7 +22,6 @@ import 'package:vibe/vibe/screens/chat/chat_app_bar_title.dart';
 import 'package:vibe/vibe/screens/chat/chat_event_list.dart';
 import 'package:vibe/vibe/screens/chat/pinned_events.dart';
 import 'package:vibe/utils/account_config.dart';
-import 'package:vibe/utils/localized_exception_extension.dart';
 import 'package:vibe/vibe/vibe_peek.dart';
 import 'package:vibe/vibe/vibe_lock_button.dart';
 import 'package:vibe/vibe/vibe_starred.dart';
