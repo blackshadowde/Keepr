@@ -20,6 +20,7 @@ import 'package:vibe/vibe/vibe_status.dart';
 import 'package:vibe/vibe/vibe_strict.dart';
 import 'package:vibe/vibe/vibe_typing_pen.dart';
 import 'package:vibe/vibe/vibe_user_sheet.dart';
+import 'package:vibe/vibe/vibe_threads.dart';
 import 'package:vibe/widgets/avatar.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -251,6 +252,45 @@ class _ChatTitlePillState extends State<ChatTitlePill> {
     final cs = Theme.of(context).colorScheme;
     final room = widget.controller.room;
     final name = room.getLocalizedDisplayname(MatrixLocals(L10n.of(context)));
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(child: _pill(context, cs, room, name)),
+          // the chat's threads, one tap away
+          ValueListenableBuilder<int>(
+            valueListenable: VibeThreads.revision,
+            builder: (context, _, _) => FutureBuilder<bool>(
+              future: VibeThreads.hasAny(room),
+              builder: (context, snap) => snap.data != true
+                  ? const SizedBox.shrink()
+                  : Padding(
+                      padding: const EdgeInsetsDirectional.only(start: 8),
+                      child: Material(
+                        color: cs.surfaceContainerHigh.withValues(alpha: 0.9),
+                        shape: const CircleBorder(),
+                        elevation: 2,
+                        shadowColor: Colors.black26,
+                        child: IconButton(
+                          tooltip: 'Threads',
+                          icon: const Icon(VibeThreads.icon, size: 20),
+                          onPressed: () => VibeThreads.showList(
+                            context,
+                            room,
+                            onOpen: widget.controller.enterThread,
+                          ),
+                        ),
+                      ),
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _pill(BuildContext context, ColorScheme cs, Room room, String name) {
     return Align(
       alignment: AlignmentDirectional.centerStart,
       // squeezes when pressed, then grows open

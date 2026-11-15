@@ -132,6 +132,122 @@ abstract class VibeThreads {
     return true;
   }
 
+  static final Map<String, Future<bool>> _any = {};
+
+  /// Whether a chat has any threads (pinned here, or started anywhere).
+  static Future<bool> hasAny(Room room) {
+    if (ids(room.id).isNotEmpty) return Future.value(true);
+    return _any[room.id] ??= room.client
+        .getThreadRoots(room.id, limit: 1)
+        .then((r) => r.chunk.isNotEmpty)
+        .catchError((_) => false);
+  }
+
+  /// Every thread in a chat: the ones you pinned first, then all the others
+  /// the server knows (started here or in other apps). Tap one to open it.
+  static Future<void> showList(
+    BuildContext context,
+    Room room, {
+    required void Function(String eventId) onOpen,
+  }) async {
+    final pinned = ids(room.id);
+    Future<List<String>> others() async {
+      try {
+        final r = await room.client.getThreadRoots(room.id, limit: 50);
+        return [
+          for (final e in r.chunk)
+            if (!pinned.contains(e.eventId)) e.eventId,
+        ];
+      } catch (_) {
+        return const [];
+      }
+    }
+
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (context) {
+        final cs = Theme.of(context).colorScheme;
+        Widget row(String id, {required bool mine}) => FutureBuilder<Event?>(
+          future: room.getEventById(id),
+          builder: (context, snap) {
+            final root = snap.data;
+            final count = root?.unsigned
+                ?.tryGetMap<String, Object?>('m.relations')
+                ?.tryGetMap<String, Object?>('m.thread')
+                ?.tryGet<int>('count');
+            return ListTile(
+              leading: badge(context, size: 40),
+              title: Text(
+                nameOf(room.id, id, root),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Text(
+                [
+                  if (root != null) root.senderFromMemoryOrFallback.calcDisplayname(),
+                  if (count != null) count == 1 ? '1 reply' : '$count replies',
+                ].join(' · '),
+                maxLines: 1,
+              ),
+              trailing: mine
+                  ? IconButton(
+                      tooltip: 'Close thread',
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => confirmClose(context, room.id, id),
+                    )
+                  : null,
+              onTap: () {
+                Navigator.of(context).pop();
+                onOpen(id);
+              },
+            );
+          },
+        );
+        return ValueListenableBuilder<int>(
+          valueListenable: revision,
+          builder: (context, _, _) => FutureBuilder<List<String>>(
+            future: others(),
+            builder: (context, snap) {
+              final mine = ids(room.id);
+              final rest = snap.data ?? const <String>[];
+              return ListView(
+                shrinkWrap: true,
+                padding: const EdgeInsets.only(bottom: 24),
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
+                    child: Text(
+                      'Threads',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                  for (final id in mine) row(id, mine: true),
+                  if (snap.connectionState != ConnectionState.done)
+                    const Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Center(child: CircularProgressIndicator.adaptive()),
+                    )
+                  else if (mine.isEmpty && rest.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                      child: Text(
+                        'No threads yet. Hold a message and pick Thread to start one.',
+                        style: TextStyle(color: cs.onSurfaceVariant),
+                      ),
+                    ),
+                  for (final id in rest) row(id, mine: false),
+                ],
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
   /// The thread icon: a filled bubble pair on the theme's own colour.
   static const IconData icon = Icons.forum_rounded;
 
