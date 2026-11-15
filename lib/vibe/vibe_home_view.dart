@@ -541,9 +541,10 @@ class _HomeTop extends StatelessWidget {
           // your profile bar sits on top: name (or "Chats" / "Spaces" for
           // a moment after switching), search and settings
           VibeUserRow(flash: flash, onSearch: onSearch),
-          // Chats / Spaces with their unread counts, + at the end
+          // Chats / Spaces with their unread counts, + at the end (a little
+          // apart from the profile bar)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
             child: Row(
               children: [
                 _ModePill(

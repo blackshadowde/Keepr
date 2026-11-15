@@ -48,6 +48,14 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
   _Hint? _hint;
   int _hop = 0, _wiggle = 0;
   double _gaze = 0;
+
+  /// Bumped to squish Bujji (touching or petting it).
+  int _squish = 0;
+
+  /// Where it was, to lean the way it glides.
+  double? _lastX;
+  double _lean = 0;
+  Timer? _leanTimer;
   bool _sleepy = false;
 
   /// When you last scrolled (so scrolling keeps it awake without a flood).
@@ -124,6 +132,7 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
     VibeBuddy.says.removeListener(_onSays);
     VibeBuddy.dozing.value = false;
     for (final t in [
+      _leanTimer,
       _flashTimer,
       _hintTimer,
       _idle,
@@ -442,7 +451,10 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
   void _tickle() {
     VibeHaptics.medium();
     _activity(pet: true);
-    setState(() => _wiggle++);
+    setState(() {
+      _wiggle++;
+      _squish++;
+    });
     Future.delayed(const Duration(milliseconds: 350), () {
       if (mounted) setState(() => _wiggle++);
     });
@@ -474,7 +486,7 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
             ),
             ListTile(
               leading: Icon(Icons.pets_rounded, color: cs.primary),
-              title: Text('${VibeBuddy.name}: name, outfits, on or off'),
+              title: Text('${VibeBuddy.name}: outfits, on or off'),
               onTap: () => Navigator.of(ctx).pop('settings'),
             ),
           ],
@@ -528,6 +540,20 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
       _say(const _Hint("Couldn't set the reminder", Icons.alarm_off_rounded),
           mood: BuddyMood.worried);
     }
+  }
+
+  /// Leans (-1 left, 1 right) for a moment when it glides to a new spot.
+  double _leanFor(double x) {
+    final last = _lastX;
+    _lastX = x;
+    if (last != null && (x - last).abs() > 3) {
+      _lean = (x - last).sign;
+      _leanTimer?.cancel();
+      _leanTimer = Timer(const Duration(milliseconds: 450), () {
+        if (mounted) setState(() => _lean = 0);
+      });
+    }
+    return _lean;
   }
 
   /// Where the cursor is along the text box, from its left edge.
@@ -657,29 +683,41 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
                           child: _bubble(hint, cs, onLeft),
                         ),
                       ),
-                    // Bujji walks along the box with your words
+                    // Bujji floats along above the box with your words, leaning
+                    // the way it glides
                     AnimatedPositioned(
-                      duration: const Duration(milliseconds: 380),
-                      curve: Curves.easeOutBack,
+                      duration: const Duration(milliseconds: 650),
+                      curve: Curves.easeInOutSine,
                       left: x,
                       bottom: 0,
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
+                        onTapDown: (_) => setState(() => _squish++),
                         onTap: _tap,
                         onDoubleTap: _tickle,
                         onLongPress: _menu,
                         child: Semantics(
                           label: VibeBuddy.name,
                           button: true,
-                          child: VibeBuddyFace(
-                            size: size,
-                            color: cs.primary,
-                            mood: mood,
-                            prop: prop,
-                            outfit: VibeBuddy.outfit,
-                            gaze: _gaze,
-                            hop: _hop,
-                            wiggle: _wiggle,
+                          child: AnimatedRotation(
+                            turns: _leanFor(x) * 0.022,
+                            duration: const Duration(milliseconds: 420),
+                            curve: Curves.easeOutCubic,
+                            alignment: Alignment.bottomCenter,
+                            child: VibeBuddyFace(
+                              size: size,
+                              color: cs.primary,
+                              mood: mood,
+                              prop: prop,
+                              outfit: VibeBuddy.outfit,
+                              gaze: _gaze,
+                              // it watches your words in the box below
+                              look: mood == BuddyMood.sleepy ? 0 : 0.85,
+                              floating: true,
+                              hop: _hop,
+                              wiggle: _wiggle,
+                              squish: _squish,
+                            ),
                           ),
                         ),
                       ),

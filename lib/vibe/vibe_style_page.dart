@@ -336,7 +336,7 @@ class _VibeStylePageState extends State<VibeStylePage> {
             ListTile(
               leading: const Icon(Icons.pets_rounded),
               title: const Text('Typing buddy'),
-              subtitle: const Text('Name, outfits, on or off'),
+              subtitle: const Text('Bujji: outfits, on or off'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => VibeBuddyPage.open(context),
             ),

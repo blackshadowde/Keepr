@@ -23,6 +23,7 @@ class BujjiHome extends StatefulWidget {
 class _BujjiHomeState extends State<BujjiHome> {
   int _wiggle = 0;
   DateTime? _woken;
+  int _squish = 0;
 
   @override
   void initState() {
@@ -54,6 +55,7 @@ class _BujjiHomeState extends State<BujjiHome> {
           : BuddyMood.idle;
       return GestureDetector(
         behavior: HitTestBehavior.opaque,
+        onTapDown: (_) => setState(() => _squish++),
         onTap: () {
           VibeHaptics.light();
           if (mood == BuddyMood.sleepy) {
@@ -78,7 +80,10 @@ class _BujjiHomeState extends State<BujjiHome> {
             outfit: VibeBuddy.outfit,
             // peeks down at the unread cards
             gaze: widget.unread > 0 ? -0.8 : 0,
+            look: widget.unread > 0 ? 0.7 : 0,
+            floating: true,
             wiggle: _wiggle,
+            squish: _squish,
           ),
         ),
       );

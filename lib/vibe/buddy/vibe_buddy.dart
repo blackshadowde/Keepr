@@ -44,7 +44,6 @@ class BuddyOutfit {
 abstract class VibeBuddy {
   static const stateType = 'chat.keepr.buddy';
   static const _on = 'keepr.buddy.on';
-  static const _name = 'keepr.buddy.name';
   static const _share = 'keepr.buddy.share';
   static const _outfit = 'keepr.buddy.outfit';
   static const _count = 'keepr.buddy.sent';
@@ -80,20 +79,19 @@ abstract class VibeBuddy {
   static bool get bedtime => DateTime.now().hour >= 22;
 
   static bool get on => AppSettings.store.getBool(_on) ?? true;
-  static String get name => AppSettings.store.getString(_name) ?? 'Bujji';
+  /// Always Bujji.
+  static const name = 'Bujji';
   static bool get shared => AppSettings.store.getBool(_share) ?? true;
   static String get outfit => AppSettings.store.getString(_outfit) ?? 'none';
   static int get count => AppSettings.store.getInt(_count) ?? 0;
 
   static Future<void> set({
     bool? on,
-    String? name,
     bool? shared,
     String? outfit,
   }) async {
     final s = AppSettings.store;
     if (on != null) await s.setBool(_on, on);
-    if (name != null) await s.setString(_name, name);
     if (shared != null) await s.setBool(_share, shared);
     if (outfit != null) await s.setString(_outfit, outfit);
     _checked.clear();
@@ -242,8 +240,17 @@ class VibeBuddyFace extends StatefulWidget {
 
   /// Where it looks, -1 (left) to 1 (right).
   final double gaze;
+
+  /// How far down it looks, 0 (ahead) to 1 (down at the text box).
+  final double look;
+
+  /// Hovers in the air, bobbing, with its shadow on the ground below.
+  final bool floating;
   final int hop;
   final int wiggle;
+
+  /// Bump to squish it (it squashes, then wobbles like jelly).
+  final int squish;
   const VibeBuddyFace({
     required this.color,
     this.size = 40,
@@ -251,8 +258,11 @@ class VibeBuddyFace extends StatefulWidget {
     this.prop = BuddyProp.none,
     this.outfit = 'none',
     this.gaze = 0,
+    this.look = 0,
+    this.floating = false,
     this.hop = 0,
     this.wiggle = 0,
+    this.squish = 0,
     super.key,
   });
 
@@ -274,6 +284,10 @@ class _VibeBuddyFaceState extends State<VibeBuddyFace>
     vsync: this,
     duration: const Duration(milliseconds: 700),
   );
+  late final AnimationController _squish = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  );
   double _blink = 0;
   int _nextBlink = 0;
 
@@ -282,6 +296,7 @@ class _VibeBuddyFaceState extends State<VibeBuddyFace>
     super.didUpdateWidget(old);
     if (old.hop != widget.hop) _hop.forward(from: 0);
     if (old.wiggle != widget.wiggle) _wiggle.forward(from: 0);
+    if (old.squish != widget.squish) _squish.forward(from: 0);
   }
 
   @override
@@ -289,17 +304,19 @@ class _VibeBuddyFaceState extends State<VibeBuddyFace>
     _life.dispose();
     _hop.dispose();
     _wiggle.dispose();
+    _squish.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final s = widget.size;
+    final float = widget.floating;
     return SizedBox(
       width: s * 1.3,
       height: s * 1.3,
       child: AnimatedBuilder(
-        animation: Listenable.merge([_life, _hop, _wiggle]),
+        animation: Listenable.merge([_life, _hop, _wiggle, _squish]),
         builder: (context, _) {
           // blink every few seconds
           final now = DateTime.now().millisecondsSinceEpoch;
@@ -309,6 +326,17 @@ class _VibeBuddyFaceState extends State<VibeBuddyFace>
           final left = _nextBlink - now;
           _blink = left < 140 ? 1 - (left - 70).abs() / 70 : 0;
           final breathe = math.sin(_life.value * math.pi * 2);
+          final cycle = _life.value * math.pi * 2;
+          // hovering: up and down once a breath, stretching a little on the
+          // way up and squashing at the bottom, swaying gently
+          final lift = float ? 0.5 + 0.5 * math.sin(cycle) : 0.0;
+          final jelly = float ? 0.035 * math.cos(cycle) : 0.01 * breathe;
+          final sway = float ? 0.035 * math.sin(cycle + 1.2) : 0.0;
+          // squished: flat at first, then a wobble that dies away
+          final q = _squish.value;
+          final wobble = q == 0 || q == 1
+              ? 0.0
+              : math.exp(-4.5 * q) * math.cos(q * math.pi * 5);
           final h = _hop.value;
           // squash, jump, land
           final jump = h < 0.15
@@ -321,37 +349,69 @@ class _VibeBuddyFaceState extends State<VibeBuddyFace>
               : h < 0.15
               ? h / 0.15
               : h > 0.7
-              ? (1 - (h - 0.7) / 0.3) * 0.6
+              ? math.sin((h - 0.7) / 0.3 * math.pi) * 0.9
               : 0.0;
           final w = _wiggle.value;
           final tilt = w == 0
               ? 0.0
               : math.sin(w * math.pi * 6) * (1 - w) * 0.25;
-          return Transform.translate(
-            offset: Offset(0, -jump * s * 0.55 + breathe * s * 0.015),
+          final up = jump * s * 0.55 + (float ? s * (0.05 + 0.08 * lift) : 0);
+          final face = Transform.translate(
+            offset: Offset(0, -up + (float ? 0 : breathe * s * 0.015)),
             child: Transform.rotate(
-              angle: tilt,
+              angle: tilt + sway,
               alignment: Alignment.bottomCenter,
               child: Transform(
                 alignment: Alignment.bottomCenter,
                 transform: Matrix4.diagonal3Values(
-                  1 + 0.14 * squash + 0.01 * breathe,
-                  1 - 0.18 * squash - 0.01 * breathe,
+                  1 + 0.2 * squash - jelly + 0.22 * wobble,
+                  1 - 0.24 * squash + jelly - 0.22 * wobble,
                   1,
                 ),
                 child: CustomPaint(
+                  size: Size.square(s * 1.3),
                   painter: _BuddyPainter(
                     color: widget.color,
                     mood: widget.mood,
                     prop: widget.prop,
                     outfit: widget.outfit,
                     gaze: widget.gaze,
+                    look: widget.look,
+                    shadow: !float,
                     blink: _blink,
                     wave: _life.value,
                   ),
                 ),
               ),
             ),
+          );
+          if (!float) return face;
+          // its shadow stays on the ground, smaller and fainter as it rises
+          final far = (up / (s * 0.6)).clamp(0.0, 1.0);
+          return Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.bottomCenter,
+            children: [
+              Positioned(
+                bottom: 0,
+                child: Container(
+                  width: s * 0.8 * (1 - 0.35 * far),
+                  height: 6,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(6),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(
+                          alpha: 0.28 * (1 - 0.5 * far),
+                        ),
+                        blurRadius: 5,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              face,
+            ],
           );
         },
       ),
@@ -364,7 +424,8 @@ class _BuddyPainter extends CustomPainter {
   final BuddyMood mood;
   final BuddyProp prop;
   final String outfit;
-  final double gaze, blink, wave;
+  final double gaze, look, blink, wave;
+  final bool shadow;
   const _BuddyPainter({
     required this.color,
     required this.mood,
@@ -373,6 +434,8 @@ class _BuddyPainter extends CustomPainter {
     required this.gaze,
     required this.blink,
     required this.wave,
+    this.look = 0,
+    this.shadow = true,
   });
 
   @override
@@ -392,13 +455,15 @@ class _BuddyPainter extends CustomPainter {
       bottomLeft: Radius.elliptical(w * 0.4, h * 0.45),
       bottomRight: Radius.elliptical(w * 0.4, h * 0.45),
     );
-    // soft shadow under it
-    canvas.drawOval(
-      Rect.fromCenter(center: Offset(w / 2, h + 2), width: w * 0.8, height: 6),
-      Paint()
-        ..color = Colors.black.withValues(alpha: 0.25)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
-    );
+    // soft shadow under it (a floating Bujji's is on the ground instead)
+    if (shadow) {
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset(w / 2, h + 2), width: w * 0.8, height: 6),
+        Paint()
+          ..color = Colors.black.withValues(alpha: 0.25)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
+      );
+    }
     final light = Color.lerp(color, Colors.white, 0.55)!;
     final mid = Color.lerp(color, Colors.white, 0.2)!;
     canvas.drawRRect(
@@ -436,7 +501,11 @@ class _BuddyPainter extends CustomPainter {
       );
       canvas.drawRRect(r, white);
       if (hh > eh * 0.3) {
-        final p = Offset(x + look * ew * 0.22, ey + hh * 0.12);
+        // pupils follow where it looks: sideways, and down at the text box
+        final p = Offset(
+          x + look * ew * 0.22,
+          ey + hh * 0.12 + this.look * hh * 0.17,
+        );
         canvas.drawCircle(p, ew * 0.32 * scale, Paint()..color = ink);
         canvas.drawCircle(
           p + Offset(ew * 0.12, -ew * 0.14),
@@ -778,7 +847,7 @@ class _BuddyPainter extends CustomPainter {
   bool shouldRepaint(covariant _BuddyPainter old) => true;
 }
 
-/// Settings: on/off, name, whether others see it, and its outfit.
+/// Settings: on/off, whether others see it, and its outfit.
 class VibeBuddyPage extends StatefulWidget {
   const VibeBuddyPage({super.key});
 
@@ -791,14 +860,7 @@ class VibeBuddyPage extends StatefulWidget {
 }
 
 class _VibeBuddyPageState extends State<VibeBuddyPage> {
-  late final _name = TextEditingController(text: VibeBuddy.name);
-  int _wiggle = 0;
-
-  @override
-  void dispose() {
-    _name.dispose();
-    super.dispose();
-  }
+  int _wiggle = 0, _squish = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -812,13 +874,16 @@ class _VibeBuddyPageState extends State<VibeBuddyPage> {
           const SizedBox(height: 12),
           Center(
             child: GestureDetector(
+              onTapDown: (_) => setState(() => _squish++),
               onTap: () => setState(() => _wiggle++),
               child: VibeBuddyFace(
                 size: 96,
                 color: cs.primary,
                 mood: BuddyMood.happy,
                 outfit: VibeBuddy.outfit,
+                floating: true,
                 wiggle: _wiggle,
+                squish: _squish,
               ),
             ),
           ),
@@ -830,21 +895,6 @@ class _VibeBuddyPageState extends State<VibeBuddyPage> {
               await VibeBuddy.set(on: v);
               setState(() {});
             },
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: TextField(
-              controller: _name,
-              maxLength: 20,
-              textCapitalization: TextCapitalization.words,
-              decoration: const InputDecoration(labelText: 'Name'),
-              onSubmitted: (v) => VibeBuddy.set(
-                name: v.trim().isEmpty ? 'Bujji' : v.trim(),
-              ),
-              onChanged: (v) {
-                if (v.trim().isNotEmpty) VibeBuddy.set(name: v.trim());
-              },
-            ),
           ),
           ListTile(
             leading: const Icon(Icons.sticky_note_2_outlined),
