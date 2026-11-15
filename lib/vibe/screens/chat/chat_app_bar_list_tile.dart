@@ -13,7 +13,8 @@ class ChatAppBarListTile extends StatelessWidget {
   final Widget? trailing;
   final void Function()? onTap;
 
-  static const double fixedHeight = 40.0;
+  /// A 42 high card with 3 above and below.
+  static const double fixedHeight = 48.0;
 
   const ChatAppBarListTile({
     super.key,
@@ -28,8 +29,18 @@ class ChatAppBarListTile extends StatelessWidget {
     final theme = Theme.of(context);
     final leading = this.leading;
     final trailing = this.trailing;
-    return SizedBox(
-      height: fixedHeight,
+    // its own card, like the name pill, so it reads over the messages
+    // scrolling under the see-through bar
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 3, 12, 3),
+      child: Material(
+      color: theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.96),
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      elevation: 2,
+      shadowColor: Colors.black26,
+      child: SizedBox(
+      height: fixedHeight - 6,
       child: InkWell(
         onTap: onTap,
         child: Row(
@@ -45,12 +56,12 @@ class ChatAppBarListTile extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: theme.colorScheme.onSurfaceVariant,
+                    color: theme.colorScheme.onSurface,
                     overflow: TextOverflow.ellipsis,
                     fontSize: 14,
                   ),
                   linkStyle: TextStyle(
-                    color: theme.colorScheme.onSurfaceVariant,
+                    color: theme.colorScheme.onSurface,
                     fontSize: 14,
                     decoration: TextDecoration.underline,
                     decorationColor: theme.colorScheme.onSurfaceVariant,
@@ -62,6 +73,8 @@ class ChatAppBarListTile extends StatelessWidget {
             ?trailing,
           ],
         ),
+      ),
+      ),
       ),
     );
   }
