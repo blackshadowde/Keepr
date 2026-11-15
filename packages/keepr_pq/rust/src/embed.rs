@@ -24,9 +24,13 @@ static MODEL: Mutex<Option<Model>> = Mutex::new(None);
 
 fn load(model: &str, tok: &str) -> Result<(), String> {
     let tok = Tokenizer::from_file(tok).map_err(|e| e.to_string())?;
+    // the shape hints stored in exported files can disagree with the real
+    // shapes; tract works them out itself
     let mut m = tract_onnx::onnx()
+        .with_ignore_output_shapes(true)
+        .with_ignore_value_info(true)
         .model_for_path(model)
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format!("{e:?}"))?;
     let n = m.inputs.len();
     let mut names = Vec::new();
     for i in 0..n {
@@ -38,7 +42,7 @@ fn load(model: &str, tok: &str) -> Result<(), String> {
     let plan = m
         .into_optimized()
         .and_then(|m| m.into_runnable())
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format!("{e:?}"))?;
     *MODEL.lock().map_err(|_| "lock".to_string())? = Some(Model { plan, tok, inputs: names });
     Ok(())
 }
