@@ -2733,5 +2733,10 @@
     "unifiedPushDistributors": "Unified Push Verteiler:",
     "doubleTapToReact": "Doppeltippen, um zu reagieren",
     "doubleTapToReactDescription": "Doppeltippen auf eine Nachricht, um zu reagieren, statt um Text auszuwählen",
-    "doubleTapReaction": "Doppeltippreaktion"
+    "doubleTapReaction": "Doppeltippreaktion",
+    "decline": "Ablehnen",
+    "doYouAlsoWantToBlock": "Möchten Sie das Konto zusätzlich sperren?",
+    "declineAndBlock": "Ablehnen und blockieren",
+    "senderHasInvitedYouToTheChat": "{sender} hat dich zum Chat '{nameOrAlias}' eingeladen.",
+    "senderHasInvitedYouToTheSpace": "{sender} hat Dich zum Bereich '{nameOrAlias}' eingeladen."
 }

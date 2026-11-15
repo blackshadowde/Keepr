@@ -2255,5 +2255,6 @@
     "identityServer": "Identifikavimo serveris:",
     "versionWithNumber": "Versija: {version}",
     "logs": "Žurnalai",
-    "matrixId": "„Matrix“ ID"
+    "matrixId": "„Matrix“ ID",
+    "decline": "Atmesti"
 }

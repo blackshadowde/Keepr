@@ -2724,5 +2724,6 @@
     "unifiedPushDistributors": "Distributor Unified Push:",
     "doubleTapToReact": "Ketuk dua kali untuk bereaksi",
     "doubleTapToReactDescription": "Ketuk dua kali pada pesan untuk bereaksi alih-alih memilih teks",
-    "doubleTapReaction": "Reaksi ketuk dua kali"
+    "doubleTapReaction": "Reaksi ketuk dua kali",
+    "decline": "Tolak"
 }

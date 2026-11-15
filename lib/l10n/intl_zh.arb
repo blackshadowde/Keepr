@@ -2732,5 +2732,10 @@
     "unifiedPushDistributors": "Unified Push 分发程序：",
     "doubleTapToReact": "轻按两次回应",
     "doubleTapToReactDescription": "轻按消息两次进行回应而非选中文本",
-    "doubleTapReaction": "轻按两次回应"
+    "doubleTapReaction": "轻按两次回应",
+    "decline": "拒绝",
+    "doYouAlsoWantToBlock": "你还想封禁该用户吗？",
+    "declineAndBlock": "拒绝并封禁",
+    "senderHasInvitedYouToTheChat": "{sender} 已邀请你到名为 '{nameOrAlias}' 的聊天。",
+    "senderHasInvitedYouToTheSpace": "{sender} 已邀请你到 '{nameOrAlias}'空间。"
 }

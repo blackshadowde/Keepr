@@ -2732,5 +2732,10 @@
     "unifiedPushDistributors": "Unified Pushi tõuketeenuste levitajad:",
     "doubleTapToReact": "Reageerimiseks topeltklõpsa",
     "doubleTapToReactDescription": "Teksti valimise asemel saad reageerida sõnumil topeltklõpsamisega",
-    "doubleTapReaction": "Reageerimine topeltklõpsamisel"
+    "doubleTapReaction": "Reageerimine topeltklõpsamisel",
+    "decline": "Keeldu",
+    "doYouAlsoWantToBlock": "Kas sa lisaks tahaksid selle kasutaja ka blokeerida?",
+    "declineAndBlock": "Keeldu ja blokeeri",
+    "senderHasInvitedYouToTheChat": "{sender} on saatnud sulle kutse osalemaks vestluses '{nameOrAlias}'.",
+    "senderHasInvitedYouToTheSpace": "{sender} on saatnud sulle kutse osalemaks kogukonnas '{nameOrAlias}'."
 }

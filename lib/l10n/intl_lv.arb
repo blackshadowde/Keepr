@@ -2650,5 +2650,6 @@
     "unifiedPushDistributors": "Vienotās pašpiegādes nodrošinātāji:",
     "doubleTapToReact": "Divkāršs piesitiens, lai atsauktos",
     "doubleTapToReactDescription": "Divkāršs piesitiens ziņai, lai atsauktos, nevis iezīmētu tekstu",
-    "doubleTapReaction": "Atsaukšanās ar divkāršu piesišanu"
+    "doubleTapReaction": "Atsaukšanās ar divkāršu piesišanu",
+    "decline": "Noraidīt"
 }

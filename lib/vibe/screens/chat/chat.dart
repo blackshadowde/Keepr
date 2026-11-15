@@ -357,6 +357,51 @@ class ChatController extends State<ChatPageWithRoom>
     context.go('/rooms');
   }
 
+  /// Accept an invite: join, then show the chat.
+  Future<void> joinChat() async {
+    final success = await showFutureLoadingDialog(
+      context: context,
+      future: () => room.join(waitForSync: true),
+    );
+    if (!mounted || success.error != null) return;
+    if (room.isSpace) {
+      context.go('/rooms?spaceId=${room.id}');
+      return;
+    }
+    setState(() {});
+    await _tryLoadTimeline();
+  }
+
+  /// Decline an invite, and block whoever sent it if you like.
+  Future<void> declineInvite() async {
+    final l10n = L10n.of(context);
+    final answer = await showOkCancelAlertDialog(
+      context: context,
+      title: l10n.declineInvitation,
+      message: l10n.doYouAlsoWantToBlock,
+      cancelLabel: l10n.decline,
+      okLabel: l10n.declineAndBlock,
+      isDestructive: true,
+    );
+    if (answer == null || !mounted) return;
+    final sender = room
+        .getState(EventTypes.RoomMember, room.client.userID!)
+        ?.senderId;
+    final success = await showFutureLoadingDialog(
+      context: context,
+      future: () async {
+        await room.leave();
+        if (answer == OkCancelResult.ok &&
+            sender != null &&
+            sender != room.client.userID) {
+          await room.client.ignoreUser(sender);
+        }
+      },
+    );
+    if (!mounted || success.error != null) return;
+    context.go('/rooms');
+  }
+
   Future<void> requestHistory([_]) async {
     Logs().v('Requesting history...');
     await timeline?.requestHistory(historyCount: _loadHistoryCount);

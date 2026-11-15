@@ -2604,5 +2604,10 @@
     "unifiedPushDistributors": "UnifiedPush-distributører:",
     "doubleTapToReact": "Dubbelttrykk for å reagere",
     "doubleTapToReactDescription": "Dobbelt-trykk på en melding for å reagere i stedet for å merke tekst",
-    "doubleTapReaction": "Reaksjon ved dobbelttrykk"
+    "doubleTapReaction": "Reaksjon ved dobbelttrykk",
+    "decline": "Avslå",
+    "doYouAlsoWantToBlock": "Vil du også blokkere denne brukeren?",
+    "declineAndBlock": "Avslå og blokker",
+    "senderHasInvitedYouToTheChat": "{sender} har invitert deg til chatten '{nameOrAlias}'.",
+    "senderHasInvitedYouToTheSpace": "{sender} har invitert deg til romgruppen '{nameOrAlias}'.."
 }

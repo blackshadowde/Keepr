@@ -2732,5 +2732,10 @@
     "unifiedPushDistributors": "Distributeurs Unified Push :",
     "doubleTapToReact": "Double-tappez pour réagir",
     "doubleTapToReactDescription": "Double-tappez sur un message pour réagir au lieu de sélectionner du texte",
-    "doubleTapReaction": "Réaction du double appuis"
+    "doubleTapReaction": "Réaction du double appuis",
+    "decline": "Décliner",
+    "doYouAlsoWantToBlock": "Voulez-vous aussi bloquer cet utilisateur ?",
+    "declineAndBlock": "Refuser et bloquer",
+    "senderHasInvitedYouToTheChat": "{sender} vous a invité dans la discussion '{nameOrAlias}'.",
+    "senderHasInvitedYouToTheSpace": "{sender} vous a invité dans l'espace '{nameOrAlias}'."
 }

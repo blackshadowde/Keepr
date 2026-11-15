@@ -2732,5 +2732,10 @@
     "unifiedPushDistributors": "Distribuidores Unified Push:",
     "doubleTapToReact": "Doble toque para reaccionar",
     "doubleTapToReactDescription": "Fai doble toque nunha mensaxe para engadir reacción no lugar de seleccionar o texto",
-    "doubleTapReaction": "Reacción con doble toque"
+    "doubleTapReaction": "Reacción con doble toque",
+    "decline": "Rexeitar",
+    "doYouAlsoWantToBlock": "Queres tamén bloquear a esta conta?",
+    "declineAndBlock": "Rexeitar e bloquear",
+    "senderHasInvitedYouToTheChat": "{sender} convidoute á conversa '{nameOrAlias}'.",
+    "senderHasInvitedYouToTheSpace": "{sender} convidoute ao espazo '{nameOrAlias}'."
 }

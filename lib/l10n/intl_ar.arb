@@ -2588,5 +2588,6 @@
     "resetPin": "دبوس إعادة الضبط",
     "loadingMessages": "جاري تحميل الرسائل...",
     "buildDoesNotSupportFirebase": "هذا الإصدار لا يدعم خدمة firebase cloud messaging.",
-    "unableToRegisterDeviceForFirebase": "يتعذر تسجيل الجهاز في خدمة firebase cloud messaging."
+    "unableToRegisterDeviceForFirebase": "يتعذر تسجيل الجهاز في خدمة firebase cloud messaging.",
+    "decline": "رفض"
 }

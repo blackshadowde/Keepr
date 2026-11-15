@@ -2731,5 +2731,6 @@
     "unifiedPushDistributors": "Unified Push diensten:",
     "doubleTapToReact": "Dubbele tik om te reageren",
     "doubleTapToReactDescription": "Dubbele tik op een bericht om te reageren of tekst te selecteren",
-    "doubleTapReaction": "Dubbele tik reactie"
+    "doubleTapReaction": "Dubbele tik reactie",
+    "decline": "Weigeren"
 }

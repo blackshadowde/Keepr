@@ -28,7 +28,6 @@ import 'package:vibe/vibe/vibe_lock_button.dart';
 import 'package:vibe/vibe/vibe_starred.dart';
 import 'package:vibe/vibe/vibe_status.dart';
 import 'package:vibe/vibe/vibe_dm_detail.dart';
-import 'package:vibe/widgets/future_loading_dialog.dart';
 import 'package:vibe/widgets/matrix.dart';
 import 'package:vibe/widgets/mxc_image.dart';
 import 'package:flutter/material.dart';
@@ -50,13 +49,6 @@ class ChatView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    if (controller.room.membership == Membership.invite) {
-      showFutureLoadingDialog(
-        context: context,
-        future: () => controller.room.join(),
-        exceptionContext: ExceptionContext.joinRoom,
-      );
-    }
     final bottomSheetPadding = VibeThemes.isColumnMode(context) ? 16.0 : 8.0;
     final scrollUpBannerEventId = controller.scrollUpBannerEventId;
 
@@ -600,6 +592,49 @@ class ChatView extends StatelessWidget {
                                           L10n.of(context).enterNewChat,
                                         ),
                                         onPressed: controller.goToNewRoomAction,
+                                      )
+                                    // an invite: accept or decline it here
+                                    : controller.room.membership ==
+                                          Membership.invite
+                                    ? Row(
+                                        spacing: 10,
+                                        children: [
+                                          Expanded(
+                                            child: OutlinedButton.icon(
+                                              style: OutlinedButton.styleFrom(
+                                                padding: const EdgeInsets.all(
+                                                  16,
+                                                ),
+                                                foregroundColor:
+                                                    theme.colorScheme.error,
+                                              ),
+                                              icon: const Icon(
+                                                Icons.close_rounded,
+                                              ),
+                                              onPressed:
+                                                  controller.declineInvite,
+                                              label: Text(
+                                                L10n.of(context).decline,
+                                              ),
+                                            ),
+                                          ),
+                                          Expanded(
+                                            child: FilledButton.icon(
+                                              style: FilledButton.styleFrom(
+                                                padding: const EdgeInsets.all(
+                                                  16,
+                                                ),
+                                              ),
+                                              icon: const Icon(
+                                                Icons.check_rounded,
+                                              ),
+                                              onPressed: controller.joinChat,
+                                              label: Text(
+                                                L10n.of(context).accept,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       )
                                     : controller.room.canSendDefaultMessages &&
                                           controller.room.membership ==

@@ -2738,5 +2738,10 @@
     "unifiedPushDistributors": "Dáileoirí Brú Aontaithe:",
     "doubleTapToReact": "Tapáil faoi dhó le freagairt",
     "doubleTapToReactDescription": "Tapáil faoi dhó ar theachtaireacht le freagairt in ionad téacs a roghnú",
-    "doubleTapReaction": "Imoibriú tapála faoi dhó"
+    "doubleTapReaction": "Imoibriú tapála faoi dhó",
+    "decline": "Diúltaigh",
+    "doYouAlsoWantToBlock": "Ar mhaith leat an t-úsáideoir seo a bhac freisin?",
+    "declineAndBlock": "Diúltaigh agus bac",
+    "senderHasInvitedYouToTheChat": "Thug {sender} cuireadh duit chuig an gcomhrá '{nameOrAlias}'.",
+    "senderHasInvitedYouToTheSpace": "Thug {sender} cuireadh duit chuig an spás '{nameOrAlias}'."
 }

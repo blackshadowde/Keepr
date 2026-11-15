@@ -22,7 +22,8 @@ import 'package:vibe/vibe/vibe_starred.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:vibe/vibe/vibe_photo_stack.dart';
-import 'package:matrix/matrix.dart' show Event;
+import 'package:matrix/matrix.dart' show Event, Membership;
+import 'package:vibe/widgets/avatar.dart';
 import 'package:matrix/matrix_api_lite/model/event_types.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 
@@ -36,6 +37,58 @@ class ChatEventList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final timeline = controller.timeline;
+
+    // an invite: who asked you, to what (Accept and Decline are below)
+    final room = controller.room;
+    if (room.membership == Membership.invite) {
+      final me = room.unsafeGetUserFromMemoryOrFallback(room.client.userID!);
+      final sender = room
+          .unsafeGetUserFromMemoryOrFallback(me.senderId)
+          .calcDisplayname();
+      final nameOrAlias = room.name.isNotEmpty
+          ? room.name
+          : room.canonicalAlias.isNotEmpty
+          ? room.canonicalAlias
+          : null;
+      final l10n = L10n.of(context);
+      return Center(
+        child: Container(
+          padding: const EdgeInsets.all(32),
+          constraints: const BoxConstraints(maxWidth: 340),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            spacing: 16,
+            children: [
+              Avatar(
+                mxContent: room.avatar,
+                name: room.getLocalizedDisplayname(),
+                size: Avatar.defaultSize * 2.2,
+                client: room.client,
+              ),
+              Text(
+                room.getLocalizedDisplayname(),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                nameOrAlias == null
+                    ? l10n.youInvitedBy(sender)
+                    : room.isSpace
+                    ? l10n.senderHasInvitedYouToTheSpace(sender, nameOrAlias)
+                    : l10n.senderHasInvitedYouToTheChat(sender, nameOrAlias),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     if (timeline == null) {
       return const Center(child: CupertinoActivityIndicator());

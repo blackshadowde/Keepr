@@ -2725,5 +2725,6 @@
     "unifiedPushDistributors": "Дистрибьюторы Unified Push:",
     "doubleTapToReact": "Двойное касание для реакции",
     "doubleTapToReactDescription": "Для реакции на сообщение дважды коснитесь его, вместо того чтобы выделять текст",
-    "doubleTapReaction": "Двойное касание реакции"
+    "doubleTapReaction": "Двойное касание реакции",
+    "decline": "Отбой"
 }
