@@ -145,6 +145,7 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
 
   /// Bujji answered something you asked it here.
   String? _answer;
+  List<BujjiChoice> _choices = const [];
   Timer? _answerTimer;
 
   void _onSays() {
@@ -153,12 +154,14 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
     VibeBuddy.says.value = null;
     _activity(pet: true);
     _answerTimer?.cancel();
+    final last = Bujji.log.lastOrNull;
     setState(() {
       _answer = a;
+      _choices = last != null && !last.me && last.text == a ? last.choices : const [];
       _hop++;
     });
     _show(BuddyMood.happy, null, 1600);
-    _answerTimer = Timer(Duration(seconds: 6 + a.length ~/ 25), () {
+    _answerTimer = Timer(Duration(seconds: (_choices.isEmpty ? 6 : 14) + a.length ~/ 25), () {
       if (mounted) setState(() => _answer = null);
     });
   }
@@ -584,15 +587,43 @@ class _VibeBuddyBarState extends State<VibeBuddyBar> {
                     },
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(14, 9, 14, 9),
-                      child: Text(
-                        answer,
-                        maxLines: 8,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 14.5,
-                          height: 1.35,
-                          color: cs.onSecondaryContainer,
-                        ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            answer,
+                            maxLines: 8,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 14.5,
+                              height: 1.35,
+                              color: cs.onSecondaryContainer,
+                            ),
+                          ),
+                          if (_choices.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 6),
+                              child: Wrap(
+                                spacing: 6,
+                                runSpacing: 4,
+                                children: [
+                                  for (final c in _choices)
+                                    ActionChip(
+                                      visualDensity: VisualDensity.compact,
+                                      label: Text(c.label),
+                                      onPressed: () async {
+                                        final r = await Bujji.choose(
+                                          c,
+                                          roomId: widget.controller.room.id,
+                                        );
+                                        if (mounted) VibeBuddy.says.value = r.text;
+                                      },
+                                    ),
+                                ],
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ),

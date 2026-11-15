@@ -190,3 +190,53 @@ abstract final class PqSymmetric {
     return p;
   }
 }
+
+/// A small sentence model run on the phone (tract): text in, a unit vector
+/// out; close meanings give close vectors. One model at a time, shared by
+/// every isolate.
+abstract final class SentenceModel {
+  /// Loads [model] (ONNX) and its [tokenizer] (tokenizer.json). True on
+  /// success. Slow (seconds): call it off the main isolate.
+  static bool load(String model, String tokenizer) {
+    final m = model.toNativeUtf8(), t = tokenizer.toNativeUtf8();
+    try {
+      return keeprEmbedLoad(m, t) == 0;
+    } finally {
+      calloc.free(m);
+      calloc.free(t);
+    }
+  }
+
+  static void unload() => keeprEmbedUnload();
+
+  /// The vector for [text], or null if no model is loaded.
+  static Float32List? embed(String text) {
+    const cap = 1024;
+    final t = text.toNativeUtf8();
+    final out = calloc<Float>(cap);
+    try {
+      final n = keeprEmbed(t, out, cap);
+      if (n <= 0) return null;
+      return Float32List.fromList(out.asTypedList(n));
+    } finally {
+      calloc.free(t);
+      calloc.free(out);
+    }
+  }
+
+  /// SHA-256 of a file, as lowercase hex, or null if it can't be read.
+  static String? sha256File(String path) {
+    final p = path.toNativeUtf8();
+    final out = calloc<Uint8>(32);
+    try {
+      if (keeprPqSha256File(p, out) != 0) return null;
+      return out
+          .asTypedList(32)
+          .map((b) => b.toRadixString(16).padLeft(2, '0'))
+          .join();
+    } finally {
+      calloc.free(p);
+      calloc.free(out);
+    }
+  }
+}

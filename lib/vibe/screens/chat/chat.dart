@@ -920,7 +920,11 @@ class ChatController extends State<ChatPageWithRoom>
     final toBujji = VibeBuddy.on ? Bujji.forBujji(sendController.text) : null;
     if (toBujji != null) {
       sendController.clear();
-      final reply = await Bujji.handle(toBujji, roomId: room.id);
+      final reply = await Bujji.handle(
+        toBujji,
+        roomId: room.id,
+        chatName: room.isDirectChat ? room.getLocalizedDisplayname() : null,
+      );
       if (!mounted) return;
       if (reply.openChat) {
         await BujjiChatPage.open(context);

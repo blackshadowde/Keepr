@@ -35,8 +35,9 @@ void main() {
     );
     expect(a.text, contains('Gowthu birthday is'));
     expect(a.text, contains("I'll remind you"));
-    expect(a.text, contains('ask her for a date'));
-    final timed = Bujji.reminders.where((r) => r.text == 'ask her for a date');
+    // "her" is the person just talked about
+    expect(a.text, contains('ask Gowthu for a date'));
+    final timed = Bujji.reminders.where((r) => r.text == 'ask Gowthu for a date');
     expect(timed.length, 1);
     expect(timed.first.next.hour, 15);
     expect(timed.first.next.isAfter(DateTime.now()), isTrue);
@@ -64,8 +65,58 @@ void main() {
     final q = await Bujji.handle('whats naren phone number');
     expect(q.text, startsWith("I don't know"));
     expect((await Bujji.handle('chat')).openChat, isTrue);
+    // not sure what this is: it asks, and learns from the answer
     final n = await Bujji.handle('buy milk on the way home');
-    expect(n.text, 'Saved as a note.');
+    expect(n.choices.map((c) => c.id), ['remember', 'remind', 'ask']);
+    final c = await Bujji.choose(n.choices.first);
+    expect(c.text, 'Saved as a note.');
+    final again = await Bujji.handle('buy eggs too');
+    expect(again.text, 'Saved as a note.');
     expect(Bujji.log.isNotEmpty, isTrue);
+  });
+
+  BujjiReminder only(String text) =>
+      Bujji.reminders.singleWhere((r) => r.text == text);
+
+  test('the time can come first, and "ping me" is a reminder', () async {
+    await Bujji.handle('at 3 remind me to call dad');
+    expect(only('call dad').next.hour, 15);
+    await Bujji.handle('ping me in half an hour to stretch');
+    final m = only('stretch').next.difference(DateTime.now()).inMinutes;
+    expect(m, inInclusiveRange(28, 30));
+  });
+
+  test("don't let me forget, and repeating reminders", () async {
+    await Bujji.handle("Please don't let me forget to pay rent tomorrow");
+    final rent = only('pay rent').next;
+    expect(rent.hour, 9);
+    expect(rent.day, DateTime.now().add(const Duration(days: 1)).day);
+    final w = await Bujji.handle('remind me every monday at 10 to send report');
+    expect(w.text, contains('every Monday'));
+    final r = only('send report');
+    expect(r.repeat, 'weekly');
+    expect(r.next.weekday, DateTime.monday);
+    expect(r.next.hour, 10);
+    await Bujji.handle('remind me to take vitamins every day at 8 am');
+    expect(only('take vitamins').repeat, 'daily');
+  });
+
+  test('other words for the same thing, and small slips', () async {
+    await Bujji.handle('naren phone number is 98480');
+    expect((await Bujji.handle('whats narens mobile')).text, contains('98480'));
+    expect((await Bujji.handle('naren phne number?')).text, contains('98480'));
+    expect((await Bujji.handle('when was gowthu born')).text, startsWith('Gowthu birthday'));
+  });
+
+  test('asks for the time, then takes it on its own', () async {
+    final a = await Bujji.handle('remind me to water plants');
+    expect(a.text, contains('When should I remind you'));
+    await Bujji.handle('at 6 pm');
+    expect(only('water plants').next.hour, 18);
+  });
+
+  test('"her" in a reminder is the person just mentioned', () async {
+    await Bujji.handle('gowthu birthday is today, remind me to wish her tonight');
+    expect(only('wish Gowthu').next.hour, 21);
   });
 }

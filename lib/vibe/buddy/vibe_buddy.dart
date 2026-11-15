@@ -9,6 +9,7 @@ import 'package:matrix/matrix.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:vibe/config/setting_keys.dart';
 import 'package:vibe/vibe/buddy/bujji.dart';
+import 'package:vibe/vibe/buddy/bujji_model.dart';
 import 'package:vibe/vibe/vibe_status.dart';
 import 'package:vibe/widgets/adaptive_dialogs/show_ok_cancel_alert_dialog.dart';
 
@@ -852,6 +853,7 @@ class _VibeBuddyPageState extends State<VibeBuddyPage> {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => BujjiChatPage.open(context),
           ),
+          const _BujjiModelTile(),
           SwitchListTile.adaptive(
             title: const Text('Others see it'),
             subtitle: const Text(
@@ -979,6 +981,74 @@ class _VibeBuddyDimState extends State<VibeBuddyDim> {
                 child: child,
               ),
       ),
+    );
+  }
+}
+
+/// The optional sentence model: download, switch, delete.
+class _BujjiModelTile extends StatelessWidget {
+  const _BujjiModelTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<BujjiModelStatus>(
+      valueListenable: BujjiModel.status,
+      builder: (context, st, _) {
+        final have = BujjiModel.downloaded;
+        Widget sub = Text(
+          have
+              ? 'Matches questions by meaning, on this phone. Nothing is sent.'
+              : st == BujjiModelStatus.failed
+              ? "Download didn't finish. Try again."
+              : 'Optional ${BujjiModel.sizeMb} MB download from Keepr\'s GitHub '
+                    'releases. Runs on this phone; nothing is sent.',
+        );
+        Widget? end;
+        if (st == BujjiModelStatus.downloading) {
+          sub = ValueListenableBuilder<double>(
+            valueListenable: BujjiModel.progress,
+            builder: (context, p, _) => Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: LinearProgressIndicator(value: p),
+            ),
+          );
+        } else if (have) {
+          end = Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                tooltip: 'Delete',
+                icon: const Icon(Icons.delete_outline_rounded),
+                onPressed: () async {
+                  final r = await showOkCancelAlertDialog(
+                    context: context,
+                    title: 'Delete the download?',
+                    message: 'Frees ${BujjiModel.sizeMb} MB. You can download it again later.',
+                    okLabel: 'Delete',
+                    isDestructive: true,
+                  );
+                  if (r == OkCancelResult.ok) await BujjiModel.remove();
+                },
+              ),
+              Switch.adaptive(
+                value: BujjiModel.on,
+                onChanged: (v) => BujjiModel.setOn(v),
+              ),
+            ],
+          );
+        } else {
+          end = FilledButton.tonal(
+            onPressed: BujjiModel.download,
+            child: Text(st == BujjiModelStatus.failed ? 'Retry' : 'Download'),
+          );
+        }
+        return ListTile(
+          leading: const Icon(Icons.manage_search_rounded),
+          title: const Text('Understand questions better'),
+          subtitle: sub,
+          trailing: end,
+        );
+      },
     );
   }
 }

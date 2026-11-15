@@ -143,6 +143,31 @@ pub unsafe extern "C" fn keepr_embed(text: *const c_char, out: *mut f32, cap: us
     }
 }
 
+/// SHA-256 of a file into `out` (32 bytes), to check a download. 0 on
+/// success.
+#[no_mangle]
+pub unsafe extern "C" fn keepr_pq_sha256_file(path: *const c_char, out: *mut u8) -> i32 {
+    use sha2::Digest;
+    use std::io::Read;
+    let Some(p) = cstr(path) else { return -1 };
+    if out.is_null() {
+        return -1;
+    }
+    let Ok(mut f) = std::fs::File::open(p) else { return -2 };
+    let mut h = sha2::Sha256::new();
+    let mut buf = vec![0u8; 1 << 16];
+    loop {
+        match f.read(&mut buf) {
+            Ok(0) => break,
+            Ok(n) => h.update(&buf[..n]),
+            Err(_) => return -2,
+        }
+    }
+    let d = h.finalize();
+    std::ptr::copy_nonoverlapping(d.as_ptr(), out, 32);
+    0
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -157,11 +182,6 @@ mod tests {
     fn matches_meaning() {
         let dir = std::env::var("KEEPR_MODEL_DIR").expect("KEEPR_MODEL_DIR");
         load(&format!("{dir}/model.onnx"), &format!("{dir}/tokenizer.json")).unwrap();
-        {
-            let g = MODEL.lock().unwrap();
-            let e = g.as_ref().unwrap().tok.encode("how do I reach naren", true).unwrap();
-            println!("tokens {} real {}", e.get_ids().len(), e.get_attention_mask().iter().sum::<u32>());
-        }
         let q = embed("how do I reach naren").unwrap();
         let phone = embed("naren phone number: 12257383929").unwrap();
         let bday = embed("gowthu birthday: 15 November").unwrap();
