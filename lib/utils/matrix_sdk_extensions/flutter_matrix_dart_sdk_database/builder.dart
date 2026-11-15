@@ -10,6 +10,7 @@ import 'package:vibe/l10n/l10n.dart';
 import 'package:vibe/utils/client_manager.dart';
 import 'package:vibe/utils/platform_infos.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:matrix/matrix.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -107,10 +108,19 @@ Future<MatrixSdkDatabase> _constructDatabase(String clientName) async {
     path,
     options: OpenDatabaseOptions(
       version: 1,
-      // most important : apply encryption when opening the DB
-      onConfigure: helper?.applyPragmaKey,
+      // most important : apply encryption when opening the DB; incremental
+      // auto vacuum lets the file shrink again after clearing the cache
+      onConfigure: (db) =>
+          helper?.applyPragmaKey(db, ensureIncrementalAutoVacuum: true),
     ),
   );
+
+  // The sign-in, this device's encryption identity and the key cache are
+  // kept in secure storage too, so if the database has to be rebuilt you
+  // stay signed in as the same device.
+  final secureStorage = cipher == null
+      ? null
+      : FlutterSecureStorage(iOptions: iosOptions);
 
   return await MatrixSdkDatabase.init(
     clientName,
@@ -120,6 +130,13 @@ Future<MatrixSdkDatabase> _constructDatabase(String clientName) async {
     // kept; Settings > Chat > "Keep media on this phone" sets how long.
     maxFileSize: 1000 * 1000 * 100,
     fileStorageLocation: fileStorageLocation?.uri,
+    secureStorage: secureStorage == null
+        ? null
+        : (
+            read: (key) => secureStorage.read(key: key),
+            write: (key, value) => secureStorage.write(key: key, value: value),
+            delete: (key) => secureStorage.delete(key: key),
+          ),
     deleteFilesAfterDuration: AppSettings.vibeKeepMediaDays.value <= 0
         ? null
         : Duration(days: AppSettings.vibeKeepMediaDays.value),
