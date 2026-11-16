@@ -5,8 +5,6 @@ import 'package:vibe/vibe/vibe_haptics.dart';
 import 'package:vibe/vibe/vibe_name_style.dart';
 import 'package:vibe/vibe/vibe_profile_cache.dart';
 import 'package:vibe/vibe/vibe_status.dart';
-import 'package:vibe/vibe/vibe_now_playing.dart';
-import 'package:vibe/config/setting_keys.dart';
 import 'package:vibe/widgets/avatar.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
 import 'package:vibe/vibe/vibe_member_tags.dart';
@@ -21,7 +19,6 @@ import 'package:matrix/matrix.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 
 const _statusHint = 'What are you up to?';
-const _bannerColor = Color(0xFF1F2624);
 const _onlineGreen = Color(0xFF23A55A);
 Color get _blurple => VibePalette.accent;
 
@@ -214,6 +211,13 @@ class _VibeSetStatusPageState extends State<VibeSetStatusPage> {
   bool _hadStatus = false;
   late Future<Profile> _profile;
 
+  /// The "clear after" chip that's picked (none when it came from before).
+  _Clear? _choice;
+
+  /// Scrolled past the picture: the top bar shows it small with your name.
+  final _scroll = ScrollController();
+  bool _small = false;
+
   static const _emojis = [
     '😀', '😎', '🥳', '😴', '🤒', '🤔', '❤️', '🔥', '🎧', '🎮',
     '📚', '💼', '☕', '🍕', '✈️', '🚢', '⚓', '🌊', '🏖️', '🏝️',
@@ -238,9 +242,15 @@ class _VibeSetStatusPageState extends State<VibeSetStatusPage> {
       _text.text = s.text;
       _emoji = s.emoji;
       _clearAt = s.until;
+      if (s.until == null) _choice = _Clear.never;
     } else {
-      _clearAt = _resolve(_Clear.tomorrow);
+      _choice = _Clear.today;
+      _clearAt = _resolve(_Clear.today);
     }
+    _scroll.addListener(() {
+      final small = _scroll.offset > 230;
+      if (small != _small) setState(() => _small = small);
+    });
   }
 
   @override
@@ -248,6 +258,7 @@ class _VibeSetStatusPageState extends State<VibeSetStatusPage> {
     _text.dispose();
     _name.dispose();
     _focus.dispose();
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -268,68 +279,6 @@ class _VibeSetStatusPageState extends State<VibeSetStatusPage> {
         return now.add(const Duration(days: 7));
       case _Clear.never:
         return null;
-    }
-  }
-
-  String _label(_Clear c) => switch (c) {
-    _Clear.min30 => '30 minutes',
-    _Clear.hour1 => '1 hour',
-    _Clear.hour4 => '4 hours',
-    _Clear.today => 'Today',
-    _Clear.tomorrow => 'Tomorrow',
-    _Clear.week => '1 week',
-    _Clear.never => 'Don\'t clear',
-  };
-
-  String _clearText(BuildContext context) {
-    final at = _clearAt;
-    if (at == null) return 'Don\'t clear';
-    final now = DateTime.now();
-    final clock = vibeClock(context, at);
-    final today = DateTime(now.year, now.month, now.day);
-    final day = DateTime(at.year, at.month, at.day);
-    final diff = day.difference(today).inDays;
-    if (diff == 0) return 'Today at $clock';
-    if (diff == 1) return 'Tomorrow at $clock';
-    if (diff < 7) {
-      const days = [
-        'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday',
-        'Saturday', 'Sunday',
-      ];
-      return '${days[at.weekday - 1]} at $clock';
-    }
-    return '${at.day}/${at.month} at $clock';
-  }
-
-  Future<void> _pickClear() async {
-    final picked = await showVibeSheet<_Clear>(
-      context: context,
-      useRootNavigator: true,
-      showDragHandle: true,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
-              child: Text(
-                'Clear after',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-              ),
-            ),
-            for (final c in _Clear.values)
-              ListTile(
-                title: Text(_label(c)),
-                onTap: () => Navigator.pop(ctx, c),
-              ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-    if (picked != null && mounted) {
-      setState(() => _clearAt = _resolve(picked));
     }
   }
 
@@ -374,12 +323,13 @@ class _VibeSetStatusPageState extends State<VibeSetStatusPage> {
     if (picked != null && mounted) setState(() => _emoji = picked);
   }
 
-  Widget _swatch(VibeNameStyle? s) {
+  Widget _swatch(VibeNameStyle? s, [VoidCallback? also]) {
     final selected = _style == s;
     return GestureDetector(
       onTap: () {
         VibeHaptics.selection();
         setState(() => _style = s);
+        also?.call();
       },
       child: Container(
         width: 34,
@@ -474,16 +424,105 @@ class _VibeSetStatusPageState extends State<VibeSetStatusPage> {
     );
   }
 
+  /// Your name and its colours, in a pane (the pencil by your name).
+  Future<void> _editName() async {
+    await showVibeSheet<void>(
+      context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, again) {
+          final cs = Theme.of(ctx).colorScheme;
+          return Padding(
+            padding: EdgeInsets.fromLTRB(20, 0, 20, 16 + MediaQuery.viewInsetsOf(ctx).bottom),
+            child: SafeArea(
+              top: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Your name', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: _name,
+                    autofocus: true,
+                    maxLength: 64,
+                    onChanged: (_) {
+                      setState(() {});
+                      again(() {});
+                    },
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    decoration: InputDecoration(
+                      counterText: '',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide(color: cs.primary, width: 2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Text(
+                        'NAME COLOURS',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.9,
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: VibeNameText(
+                          VibeNameStyle.compose(
+                            _name.text.trim().isEmpty ? 'Your name' : _name.text.trim(),
+                            _composed,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 40,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: [
+                        _swatch(null, () => again(() {})),
+                        for (final p in VibeNameStyle.presets) _swatch(p, () => again(() {})),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: VibePressable(
+                      child: FilledButton(
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        child: const Text('Done'),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+    if (mounted) setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final dark = theme.brightness == Brightness.dark;
-    final scheme = Theme.of(context).colorScheme;
-    final pageColor = theme.scaffoldBackgroundColor;
-    final fieldColor = !VibePalette.isVibe
-        ? scheme.surfaceContainerHighest
-        : dark ? const Color(0xFF1E1F22) : const Color(0xFFEBEDEF);
     final canSave = _text.text.trim().isNotEmpty ||
         _hadStatus ||
         (_name.text.trim().isNotEmpty &&
@@ -491,527 +530,530 @@ class _VibeSetStatusPageState extends State<VibeSetStatusPage> {
                 _style != _origStyle ||
                 _pill != _origPill));
     final userId = widget.client.userID ?? '';
-    final preview = _text.text.trim().isEmpty
-        ? null
-        : (_emoji.isEmpty ? _text.text.trim() : '$_emoji ${_text.text.trim()}');
+    final top = MediaQuery.paddingOf(context).top;
+    final card = cs.surfaceContainerLow;
+    final tile = cs.surfaceContainerHigh;
+    final sub = cs.onSurfaceVariant;
+    Widget label(String t) => Text(
+      t,
+      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.9, color: sub),
+    );
+    // a settings row: a soft square with its icon, the words, a switch or ›
+    Widget row(Widget icon, String title, {String? hint, Widget? end, VoidCallback? onTap}) => VibePressable(
+      scale: 0.98,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(color: tile, borderRadius: BorderRadius.circular(12)),
+                child: icon,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w600)),
+                    if (hint != null) ...[
+                      const SizedBox(height: 2),
+                      Text(hint, style: TextStyle(fontSize: 13, color: sub)),
+                    ],
+                  ],
+                ),
+              ),
+              end ?? Icon(Icons.chevron_right_rounded, color: sub, size: 22),
+            ],
+          ),
+        ),
+      ),
+    );
+    Widget box(Widget child, {double top = 12}) => Container(
+      margin: EdgeInsets.fromLTRB(16, top, 16, 0),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(color: card, borderRadius: BorderRadius.circular(24)),
+      child: child,
+    );
+    Widget chip(_Clear c, String text) {
+      final on = _choice == c;
+      return VibePressable(
+        scale: 0.94,
+        child: GestureDetector(
+          onTap: () {
+            VibeHaptics.selection();
+            setState(() {
+              _choice = c;
+              _clearAt = _resolve(c);
+            });
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            height: 32,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: on ? cs.primaryContainer : Colors.transparent,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: on ? cs.primary : cs.outlineVariant),
+            ),
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: on ? cs.onPrimaryContainer : cs.onSurface,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        centerTitle: true,
-        title: const Text(
-          'Your profile',
-          style: TextStyle(fontWeight: FontWeight.w700),
-        ),
-        actions: [
-          TextButton(
-            onPressed: canSave && !_saving ? _save : null,
-            child: _saving
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Text(
-                    'Save',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: canSave ? _blurple : _blurple.withValues(alpha: 0.5),
-                    ),
-                  ),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
+      backgroundColor: cs.surface,
       body: FutureBuilder<Profile>(
         future: _profile,
         builder: (context, snap) {
           final p = snap.data;
-          final name = (p?.displayName?.isNotEmpty ?? false)
+          final name = _name.text.trim().isNotEmpty
+              ? _name.text.trim()
+              : (p?.displayName?.isNotEmpty ?? false)
               ? p!.displayName!
               : (userId.localpart ?? userId);
-          return ListView(
-            padding: const EdgeInsets.only(bottom: 32),
+          return Stack(
             children: [
-              // Preview, Discord style: full-width banner, round picture
-              // overlapping it, no card around it
-              ColoredBox(
-                color: pageColor,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      height: 200,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Container(height: 110, color: _bannerColor),
-                          Positioned(
-                            left: 14,
-                            top: 74,
-                            // tap your picture (or the camera) to change it
-                            child: GestureDetector(
-                              onTap: () => _changePhoto(p),
-                              child: Stack(
-                                clipBehavior: Clip.none,
-                                children: [
-                                  VibeRingAvatar(
-                                    mxc: p?.avatarUrl,
-                                    name: name,
-                                    client: widget.client,
-                                    ring: pageColor,
-                                    size: 96,
-                                  ),
-                                  Positioned(
-                                    right: 0,
-                                    bottom: 2,
-                                    child: Container(
-                                      width: 34,
-                                      height: 34,
-                                      decoration: BoxDecoration(
-                                        color: cs.primary,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(color: pageColor, width: 3),
-                                      ),
-                                      child: Icon(
-                                        Icons.photo_camera_rounded,
-                                        size: 16,
-                                        color: cs.onPrimary,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            left: 128,
-                            right: 14,
-                            top: 92,
-                            child: VibeThoughtBubble(
-                              text: preview,
-                              onTap: () => _focus.requestFocus(),
-                            ),
-                          ),
+              ListView(
+                controller: _scroll,
+                padding: EdgeInsets.zero,
+                children: [
+                  // a soft wash behind your picture, your name and your ID
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: RadialGradient(
+                        center: Alignment.topCenter,
+                        radius: 1.25,
+                        colors: [
+                          Color.lerp(cs.primary, cs.surface, 0.45)!,
+                          cs.primaryContainer.withValues(alpha: 0.85),
+                          cs.surface,
                         ],
+                        stops: const [0, 0.45, 1],
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 22),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          Text(
-                            userId.localpart ?? userId,
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: cs.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-              const SizedBox(height: 6),
-              const Padding(
-                padding: EdgeInsets.only(left: 4, bottom: 8),
-                child: Text(
-                  'DISPLAY NAME',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.6),
-                ),
-              ),
-              TextField(
-                controller: _name,
-                maxLength: 64,
-                onChanged: (_) => setState(() {}),
-                style: const TextStyle(fontSize: 15),
-                decoration: InputDecoration(
-                  counterText: '',
-                  filled: true,
-                  fillColor: fieldColor,
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.only(left: 4, bottom: 8),
-                child: Row(
-                  children: [
-                    const Text(
-                      'NAME STYLE',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.6),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: VibeNameText(
-                        VibeNameStyle.compose(
-                          _name.text.trim().isEmpty ? 'Your name' : _name.text.trim(),
-                          _composed,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(
-                height: 40,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  children: [
-                    _swatch(null),
-                    for (final p in VibeNameStyle.presets) _swatch(p),
-                  ],
-                ),
-              ),
-              // the name in a highlighted pill, like a group tag
-              SwitchListTile.adaptive(
-                contentPadding: const EdgeInsets.only(left: 4),
-                value: _pill,
-                onChanged: (v) {
-                  VibeHaptics.selection();
-                  setState(() => _pill = v);
-                },
-                title: const Text('Show my name in a pill'),
-                subtitle: const Text(
-                  'A highlighted tag around your name, in your name colours. '
-                  'Older Keepr versions show the plain name',
-                ),
-              ),
-              const SizedBox(height: 14),
-              const Padding(
-                padding: EdgeInsets.only(left: 4, bottom: 8),
-                child: Text(
-                  'USERNAME',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.6),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                decoration: BoxDecoration(
-                  color: fieldColor,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(userId, style: TextStyle(fontSize: 15, color: cs.onSurfaceVariant)),
-                    ),
-                    GestureDetector(
-                      onTap: () => _copy(userId, 'Copied'),
-                      child: Icon(Icons.copy_rounded, size: 18, color: cs.onSurfaceVariant),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(left: 4, top: 6),
-                child: Text(
-                  'Your Matrix ID can\'t be changed',
-                  style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-                ),
-              ),
-              const SizedBox(height: 22),
-              const Padding(
-                padding: EdgeInsets.only(left: 4, bottom: 8),
-                child: Text(
-                  'Status',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-                ),
-              ),
-              Container(
-                decoration: BoxDecoration(
-                  color: fieldColor,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                child: Row(
-                  children: [
-                    IconButton(
-                      onPressed: _pickEmoji,
-                      icon: _emoji.isEmpty
-                          ? Icon(
-                              Icons.emoji_emotions,
-                              color: cs.onSurfaceVariant,
-                            )
-                          : Text(_emoji, style: const TextStyle(fontSize: 22)),
-                    ),
-                    Expanded(
-                      child: TextField(
-                        controller: _text,
-                        focusNode: _focus,
-                        maxLength: 80,
-                        textCapitalization: TextCapitalization.sentences,
-                        onChanged: (_) => setState(() {}),
-                        onSubmitted: (_) => canSave ? _save() : null,
-                        decoration: const InputDecoration(
-                          hintText: _statusHint,
-                          border: InputBorder.none,
-                          counterText: '',
-                          contentPadding: EdgeInsets.symmetric(vertical: 18),
-                        ),
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                    ),
-                    if (_text.text.isNotEmpty)
-                      IconButton(
-                        tooltip: 'Clear',
-                        onPressed: () => setState(() {
-                          _text.clear();
-                          _emoji = '';
-                        }),
-                        icon: Icon(Icons.cancel, color: cs.onSurfaceVariant),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Material(
-                color: fieldColor,
-                borderRadius: BorderRadius.circular(20),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(20),
-                  onTap: _pickClear,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 20,
-                    ),
-                    child: Row(
+                    padding: EdgeInsets.only(top: top + 60, bottom: 28),
+                    child: Column(
                       children: [
-                        const Expanded(
-                          child: Text('Clear at', style: TextStyle(fontSize: 16)),
-                        ),
-                        Text(
-                          _clearText(context),
-                          style: const TextStyle(fontSize: 15),
-                        ),
-                        const SizedBox(width: 8),
-                        const Icon(Icons.chevron_right),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              if (VibeNowPlaying.supported) ...[
-                const SizedBox(height: 16),
-                Material(
-                  color: fieldColor,
-                  borderRadius: BorderRadius.circular(20),
-                  clipBehavior: Clip.antiAlias,
-                  child: SwitchListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-                    secondary: const Icon(Icons.headphones_outlined),
-                    title: const Text('Show what I\'m listening to'),
-                    subtitle: const Text(
-                      'Songs from music apps only (Spotify, YouTube Music, JioSaavn…). Never videos, films or ads',
-                    ),
-                    value: AppSettings.vibeNowPlaying.value,
-                    onChanged: (on) async {
-                      final access = await VibeNowPlaying.hasAccess();
-                      if (!mounted) return;
-                      Future<bool> ask(String title, String text, String ok) async =>
-                          await showDialog<bool>(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              title: Text(title),
-                              content: Text(text),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx, false),
-                                  child: const Text('Not now'),
+                        // tap your picture (or the camera) to change it
+                        VibePressable(
+                          scale: 0.95,
+                          child: GestureDetector(
+                            onTap: () => _changePhoto(p),
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Avatar(
+                                  mxContent: p?.avatarUrl,
+                                  name: name,
+                                  size: 112,
+                                  client: widget.client,
                                 ),
-                                FilledButton(
-                                  onPressed: () => Navigator.pop(ctx, true),
-                                  child: Text(ok),
+                                Positioned(
+                                  right: -2,
+                                  bottom: -2,
+                                  child: Container(
+                                    width: 38,
+                                    height: 38,
+                                    decoration: BoxDecoration(
+                                      color: cs.primary,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: cs.surface, width: 3),
+                                    ),
+                                    child: Icon(Icons.photo_camera_rounded, size: 18, color: cs.onPrimary),
+                                  ),
                                 ),
                               ],
                             ),
-                          ) ??
-                          false;
-                      if (on && !access) {
-                        // Android only shares the player through
-                        // "notification access": say plainly what Vibe does
-                        final go = await ask(
-                          'Allow access to the music player',
-                          'Android calls this "notification access". Keepr only '
-                              'reads the song playing in a music app. It '
-                              'disconnects right away and never receives your '
-                              'notifications. Videos, films and ads are never '
-                              'shown.\n\nYou can turn it off any time here.',
-                          'Continue',
-                        );
-                        if (!go) return;
-                        await VibeNowPlaying.openAccess();
-                      }
-                      await VibeNowPlaying.setEnabled(on);
-                      if (mounted) setState(() {});
-                      if (!on && access && mounted) {
-                        // nothing uses it any more: offer to switch it off
-                        final go = await ask(
-                          'Turn off notification access?',
-                          'Keepr no longer needs it. Switch Keepr off on the next '
-                              'screen.',
-                          'Open settings',
-                        );
-                        if (go) await VibeNowPlaying.openAccess();
-                      }
-                    },
-                  ),
-                ),
-              ],
-              if (_hadStatus) ...[
-                const SizedBox(height: 20),
-                Center(
-                  child: TextButton(
-                    onPressed: _saving ? null : () => _save(clear: true),
-                    child: Text(
-                      'Clear status',
-                      style: TextStyle(color: cs.error),
-                    ),
-                  ),
-                ),
-              ],
-              // your Keepr ID: the code right here, with Share and Copy link
-              const SizedBox(height: 22),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: fieldColor,
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: SizedBox.square(
-                        dimension: 104,
-                        child: PrettyQrView.data(
-                          data: AppConfig.shareLink(userId),
-                          // dark on white, so any phone can read it
-                          decoration: const PrettyQrDecoration(
-                            shape: PrettyQrSmoothSymbol(
-                              roundFactor: 1,
-                              color: Color(0xFF16181D),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        // your name: tap to change it and its colours
+                        GestureDetector(
+                          onTap: _editName,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Flexible(
+                                  child: VibeNameText(
+                                    VibeNameStyle.compose(name, _style),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Icon(Icons.edit_rounded, size: 18, color: sub),
+                              ],
                             ),
                           ),
                         ),
-                      ),
+                        const SizedBox(height: 4),
+                        // your Keepr ID: tap to copy it
+                        GestureDetector(
+                          onTap: () => _copy(userId, 'Copied'),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    userId,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: sub),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Icon(Icons.copy_rounded, size: 15, color: sub),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'Online',
+                          style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: Color(0xFF22A55B)),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
+                  ),
+                  // status: what you're up to, and when it clears
+                  box(
+                    Padding(
+                      padding: const EdgeInsets.all(14),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'YOUR KEEPR ID',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.6),
-                          ),
-                          const SizedBox(height: 6),
-                          const Text(
-                            'Scan or share to chat with you',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                          ),
-                          const SizedBox(height: 12),
+                          label('STATUS'),
+                          const SizedBox(height: 10),
                           Row(
                             children: [
                               VibePressable(
-                                child: FilledButton.icon(
-                                  onPressed: () => showQrCodeViewer(context, userId),
-                                  icon: const Icon(Icons.share_rounded, size: 18),
-                                  label: const Text('Share'),
+                                scale: 0.92,
+                                child: GestureDetector(
+                                  onTap: _pickEmoji,
+                                  child: Container(
+                                    width: 46,
+                                    height: 46,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      color: cs.surface,
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    child: _emoji.isEmpty
+                                        ? Icon(Icons.sentiment_satisfied_alt_outlined, size: 24, color: sub)
+                                        : Text(_emoji, style: const TextStyle(fontSize: 22)),
+                                  ),
                                 ),
                               ),
-                              const SizedBox(width: 6),
-                              IconButton.filledTonal(
-                                tooltip: 'Copy link',
-                                onPressed: () => _copy(AppConfig.shareLink(userId), 'Link copied'),
-                                icon: const Icon(Icons.copy_rounded, size: 18),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Container(
+                                  height: 46,
+                                  alignment: Alignment.centerLeft,
+                                  decoration: BoxDecoration(
+                                    color: cs.surface,
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: TextField(
+                                    controller: _text,
+                                    focusNode: _focus,
+                                    maxLength: 128,
+                                    onChanged: (_) => setState(() {}),
+                                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                                    decoration: InputDecoration(
+                                      counterText: '',
+                                      hintText: 'What are you up to?',
+                                      border: InputBorder.none,
+                                      isDense: true,
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                                      // empty it to clear your status when you save
+                                      suffixIcon: _text.text.isEmpty
+                                          ? null
+                                          : IconButton(
+                                              tooltip: 'Clear',
+                                              icon: Icon(Icons.close_rounded, size: 18, color: sub),
+                                              onPressed: () => setState(() {
+                                                _text.clear();
+                                                _emoji = '';
+                                              }),
+                                            ),
+                                    ),
+                                  ),
+                                ),
                               ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              chip(_Clear.hour1, '1 hour'),
+                              chip(_Clear.today, 'Today'),
+                              chip(_Clear.week, 'This week'),
+                              chip(_Clear.never, "Don't clear"),
                             ],
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  color: fieldColor,
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Column(
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.sell_outlined),
-                      title: const Text('Group tag'),
-                      subtitle: const Text('A short tag next to your name in groups'),
-                      trailing: const Icon(Icons.chevron_right_rounded),
-                      onTap: () => VibeMemberTags.pick(context, widget.client),
+                    top: 0,
+                  ),
+                  // your Keepr ID: the code right here, with Share and Copy link
+                  box(
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: SizedBox.square(
+                              dimension: 112,
+                              child: PrettyQrView.data(
+                                data: AppConfig.shareLink(userId),
+                                // dark on white, so any phone can read it
+                                decoration: const PrettyQrDecoration(
+                                  shape: PrettyQrSmoothSymbol(
+                                    roundFactor: 1,
+                                    color: Color(0xFF16181D),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                label('YOUR KEEPR ID'),
+                                const SizedBox(height: 6),
+                                const Text(
+                                  'Scan or share to chat with you',
+                                  style: TextStyle(fontSize: 14, height: 1.35, fontWeight: FontWeight.w600),
+                                ),
+                                const SizedBox(height: 12),
+                                Row(
+                                  children: [
+                                    VibePressable(
+                                      scale: 0.94,
+                                      child: Material(
+                                        color: cs.primary,
+                                        shape: const StadiumBorder(),
+                                        clipBehavior: Clip.antiAlias,
+                                        child: InkWell(
+                                          onTap: () => showQrCodeViewer(context, userId),
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                                            child: SizedBox(
+                                              height: 38,
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(Icons.share_rounded, size: 16, color: cs.onPrimary),
+                                                  const SizedBox(width: 6),
+                                                  Text(
+                                                    'Share',
+                                                    style: TextStyle(
+                                                      fontSize: 13.5,
+                                                      fontWeight: FontWeight.w700,
+                                                      color: cs.onPrimary,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    VibePressable(
+                                      scale: 0.9,
+                                      child: Material(
+                                        color: cs.surfaceContainerHighest,
+                                        shape: const CircleBorder(),
+                                        clipBehavior: Clip.antiAlias,
+                                        child: InkWell(
+                                          onTap: () => _copy(AppConfig.shareLink(userId), 'Link copied'),
+                                          child: SizedBox.square(
+                                            dimension: 38,
+                                            child: Icon(Icons.copy_rounded, size: 18, color: cs.onSurface),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
-                ),
-              ),
-              // what you're listening to, from Last.fm or ListenBrainz
-              const SizedBox(height: 12),
-              VibeConnectionsCard(color: fieldColor),
-              const SizedBox(height: 12),
-              Container(
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  color: fieldColor,
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Column(
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.settings_rounded),
-                      title: const Text('Settings'),
-                      trailing: const Icon(Icons.chevron_right_rounded),
+                  ),
+                  box(
+                    Column(
+                      children: [
+                        row(
+                          // a little pill outline
+                          Container(
+                            width: 20,
+                            height: 11,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: cs.onSurface, width: 2),
+                            ),
+                          ),
+                          'Show my name in a pill',
+                          hint: 'Your name and status on your messages',
+                          end: Switch(
+                            value: _pill,
+                            onChanged: (v) {
+                              VibeHaptics.selection();
+                              setState(() => _pill = v);
+                            },
+                          ),
+                          onTap: () => setState(() => _pill = !_pill),
+                        ),
+                        row(
+                          Icon(Icons.sell_rounded, size: 20, color: cs.onSurface),
+                          'Group tag',
+                          hint: 'A short tag next to your name in groups',
+                          onTap: () => VibeMemberTags.pick(context, widget.client),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // what you're listening to, from Last.fm or ListenBrainz
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                    child: VibeConnectionsCard(color: card),
+                  ),
+                  box(
+                    row(
+                      Icon(Icons.settings_rounded, size: 20, color: cs.onSurface),
+                      'Settings',
                       onTap: () {
                         final router = GoRouter.of(context);
                         Navigator.of(context).pop();
                         router.go('/rooms/settings');
                       },
                     ),
-                  ],
-                ),
+                  ),
+                  SizedBox(height: 32 + MediaQuery.paddingOf(context).bottom),
+                ],
               ),
-                  ],
+              // the top bar: close and Save; scrolled down, your picture and
+              // name join it
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 0,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  color: _small ? cs.surface : cs.surface.withValues(alpha: 0),
+                  padding: EdgeInsets.fromLTRB(12, top + 6, 12, 6),
+                  child: Row(
+                    children: [
+                      VibePressable(
+                        scale: 0.9,
+                        child: Material(
+                          color: _small ? tile : Colors.white.withValues(alpha: 0.6),
+                          shape: const CircleBorder(),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            onTap: () => Navigator.of(context).pop(),
+                            child: SizedBox.square(
+                              dimension: 44,
+                              child: Icon(Icons.close_rounded, color: _small ? cs.onSurface : Colors.black87),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: AnimatedOpacity(
+                          opacity: _small ? 1 : 0,
+                          duration: const Duration(milliseconds: 200),
+                          child: Row(
+                            children: [
+                              Avatar(
+                                mxContent: p?.avatarUrl,
+                                name: name,
+                                size: 36,
+                                client: widget.client,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      VibePressable(
+                        scale: 0.94,
+                        child: Material(
+                          color: canSave ? cs.primary : cs.primary.withValues(alpha: 0.45),
+                          shape: const StadiumBorder(),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            onTap: canSave && !_saving ? _save : null,
+                            child: SizedBox(
+                              height: 40,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 18),
+                                child: Center(
+                                  widthFactor: 1,
+                                  child: _saving
+                                      ? SizedBox.square(
+                                          dimension: 18,
+                                          child: CircularProgressIndicator(strokeWidth: 2, color: cs.onPrimary),
+                                        )
+                                      : Text(
+                                          'Save',
+                                          style: TextStyle(
+                                            fontSize: 14.5,
+                                            fontWeight: FontWeight.w700,
+                                            color: cs.onPrimary,
+                                          ),
+                                        ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],

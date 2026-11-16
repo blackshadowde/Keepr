@@ -34,6 +34,10 @@ import 'package:flutter/physics.dart';
 import 'package:go_router/go_router.dart';
 import 'package:matrix/matrix.dart';
 
+/// How far the chat list has scrolled from its top (0 to 1): the space above
+/// the home's top line folds away as you scroll, and comes back at the top.
+final _homeLift = ValueNotifier<double>(0);
+
 /// Discord-style home: [rail of DM avatars] | [Home list or selected DM].
 class VibeHomeView extends StatefulWidget {
   final ChatListController controller;
@@ -58,6 +62,8 @@ class _VibeHomeViewState extends State<VibeHomeView> {
 
   void _setMode(bool spaces) {
     _flashTimer?.cancel();
+    // the other list starts at its top, with the room above back
+    _homeLift.value = 0;
     setState(() {
       _spacesMode = spaces;
       _flash = spaces ? 'Spaces' : 'Chats';
@@ -308,6 +314,14 @@ class _VibeHomeViewState extends State<VibeHomeView> {
                         ),
                       ),
                     Expanded(
+                      // the list's scroll folds the space above the top line
+                      child: NotificationListener<ScrollNotification>(
+                        onNotification: (n) {
+                          if (n.metrics.axis == Axis.vertical && selectedId == null) {
+                            _homeLift.value = (n.metrics.pixels / 64).clamp(0.0, 1.0);
+                          }
+                          return false;
+                        },
                       // the row above already keeps clear of the status bar
                       child: MediaQuery.removePadding(
                         context: context,
@@ -374,6 +388,7 @@ class _VibeHomeViewState extends State<VibeHomeView> {
                               ),
                         ),
                         ),
+                      ),
                       ),
                       ),
                     ),
@@ -547,6 +562,11 @@ class _HomeTop extends StatelessWidget {
           // one quiet line: your picture, the page's name (tap it to switch
           // between Chats and Spaces, hold it for locked chats; Bujji sits
           // on it holding up how many chats are unread), search, new chat
+          // room above it (folds away as the list scrolls)
+          ValueListenableBuilder<double>(
+            valueListenable: _homeLift,
+            builder: (context, v, _) => SizedBox(height: 36 * (1 - v)),
+          ),
           _QuietTop(
             spaces: spacesMode,
             chatsUnread: chatsUnread,
@@ -646,7 +666,7 @@ class _QuietTop extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 12, 6),
+      padding: const EdgeInsets.fromLTRB(22, 10, 22, 10),
       child: Row(
         children: [
           BujjiSpot(
@@ -656,7 +676,7 @@ class _QuietTop extends StatelessWidget {
               builder: (context, profile) => Avatar(
                 mxContent: profile?.avatarUrl,
                 name: profile?.displayName ?? client.userID?.localpart ?? '',
-                size: 40,
+                size: 44,
                 client: client,
                 onTap: () => VibeOwnProfile.show(context, client),
                 presenceUserId: client.userID,
@@ -664,7 +684,7 @@ class _QuietTop extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
           Expanded(
             child: Row(
               children: [
@@ -888,7 +908,7 @@ class _ModeSwitchState extends State<_ModeSwitch> with SingleTickerProviderState
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final screen = MediaQuery.sizeOf(context);
-    final left = (widget.at.left - 8).clamp(12.0, math.max(12.0, screen.width - _w - 12)).toDouble();
+    final left = (widget.at.left - 6).clamp(12.0, math.max(12.0, screen.width - _w - 12)).toDouble();
     const thumbW = (_w - _pad * 2) / 2;
     final route = ModalRoute.of(context)?.animation ?? kAlwaysCompleteAnimation;
     Widget seg(bool sp) {
@@ -972,9 +992,16 @@ class _ModeSwitchState extends State<_ModeSwitch> with SingleTickerProviderState
                             ),
                         ),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.all(_pad),
-                        child: Row(children: [seg(false), seg(true)]),
+                      SizedBox(
+                        width: _w,
+                        height: _h,
+                        child: Padding(
+                          padding: const EdgeInsets.all(_pad),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [seg(false), seg(true)],
+                          ),
+                        ),
                       ),
                     ],
                   ),
