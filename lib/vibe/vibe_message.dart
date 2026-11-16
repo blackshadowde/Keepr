@@ -954,7 +954,10 @@ class VibeMessage extends StatelessWidget {
                 Widget bubbleOf(double cardW) {
                   final boxMin = math.min(maxW, math.max(0.0, cardW - (last ? reach : 0)));
                   final inner = math.max(0.0, boxMin - padNear - 14);
-                  return ConstrainedBox(
+                  // marked, so the samurai knows where the card is
+                  return MetaData(
+                    metaData: const VibeSlashBubble(),
+                    child: ConstrainedBox(
                     constraints: BoxConstraints(minWidth: boxMin, maxWidth: maxW),
                     child: _ReportWidth(
                       card: card,
@@ -1038,6 +1041,7 @@ class VibeMessage extends StatelessWidget {
                         ),
                       ),
                     ),
+                  ),
                   );
                 }
                 shown = card == null
