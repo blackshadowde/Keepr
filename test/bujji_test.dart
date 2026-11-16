@@ -115,6 +115,16 @@ void main() {
     expect(only('water plants').next.hour, 18);
   });
 
+  test('"after 2 mins", and "2 mins" as the answer to when', () async {
+    await Bujji.handle('remind me after 2 mins to call madhu anna');
+    final r = only('call madhu anna');
+    expect(r.next.difference(DateTime.now()).inSeconds, inInclusiveRange(60, 120));
+    final ask = await Bujji.handle('remind me to drink water');
+    expect(ask.text, contains('When should I remind you'));
+    await Bujji.handle('2 mins');
+    expect(only('drink water').next.difference(DateTime.now()).inSeconds, inInclusiveRange(60, 120));
+  });
+
   test('"her" in a reminder is the person just mentioned', () async {
     await Bujji.handle('gowthu birthday is today, remind me to wish her tonight');
     expect(only('wish Gowthu').next.hour, 21);

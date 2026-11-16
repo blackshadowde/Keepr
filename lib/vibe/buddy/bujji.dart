@@ -505,6 +505,18 @@ abstract class Bujji {
       if (at != null && _words(left).isEmpty) {
         return _setReminder(pending, at, repeat, roomId);
       }
+      // a short answer that sounds like a time it couldn't read: keep the
+      // task and ask again, instead of forgetting it
+      final timeish = RegExp(
+        r'\d|\b(mins?|minutes?|hours?|hrs?|tomorrow|tonight|morning|evening|noon|later)\b',
+      ).hasMatch(low);
+      if (at == null && timeish && low.trim().split(RegExp(r'\s+')).length <= 4) {
+        _pending = pending;
+        return const BujjiReply(
+          'I couldn\'t read that time. Try "in 2 minutes", "at 6 pm" or '
+          '"tomorrow morning".',
+        );
+      }
     }
 
     if (low.contains('remind me')) return _remind(text, low, roomId, chatName);
@@ -870,18 +882,38 @@ abstract class Bujji {
       }
     }
 
-    // "in 20 minutes", "in half an hour", "in a week"
-    final rel = RegExp(
-      r'\bin\s+(\d+|a|an|one|two|three|half an?)\s*(minutes?|mins?|hours?|hrs?|days?|weeks?)\b',
-    ).firstMatch(rest);
+    // "in 20 minutes", "after 2 mins", "half an hour from now", or just
+    // "10 minutes" on its own (the answer to "when should I remind you?")
+    const amount =
+        r'(\d+|a couple of|couple of|a|an|one|two|three|four|five|six|seven|eight|nine|ten|fifteen|twenty|thirty|forty five|forty|half an?)';
+    const unit = r'(minutes?|mins?|hours?|hrs?|days?|weeks?)';
+    final rel =
+        RegExp(
+          '\\b(?:in|after)\\s+(?:about\\s+)?$amount\\s*$unit\\b(?:\\s+(?:from now|later))?',
+        ).firstMatch(rest) ??
+        RegExp('\\b$amount\\s*$unit\\s+(?:from now|later)\\b').firstMatch(rest) ??
+        RegExp('^\\s*$amount\\s*$unit\\s*\$').firstMatch(rest) ??
+        RegExp('^\\s*(\\d+)\\s*$unit(?=\\s+to\\s)').firstMatch(rest);
     if (rel != null && repeat.isEmpty) {
       cut(rel);
-      final raw = rel.group(1)!;
+      final raw = rel.group(1)!.replaceAll(RegExp(r'\s+'), ' ');
       final u = rel.group(2)!;
       final n = switch (raw) {
         'a' || 'an' || 'one' => 1.0,
-        'two' => 2.0,
+        'two' || 'a couple of' || 'couple of' => 2.0,
         'three' => 3.0,
+        'four' => 4.0,
+        'five' => 5.0,
+        'six' => 6.0,
+        'seven' => 7.0,
+        'eight' => 8.0,
+        'nine' => 9.0,
+        'ten' => 10.0,
+        'fifteen' => 15.0,
+        'twenty' => 20.0,
+        'thirty' => 30.0,
+        'forty' => 40.0,
+        'forty five' => 45.0,
         'half a' || 'half an' => 0.5,
         _ => double.parse(raw),
       };
