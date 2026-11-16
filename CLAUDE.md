@@ -132,10 +132,10 @@ If you can read the repo but can't edit, build or push:
 
 Last updated: 2026-11-16.
 
-- Released: Keepr 3.1.158 (Android, iPhone, web). Bujji's What's new tour,
-  Bujji holding tools until a job is done, threads button beside the name,
-  close any thread, pinned bar card.
-- On `vibe-next`, not released yet (needs a test APK, then a release):
+- Released: Keepr 3.1.161 (Android only, with the Last.fm key; iPhone and
+  web are still on 3.1.158, which had Bujji's What's new tour, tools held
+  until a job is done, threads beside the name, pinned bar card). New in
+  3.1.161:
   - One card per run for messages, with the picture nested beside the newest
     and the time inside.
   - Typing indicator in the same style (joins their card when they wrote
@@ -166,9 +166,9 @@ Last updated: 2026-11-16.
     `VibeListeningCard`; the line by the name shows headphones. Spotify
     can't be connected directly (since February 2026 its developer access
     allows 5 users with Premium), but it can feed either service. Last.fm
-    needs the `LASTFM_API_KEY` repository secret (the workflows pass it with
-    `--dart-define`); without it Last.fm shows as not in this version and
-    ListenBrainz still works. Bujji listens along (`_onMusic` in
+    uses the `LASTFM_API_KEY` repository secret (set; the workflows pass it
+    with `--dart-define`); without it Last.fm shows as not in this version
+    and ListenBrainz still works. Bujji listens along (`_onMusic` in
     `vibe_buddy_bar.dart`): headphones, dancing, hops to messages; a sad
     song (Last.fm tags or sad words in the title) makes it sad with a tear.
     The old notification listener stays off.
@@ -177,11 +177,26 @@ Last updated: 2026-11-16.
     `_petHidden`); no fade behind its row (stops in `chat_view.dart`).
   - Replies: the line runs down the card's edge to the picture
     (`_ReplyRail` in `vibe_message.dart`).
+  - Voice notes: the recorder pane (`recording_input_row.dart`) and voice
+    cards (`events/audio_player.dart`) as in the mockups.
+- On `vibe-next`, not released yet:
+  - Replies: the message being replied to gets
+    a soft inset wash in the theme colour (`_SoftWash`); the swipe bubble
+    uses the theme's soft colour (`vibe_swipe_reply.dart`).
+  - Voice notes: Stop leads to
+    listening back (play, drag to jump), then Delete, Retake or Send
+    (`stopToReview`, `playReview`, `seekReview`, `recordAgain` in
+    `recording_view_model.dart`).
+  - Notifications settings: rules made for one chat (`!…`) or one person
+    (`@…`) show by name in their own section, "Chats and people with their
+    own setting", with what they do in plain words.
 - Waiting for the owner:
-  - Voice notes mockups (recorder pane with a stage, Cancel / mic / Send;
-    voice notes as cards with a play button, rounded bars, speed): on the
-    design canvas. Code today: `recording_input_row.dart`,
-    `recording_view_model.dart`, `events/audio_player.dart`.
+  - Settings revamp mockups on the design canvas ("Settings: minimal, one
+    colour"): 1 Soft tiles (grey icon tiles like the profile page, your card,
+    search from `BujjiSettings.all`), 2 Plain lines, 3 Rounded stack, plus
+    dark and a Notifications page. Build the picked one in
+    `vibe_settings_style.dart` (shared by every settings page) and
+    `screens/settings/settings_view.dart`.
   - Pane extras from the study (dim follows the pull, the page behind steps
     back): they reach into Flutter's own pane code, so try them with a test
     APK. Questions in Keepr already open as panes (`showVibeDialog`), so the
