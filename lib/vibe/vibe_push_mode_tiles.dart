@@ -5,12 +5,15 @@ import 'package:vibe/vibe/vibe_direct.dart';
 import 'package:vibe/vibe/vibe_ntfy.dart';
 import 'package:vibe/widgets/matrix.dart';
 import 'package:vibe/vibe/vibe_hide_service.dart';
+import 'package:vibe/vibe/vibe_settings_style.dart';
 import 'package:flutter/material.dart';
 
 /// Settings > Notifications: Direct connection (like Vibgram, default) or
 /// Built-in (ntfy). Firebase was removed: it duplicated notifications.
 class VibePushModeTiles extends StatefulWidget {
-  const VibePushModeTiles({super.key});
+  /// Its own title row; off when the page puts a title above the card.
+  final bool header;
+  const VibePushModeTiles({this.header = true, super.key});
 
   @override
   State<VibePushModeTiles> createState() => _VibePushModeTilesState();
@@ -55,7 +58,7 @@ class _VibePushModeTilesState extends State<VibePushModeTiles> {
     final selected = AppSettings.vibePushMode.value == mode;
     final cs = Theme.of(context).colorScheme;
     return ListTile(
-      leading: Icon(icon),
+      leading: VibeIconTile(icon),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
       subtitle: Text(subtitle),
       isThreeLine: true,
@@ -73,6 +76,7 @@ class _VibePushModeTilesState extends State<VibePushModeTiles> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (widget.header || _busy)
         ListTile(
           title: Text(
             'How notifications arrive',
@@ -112,7 +116,7 @@ class _VibePushModeTilesState extends State<VibePushModeTiles> {
           builder: (context, snap) {
             final ok = snap.data ?? true;
             return ListTile(
-              leading: Icon(
+              leading: VibeIconTile(
                 ok ? Icons.battery_charging_full : Icons.battery_alert,
                 color: ok ? null : theme.colorScheme.error,
               ),
@@ -133,13 +137,16 @@ class _VibePushModeTilesState extends State<VibePushModeTiles> {
           },
         ),
         ListTile(
-            leading: const Icon(Icons.notifications_paused),
+            leading: const VibeIconTile(Icons.notifications_paused_outlined),
             title: const Text('Hide the permanent notification'),
             subtitle: const Text(
               'Keeps the connection, removes the "Connected for '
               'notifications" notification',
             ),
-            trailing: const Icon(Icons.chevron_right),
+            trailing: Icon(
+              Icons.chevron_right_rounded,
+              color: VibeSettingsStyle.chevron(context),
+            ),
             onTap: () => VibeHideService.open(context),
           ),
       ],

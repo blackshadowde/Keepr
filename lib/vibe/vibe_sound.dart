@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:vibe/config/app_config.dart';
 import 'package:vibe/config/setting_keys.dart';
+import 'package:vibe/vibe/vibe_settings_style.dart';
 
 /// Keepr's own notification sounds (android/app/src/main/res/raw), picked in
 /// Settings > Notifications. Android fixes a channel's sound once it exists,
@@ -64,9 +65,10 @@ class VibeSoundTile extends StatefulWidget {
 
 class _VibeSoundTileState extends State<VibeSoundTile> {
   @override
-  Widget build(BuildContext context) => ListTile(
-    title: const Text('Notification sound'),
-    subtitle: Text(VibeSound.options[VibeSound.current]!),
+  Widget build(BuildContext context) => VibeSettingsRow(
+    icon: Icons.volume_up_outlined,
+    title: 'Sound',
+    subtitle: VibeSound.options[VibeSound.current]!,
     trailing: IconButton(
       tooltip: 'Play',
       icon: const Icon(Icons.play_arrow_rounded),
