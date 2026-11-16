@@ -3,6 +3,10 @@
 Vibe's changes are listed on each release:
 https://github.com/blackshadowde/Vibe-flutter/releases
 
+## 2026-11-16
+
+- One card per run: a person's messages in a row share one card, as wide as its widest message, with a hairline between them; their picture nests beside the newest one with the card curving round it. The name sits on top in groups, the time and ticks inside at the card's edge, and reactions and link previews stay under their own message inside the card. Typing looks like their messages too: their picture with a small card and three dots in their colour (their name on top in groups); when they sent the newest message, the dots join the bottom of that card. Several people show small in one card, and their own typing style or buddy shows in it ([00e135dee](https://github.com/blackshadowde/keepr/commit/00e135dee), [e6ca7a4e2](https://github.com/blackshadowde/keepr/commit/e6ca7a4e2))
+
 ## 2026-11-15
 
 - What's new is told by Bujji: it says hi with the list of what's new, then posts each part like a chat, bouncing on its own typing dots, with live mockups of the real Bujji (the tools it brings, the new map, live and check-ins, hold and slide, threads beside the name, home cards, the post-quantum layer). "Show me where" opens the real screen, dims the rest and Bujji points at the spot. It ends with confetti and everything ticked. This release's #bujji, #location, #chats, #home and #security play once; "@bujji what's new" plays them again ([da51a0ce0](https://github.com/blackshadowde/keepr/commit/da51a0ce0))
