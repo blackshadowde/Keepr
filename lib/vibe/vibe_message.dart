@@ -50,6 +50,7 @@ import 'package:vibe/vibe/vibe_text_size.dart';
 import 'package:vibe/vibe/vibe_swipe_reply.dart';
 import 'package:vibe/vibe/vibe_chunks.dart';
 import 'package:vibe/vibe/vibe_link_preview.dart';
+import 'package:vibe/vibe/vibe_links.dart';
 import 'package:vibe/vibe/vibe_hot_words.dart';
 import 'package:vibe/vibe/buddy/bujji_life.dart';
 
@@ -844,6 +845,23 @@ class VibeMessage extends StatelessWidget {
               : AlignmentDirectional.centerStart,
           child: Builder(
             builder: (context) {
+              // a link at the start or end with a preview card: the card
+              // (in the same card as the text) opens it, so the text leaves
+              // it out once the card is here
+              final edgeUrl = bubble ? VibeLinkPreview.edgeUrl(displayEvent) : null;
+              Widget text(bool hide) => MessageContent(
+                displayEvent,
+                textColor: bubble ? bubbleInk : cs.onSurface,
+                linkColor: bubble && ownMessage ? bubbleInk : cs.primary,
+                // the quoted words already show on the reply line
+                hideQuote: replying && VibeQuotePicker.quoteOf(event) != null,
+                hideUrl: hide ? edgeUrl : null,
+                onInfoTab: onInfoTab,
+                borderRadius: BorderRadius.circular(14),
+                timeline: timeline,
+                selected: selected,
+                bigEmojis: bigEmojis,
+              );
               // Vibe X's soft shadow under the text in light mode
               final Widget content = DefaultTextStyle.merge(
                 // message text like the mocks: Figtree Regular, airy lines
@@ -876,18 +894,12 @@ class VibeMessage extends StatelessWidget {
                   // just a link: the preview card below stands in for it
                   : VibeLinkPreview.onlyLink(displayEvent)
                   ? const SizedBox.shrink()
-                  : MessageContent(
-                      displayEvent,
-                      textColor: bubble ? bubbleInk : cs.onSurface,
-                      linkColor: bubble && ownMessage ? bubbleInk : cs.primary,
-                      // the quoted words already show on the reply line
-                      hideQuote:
-                          replying && VibeQuotePicker.quoteOf(event) != null,
-                      onInfoTab: onInfoTab,
-                      borderRadius: BorderRadius.circular(14),
-                      timeline: timeline,
-                      selected: selected,
-                      bigEmojis: bigEmojis,
+                  : edgeUrl == null
+                  ? text(false)
+                  : FutureBuilder<bool>(
+                      future: VibeLinkPreview.shows(displayEvent, edgeUrl),
+                      initialData: VibeLinkPreview.showsNow(edgeUrl),
+                      builder: (context, snap) => text(snap.data == true),
                     ),
               );
               // Sent with an effect: play it once as it arrives, and keep a
@@ -1015,7 +1027,7 @@ class VibeMessage extends StatelessWidget {
                                     ),
                               // a link's preview and the reactions stay in
                               // the card, under their own message
-                              VibeLinkPreview(event: displayEvent),
+                              VibeLinkPreview(event: displayEvent, inCard: true),
                               if (hasReactions)
                                 Padding(
                                   padding: const EdgeInsets.only(top: 6),
@@ -1264,9 +1276,15 @@ class VibeMessage extends StatelessWidget {
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: longPressSelect ? () => onSelect(event) : null,
-                  onLongPress: longPressSelect
+                  onLongPressStart: longPressSelect
                       ? null
-                      : () {
+                      : (d) {
+                          // held on a link: Open, Copy link and Share for it
+                          final url = VibeLinks.at(context, d.globalPosition);
+                          if (url != null) {
+                            VibeLinks.options(context, url);
+                            return;
+                          }
                           VibeHaptics.heavy();
                           // where the message is, for the menu round it
                           final box = context.findRenderObject();

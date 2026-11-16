@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import 'package:vibe/config/setting_keys.dart';
+import 'package:vibe/vibe/vibe_links.dart';
 import 'package:vibe/vibe/vibe_low_data.dart';
 import 'package:vibe/widgets/mxc_image.dart';
 import 'package:flutter/material.dart';
@@ -14,7 +15,10 @@ import 'package:url_launcher/url_launcher_string.dart';
 /// switched off in Settings → Security & sign-in.
 class VibeLinkPreview extends StatelessWidget {
   final Event event;
-  const VibeLinkPreview({required this.event, super.key});
+
+  /// Inside the message's card: an inset card, the picture on top.
+  final bool inCard;
+  const VibeLinkPreview({required this.event, this.inCard = false, super.key});
 
   static final RegExp _urlRegex = RegExp(
     r'https?://[^\s<>"]+[^\s<>".,;:!?)\]}' "'" r']',
@@ -23,6 +27,45 @@ class VibeLinkPreview extends StatelessWidget {
 
   /// One request per link per app run.
   static final Map<String, Future<PreviewForUrl?>> _cache = {};
+
+  /// The ones already here.
+  static final Map<String, PreviewForUrl?> _got = {};
+
+  /// The link at the start or end of [e]'s text, when it gets a preview
+  /// card: the card opens it, so the text needn't show it too.
+  static String? edgeUrl(Event e) {
+    if (!enabledFor(e.room) || onlyLink(e)) return null;
+    final url = firstUrl(e);
+    if (url == null) return null;
+    final body = e.body.trim();
+    return body.startsWith(url) || body.endsWith(url) ? url : null;
+  }
+
+  static bool _shows(PreviewForUrl? p) =>
+      p != null &&
+      (_str(p, 'og:title') != null ||
+          _str(p, 'og:description') != null ||
+          (!VibeLowData.on && p.ogImage != null));
+
+  /// Whether [url]'s card shows; null while it loads.
+  static bool? showsNow(String url) =>
+      _got.containsKey(url) ? _shows(_got[url]) : null;
+
+  static Future<bool> shows(Event e, String url) => _fetch(
+    e.room.client,
+    url,
+    e.originServerTs.millisecondsSinceEpoch,
+  ).then(_shows);
+
+  /// [html] without [url] at its start or end (as written, or as a link).
+  static String withoutEdge(String html, String url) {
+    final forms = {url, url.replaceAll('&', '&amp;')}.map(RegExp.escape).join('|');
+    final link = '(?:<a\\b[^>]*>\\s*(?:$forms)\\s*</a>|(?:$forms))';
+    const gap = r'(?:\s|<br\s*/?>)*';
+    return html
+        .replaceFirst(RegExp('^$gap$link$gap', caseSensitive: false), '')
+        .replaceFirst(RegExp('$gap$link$gap' r'$', caseSensitive: false), '');
+  }
 
   static String? firstUrl(Event e) {
     if (e.redacted || e.type != EventTypes.Message) return null;
@@ -54,6 +97,7 @@ class VibeLinkPreview extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return InkWell(
       onTap: () => launchUrlString(url, mode: LaunchMode.externalApplication),
+      onLongPress: () => VibeLinks.options(context, url),
       child: Text(
         url,
         style: TextStyle(
@@ -68,17 +112,18 @@ class VibeLinkPreview extends StatelessWidget {
   static Future<PreviewForUrl?> _fetch(Client client, String url, int ts) {
     return _cache.putIfAbsent(url, () async {
       final uri = Uri.parse(url);
+      PreviewForUrl? p;
       try {
-        return await client.getUrlPreviewAuthed(uri, ts: ts);
+        p = await client.getUrlPreviewAuthed(uri, ts: ts);
       } catch (_) {
         try {
           // Older servers without authenticated media.
-          return await client.getUrlPreview(uri, ts: ts);
+          p = await client.getUrlPreview(uri, ts: ts);
         } catch (e) {
           Logs().v('Keepr link preview failed for $url', e);
-          return null;
         }
       }
+      return _got[url] = p;
     });
   }
 
@@ -140,6 +185,7 @@ class VibeLinkPreview extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: open,
+            onLongPress: () => VibeLinks.options(context, url),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
               child: Column(
@@ -287,6 +333,7 @@ class VibeLinkPreview extends StatelessWidget {
         }
         final theme = Theme.of(context);
         final cs = theme.colorScheme;
+        if (inCard) return _inCard(context, url, site, title, desc, image);
         return Padding(
           padding: const EdgeInsets.only(top: 6),
           child: ConstrainedBox(
@@ -298,6 +345,7 @@ class VibeLinkPreview extends StatelessWidget {
               child: InkWell(
                 onTap: () =>
                     launchUrlString(url, mode: LaunchMode.externalApplication),
+                onLongPress: () => VibeLinks.options(context, url),
                 child: Container(
                   decoration: BoxDecoration(
                     border: Border(
@@ -373,6 +421,117 @@ class VibeLinkPreview extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  /// In the message's card: an inset card with the picture across its top,
+  /// then the site, title and words. Tap opens the link, hold for options.
+  Widget _inCard(
+    BuildContext context,
+    String url,
+    String? site,
+    String? title,
+    String? desc,
+    Uri? image,
+  ) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final dark = theme.brightness == Brightness.dark;
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      // the message's hold finds it too
+      child: MetaData(
+        metaData: VibeLinkHit(url),
+        behavior: HitTestBehavior.translucent,
+        child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: Material(
+          color: dark
+              ? Colors.black.withValues(alpha: 0.22)
+              : Colors.white.withValues(alpha: 0.7),
+          borderRadius: BorderRadius.circular(14),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () =>
+                launchUrlString(url, mode: LaunchMode.externalApplication),
+            onLongPress: () => VibeLinks.options(context, url),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (image != null)
+                  LayoutBuilder(
+                    builder: (context, c) {
+                      final w = c.maxWidth.isFinite ? c.maxWidth : 300.0;
+                      return MxcImage(
+                        client: event.room.client,
+                        uri: image,
+                        width: w,
+                        height: w * 0.52,
+                        fit: BoxFit.cover,
+                        isThumbnail: true,
+                        cacheKey: 'vibe_link_preview_$image',
+                      );
+                    },
+                  ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 9, 12, 11),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (site != null)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.link_rounded, size: 14, color: cs.onSurfaceVariant),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                site,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+                              ),
+                            ),
+                          ],
+                        ),
+                      if (title != null) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 14.5,
+                            height: 1.25,
+                            fontWeight: FontWeight.w700,
+                            color: cs.onSurface,
+                          ),
+                        ),
+                      ],
+                      if (desc != null) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          desc,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 13,
+                            height: 1.3,
+                            color: cs.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      ),
     );
   }
 }

@@ -10,6 +10,7 @@ import 'package:vibe/l10n/l10n.dart';
 import 'package:vibe/utils/code_highlight_theme.dart';
 import 'package:vibe/utils/event_checkbox_extension.dart';
 import 'package:vibe/vibe/vibe_animated_emoji.dart';
+import 'package:vibe/vibe/vibe_links.dart';
 import 'package:vibe/vibe/vibe_low_data.dart';
 import 'package:vibe/widgets/future_loading_dialog.dart';
 import 'package:vibe/widgets/mxc_image.dart';
@@ -180,9 +181,9 @@ class HtmlMessage extends StatelessWidget {
         void flush() {
           if (buf.isEmpty) return;
           parts.add(
-            LinkifySpan(
+            // hold a link for Open, Copy link and Share
+            VibeLinks.span(
               text: buf.toString(),
-              options: const LinkifyOptions(humanize: false),
               linkStyle: linkStyle,
               onOpen: onOpen,
             ),
@@ -209,12 +210,8 @@ class HtmlMessage extends StatelessWidget {
         return TextSpan(children: parts);
       }
 
-      return LinkifySpan(
-        text: text,
-        options: const LinkifyOptions(humanize: false),
-        linkStyle: linkStyle,
-        onOpen: onOpen,
-      );
+      // hold a link for Open, Copy link and Share
+      return VibeLinks.span(text: text, linkStyle: linkStyle, onOpen: onOpen);
     }
 
     switch (node.localName) {
@@ -261,7 +258,11 @@ class HtmlMessage extends StatelessWidget {
           }
         }
         return WidgetSpan(
-          child: Tooltip(
+          // hold it for Open, Copy link and Share
+          child: MetaData(
+            metaData: VibeLinkHit(href),
+            behavior: HitTestBehavior.translucent,
+            child: Tooltip(
             message: href,
             child: InkWell(
               splashColor: Colors.transparent,
@@ -278,6 +279,7 @@ class HtmlMessage extends StatelessWidget {
                 style: const TextStyle(height: 1.25),
               ),
             ),
+          ),
           ),
         );
       case 'li':

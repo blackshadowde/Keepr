@@ -16,6 +16,7 @@ import 'package:vibe/vibe/vibe_effects.dart';
 import 'package:vibe/vibe/vibe_media_viewer.dart';
 import 'package:vibe/vibe/vibe_text_size.dart';
 import 'package:vibe/vibe/vibe_slash.dart';
+import 'package:vibe/vibe/vibe_link_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:matrix/matrix.dart';
 
@@ -42,6 +43,10 @@ class MessageContent extends StatelessWidget {
   /// Leave out a quote at the start (it shows on the reply line instead).
   final bool hideQuote;
 
+  /// A link at the start or end of the text whose preview card shows: the
+  /// card opens it, so it's left out of the text.
+  final String? hideUrl;
+
   const MessageContent(
     this.event, {
     this.onInfoTab,
@@ -53,6 +58,7 @@ class MessageContent extends StatelessWidget {
     required this.selected,
     required this.bigEmojis,
     this.hideQuote = false,
+    this.hideUrl,
   });
 
   @override
@@ -181,6 +187,10 @@ class MessageContent extends StatelessWidget {
                     (m) => m[1] ?? '',
                   )
                   .replaceFirst(RegExp(r'^(&gt; [^\n]*\n?)+\n*'), '');
+            }
+            final hideUrl = this.hideUrl;
+            if (hideUrl != null) {
+              html = VibeLinkPreview.withoutEdge(html, hideUrl);
             }
             if (event.messageType == MessageTypes.Emote) {
               html = '* $html';
