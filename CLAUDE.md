@@ -144,6 +144,7 @@ Last updated: 2026-11-16.
     preview shows; hold a link for Open, Copy link, Share.
   - Photo grid without flicker, numbered picks, and an All photos tile that
     opens Android's photo picker (Google Photos too).
+  - Photo stacks open the new hold menu and show their reactions.
 - Open threads of work:
   - A "Could not be sent" problem the owner raised: ask the owner for details.
   - Nearby (offline chat over Bluetooth): plan in `docs/nearby.md`, decisions
