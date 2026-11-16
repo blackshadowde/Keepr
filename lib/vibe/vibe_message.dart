@@ -571,6 +571,7 @@ class VibeMessage extends StatelessWidget {
           MessageTypes.Text,
           MessageTypes.Notice,
           MessageTypes.Emote,
+          MessageTypes.Audio,
         }.contains(displayEvent.messageType) &&
         !once &&
         VibeLive.checkIn(displayEvent) == null &&
@@ -1712,6 +1713,7 @@ abstract class VibeCards {
           MessageTypes.Text,
           MessageTypes.Notice,
           MessageTypes.Emote,
+          MessageTypes.Audio,
         }.contains(d.messageType) &&
         VibeLive.checkIn(d) == null &&
         !d.onlyEmotes &&

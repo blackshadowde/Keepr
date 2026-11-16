@@ -934,6 +934,11 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
       _playing = player.playingStream.listen(
         (on) => _setHold(on && _alive ? BuddyProp.headphones : null),
       );
+      // and hops onto the voice note to listen there
+      final id = _voice?.value;
+      if (id != null && _trip == null) {
+        _wander(id, 'dance', const Duration(seconds: 8));
+      }
     });
   }
 

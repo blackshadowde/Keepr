@@ -7,7 +7,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:async/async.dart';
-import 'package:vibe/config/app_config.dart';
 import 'package:vibe/config/themes.dart';
 import 'package:vibe/utils/error_reporter.dart';
 import 'package:vibe/utils/file_description.dart';
@@ -48,7 +47,7 @@ class AudioPlayerWidget extends StatefulWidget {
 enum AudioPlayerStatus { notDownloaded, downloading, downloaded }
 
 class AudioPlayerState extends State<AudioPlayerWidget> {
-  static const double buttonSize = 36;
+  static const double buttonSize = 42;
 
   AudioPlayerStatus status = AudioPlayerStatus.notDownloaded;
   double? _downloadProgress;
@@ -322,8 +321,11 @@ class AudioPlayerState extends State<AudioPlayerWidget> {
             final statusText = audioPlayer == null
                 ? _durationString ?? '00:00'
                 : audioPlayer.position.minuteSecondString;
+            final playing =
+                audioPlayer?.playing == true && audioPlayer?.isAtEndPosition == false;
+            // inside the message's card now: only a little room above and below
             return Padding(
-              padding: const EdgeInsets.all(12.0),
+              padding: const EdgeInsets.symmetric(vertical: 4),
               child: Column(
                 mainAxisSize: .min,
                 crossAxisAlignment: .start,
@@ -344,21 +346,42 @@ class AudioPlayerState extends State<AudioPlayerWidget> {
                                   color: widget.color,
                                   value: _downloadProgress,
                                 )
-                              : InkWell(
-                                  borderRadius: BorderRadius.circular(64),
-                                  onLongPress: () =>
-                                      widget.event.saveFile(context),
-                                  onTap: _onButtonTap,
+                              // a round play button in the theme colour; it
+                              // glows softly while playing
+                              : AnimatedContainer(
+                                  duration: const Duration(milliseconds: 260),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.primary,
+                                    shape: BoxShape.circle,
+                                    boxShadow: playing
+                                        ? [
+                                            BoxShadow(
+                                              color: theme.colorScheme.primary.withValues(alpha: 0.25),
+                                              spreadRadius: 5,
+                                            ),
+                                          ]
+                                        : const [],
+                                  ),
                                   child: Material(
-                                    color: widget.color.withAlpha(64),
-                                    borderRadius: BorderRadius.circular(64),
-                                    child: Icon(
-                                      audioPlayer?.playing == true &&
-                                              audioPlayer?.isAtEndPosition ==
-                                                  false
-                                          ? Icons.pause_outlined
-                                          : Icons.play_arrow_outlined,
-                                      color: widget.color,
+                                    type: MaterialType.transparency,
+                                    child: InkWell(
+                                      customBorder: const CircleBorder(),
+                                      onLongPress: () =>
+                                          widget.event.saveFile(context),
+                                      onTap: _onButtonTap,
+                                      child: AnimatedSwitcher(
+                                        duration: const Duration(milliseconds: 180),
+                                        transitionBuilder: (c, a) =>
+                                            ScaleTransition(scale: a, child: c),
+                                        child: Icon(
+                                          playing
+                                              ? Icons.pause_rounded
+                                              : Icons.play_arrow_rounded,
+                                          key: ValueKey(playing),
+                                          color: theme.colorScheme.onPrimary,
+                                          size: 24,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -383,21 +406,24 @@ class AudioPlayerState extends State<AudioPlayerWidget> {
                                           child: Container(
                                             height: 32,
                                             alignment: Alignment.center,
-                                            child: Container(
+                                            // rounded bars that fill in the
+                                            // theme colour as it plays
+                                            child: AnimatedContainer(
+                                              duration: const Duration(milliseconds: 160),
                                               margin:
                                                   const EdgeInsets.symmetric(
                                                     horizontal: 1,
                                                   ),
                                               decoration: BoxDecoration(
                                                 color: i < wavePosition
-                                                    ? widget.color
+                                                    ? theme.colorScheme.primary
                                                     : widget.color.withAlpha(
-                                                        128,
+                                                        70,
                                                       ),
                                                 borderRadius:
                                                     BorderRadius.circular(64),
                                               ),
-                                              height: 32 * (waveform[i] / 1024),
+                                              height: 4 + 28 * (waveform[i] / 1024),
                                             ),
                                           ),
                                         ),
@@ -437,48 +463,40 @@ class AudioPlayerState extends State<AudioPlayerWidget> {
                           width: 36,
                           child: Text(
                             statusText,
-                            style: TextStyle(color: widget.color, fontSize: 12),
+                            style: TextStyle(
+                              color: widget.color,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              fontFeatures: const [FontFeature.tabularFigures()],
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
-                        AnimatedCrossFade(
-                          firstChild: Padding(
-                            padding: const EdgeInsets.only(right: 8.0),
-                            child: Icon(
-                              Icons.mic_none_outlined,
-                              color: widget.color,
-                            ),
-                          ),
-                          secondChild: Material(
-                            color: widget.color.withAlpha(64),
-                            borderRadius: BorderRadius.circular(
-                              AppConfig.borderRadius,
-                            ),
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(
-                                AppConfig.borderRadius,
-                              ),
-                              onTap: _toggleSpeed,
+                        // speed: 1×, then 1.25×, 1.5×, 2×, 0.5×
+                        Material(
+                          color: widget.color.withAlpha(30),
+                          shape: const StadiumBorder(),
+                          clipBehavior: Clip.antiAlias,
+                          child: InkWell(
+                            onTap: audioPlayer == null ? _onButtonTap : _toggleSpeed,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 9),
                               child: SizedBox(
-                                width: 32,
-                                height: 20,
+                                height: 24,
                                 child: Center(
+                                  widthFactor: 1,
                                   child: Text(
-                                    '${audioPlayer?.speed}x',
+                                    '${_speedText(audioPlayer?.speed ?? 1)}×',
                                     style: TextStyle(
                                       color: widget.color,
-                                      fontSize: 9,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
                                     ),
                                   ),
                                 ),
                               ),
                             ),
                           ),
-                          alignment: Alignment.center,
-                          crossFadeState: audioPlayer == null
-                              ? CrossFadeState.showFirst
-                              : CrossFadeState.showSecond,
-                          duration: VibeThemes.animationDuration,
                         ),
                       ],
                     ),
@@ -520,6 +538,9 @@ class AudioPlayerState extends State<AudioPlayerWidget> {
     );
   }
 }
+
+String _speedText(double v) =>
+    v == v.roundToDouble() ? v.toInt().toString() : v.toString();
 
 extension on AudioPlayer {
   bool get isAtEndPosition {
