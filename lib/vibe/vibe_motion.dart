@@ -343,9 +343,11 @@ SpringSimulation vibeSpringFrom(double from, double to, double velocity) =>
 /// with the drag velocity), and a pane can be grabbed mid-slide.
 final AnimationStyle vibeSheetStyle = AnimationStyle(
   duration: vibeSheetSpring.duration,
-  reverseDuration: const Duration(milliseconds: 260),
+  // closing starts moving at once and speeds away (an ease-in that waits
+  // at the start feels stuck)
+  reverseDuration: const Duration(milliseconds: 220),
   curve: vibeSheetSpring,
-  reverseCurve: Curves.easeInCubic,
+  reverseCurve: Easing.emphasizedAccelerate,
 );
 
 /// Every pane that slides up from the bottom goes through here, so they
