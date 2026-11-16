@@ -73,7 +73,7 @@ class TypingIndicators extends StatelessWidget {
             shown != null &&
             shown.senderId == typingUsers.single.id &&
             VibeCards.inCard(shown, timeline);
-        final id = joins ? shown!.eventId : null;
+        final id = joins ? shown.eventId : null;
         if (VibeCards.continuing.value != id) {
           WidgetsBinding.instance.addPostFrameCallback(
             (_) => VibeCards.continuing.value = id,
@@ -105,9 +105,9 @@ class TypingIndicators extends StatelessWidget {
                             joins: joins
                                 ? (
                                     card: VibeCards.width(
-                                      VibeCards.keyOf(shown!, timeline!),
+                                      VibeCards.keyOf(shown, timeline),
                                     ),
-                                    time: shown!.originServerTs,
+                                    time: shown.originServerTs,
                                   )
                                 : null,
                           ),
