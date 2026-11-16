@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:vibe/vibe/buddy/bujji_home.dart';
 import 'package:vibe/vibe/vibe_glass.dart';
@@ -14,14 +15,16 @@ import 'package:vibe/vibe/vibe_chat_actions.dart';
 import 'package:vibe/vibe/vibe_communities.dart';
 import 'package:vibe/vibe/vibe_cascade.dart';
 import 'package:vibe/vibe/vibe_lock.dart';
-import 'package:vibe/vibe/vibe_motion.dart';
 import 'package:vibe/vibe/vibe_dm_detail.dart';
 import 'package:vibe/vibe/vibe_dm_pane.dart';
 import 'package:vibe/widgets/avatar.dart';
 import 'package:vibe/vibe/vibe_groups.dart';
 import 'package:vibe/vibe/vibe_start_pane.dart';
 import 'package:vibe/vibe/vibe_swipe.dart';
-import 'package:vibe/vibe/vibe_user_bar.dart';
+import 'package:vibe/vibe/buddy/vibe_buddy.dart';
+import 'package:vibe/vibe/vibe_haptics.dart';
+import 'package:vibe/vibe/vibe_own_profile.dart';
+import 'package:vibe/vibe/vibe_profile_cache.dart';
 import 'package:vibe/widgets/matrix.dart';
 import 'package:vibe/vibe/vibe_live_map.dart';
 import 'package:vibe/vibe/buddy/bujji_life.dart';
@@ -540,53 +543,20 @@ class _HomeTop extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // your profile bar sits on top: name (or "Chats" / "Spaces" for
-          // a moment after switching), search and settings
-          BujjiSpot(
-            id: 'tour.profile',
-            child: VibeUserRow(flash: flash, onSearch: onSearch),
+          // one quiet line: your picture, the page's name (tap it to switch
+          // between Chats and Spaces, hold it for locked chats; Bujji sits
+          // on it holding up how many chats are unread), search, new chat
+          _QuietTop(
+            spaces: spacesMode,
+            chatsUnread: chatsUnread,
+            spacesUnread: spacesUnread,
+            onMode: onMode,
+            onHold: onLockedChats,
+            onSearch: onSearch,
+            onAdd: onAdd,
           ),
           // sharing your live location (or a check-in): who with, Stop
           const VibeLiveBar(),
-          // Chats / Spaces with their unread counts, + at the end (a little
-          // apart from the profile bar)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
-            child: Row(
-              children: [
-                _ModePill(
-                  chatsUnread: chatsUnread,
-                  spacesUnread: spacesUnread,
-                  spaces: spacesMode,
-                  onChange: onMode,
-                  onHold: onLockedChats,
-                ),
-                const Spacer(),
-                // Bujji: its notes and reminders, and a face that follows
-                // your inbox and the clock
-                Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: BujjiHome(unread: chatsUnread),
-                ),
-                Semantics(
-                  label: 'Join or create a community',
-                  button: true,
-                  child: Material(
-                    color: cs.surfaceContainerHigh,
-                    shape: const CircleBorder(),
-                    clipBehavior: Clip.antiAlias,
-                    child: InkWell(
-                      onTap: onAdd,
-                      child: SizedBox.square(
-                        dimension: 44,
-                        child: Icon(Icons.add_rounded, color: cs.onSurface),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
           // birthdays and reminders Bujji has for today
           const BujjiToday(),
           // pinned chats as pictures, when there are any
@@ -624,77 +594,391 @@ class _HomeTop extends StatelessWidget {
   }
 }
 
-/// The rail's first tile: Chats or Spaces. Tap it and it grows into a pill
-/// with both, pick one and it folds back. Hold it for locked chats.
-class _ModePill extends StatefulWidget {
+/// The top line of home: your picture (your profile), "Chats" or "Spaces"
+/// (tap for the switch), search and new chat.
+class _QuietTop extends StatelessWidget {
   final bool spaces;
-  final ValueChanged<bool> onChange;
-  final VoidCallback onHold;
   final int chatsUnread;
   final int spacesUnread;
-  const _ModePill({
+  final ValueChanged<bool> onMode;
+  final VoidCallback onHold;
+  final VoidCallback onSearch;
+  final VoidCallback onAdd;
+  const _QuietTop({
+    required this.spaces,
     required this.chatsUnread,
     required this.spacesUnread,
-    required this.spaces,
-    required this.onChange,
+    required this.onMode,
     required this.onHold,
+    required this.onSearch,
+    required this.onAdd,
   });
 
   @override
-  State<_ModePill> createState() => _ModePillState();
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final client = Matrix.of(context).client;
+    Widget round(IconData icon, String tip, Color bg, Color fg, VoidCallback onTap) => Padding(
+      padding: const EdgeInsets.only(left: 8),
+      child: Tooltip(
+        message: tip,
+        child: Material(
+          color: bg,
+          shape: const CircleBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: SizedBox.square(dimension: 44, child: Icon(icon, color: fg)),
+          ),
+        ),
+      ),
+    );
+    void pick(BuildContext title) {
+      final box = title.findRenderObject() as RenderBox?;
+      if (box == null || !box.hasSize) return;
+      final at = box.localToGlobal(Offset.zero) & box.size;
+      _ModeSwitch.open(context, at, spaces, chatsUnread, spacesUnread, onMode);
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 12, 6),
+      child: Row(
+        children: [
+          BujjiSpot(
+            id: 'tour.profile',
+            child: VibeOwnProfileBuilder(
+              client: client,
+              builder: (context, profile) => Avatar(
+                mxContent: profile?.avatarUrl,
+                name: profile?.displayName ?? client.userID?.localpart ?? '',
+                size: 40,
+                client: client,
+                onTap: () => VibeOwnProfile.show(context, client),
+                presenceUserId: client.userID,
+                presenceBackgroundColor: cs.surfaceContainerLowest,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Row(
+              children: [
+                Flexible(
+                  child: Semantics(
+                    button: true,
+                    label: spaces ? 'Spaces, switch to Chats' : 'Chats, switch to Spaces',
+                    child: Builder(
+                      builder: (title) => GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => pick(title),
+                      onLongPress: onHold,
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 240),
+                        transitionBuilder: (child, a) => FadeTransition(
+                          opacity: a,
+                          child: SlideTransition(
+                            position: Tween(begin: const Offset(0, 0.25), end: Offset.zero).animate(a),
+                            child: child,
+                          ),
+                        ),
+                        child: Text(
+                          spaces ? 'Spaces' : 'Chats',
+                          key: ValueKey(spaces),
+                          maxLines: 1,
+                          overflow: TextOverflow.fade,
+                          softWrap: false,
+                          style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w800,
+                            color: cs.onSurface,
+                            height: 1.1,
+                          ),
+                        ),
+                      ),
+                    ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                // Bujji sits on the name, holding up the unread count
+                _BujjiBoard(n: chatsUnread, spaces: spaces),
+              ],
+            ),
+          ),
+          round(Icons.search_rounded, 'Search', cs.surfaceContainerHigh, cs.onSurface, onSearch),
+          round(Icons.edit_rounded, 'New chat', cs.primaryContainer, cs.onPrimaryContainer, onAdd),
+        ],
+      ),
+    );
+  }
 }
 
-class _ModePillState extends State<_ModePill> {
+/// Bujji with a little board of how many chats are unread ("3 new", or "3
+/// chats" while you look at Spaces). With Bujji off, just the count.
+class _BujjiBoard extends StatelessWidget {
+  final int n;
+  final bool spaces;
+  const _BujjiBoard({required this.n, required this.spaces});
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    Widget seg(bool sp) {
-      final on = sp == widget.spaces;
-      final n = sp ? widget.spacesUnread : widget.chatsUnread;
-      return Padding(
-        padding: const EdgeInsets.only(right: 8),
-        child: VibePressable(
-          scale: 0.94,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => widget.onChange(sp),
-            onLongPress: sp ? null : widget.onHold,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOut,
-              height: 44,
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              decoration: BoxDecoration(
-                color: on ? cs.primary : cs.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(22),
+    return ValueListenableBuilder<int>(
+      valueListenable: VibeBuddy.changed,
+      builder: (context, _, _) {
+        if (!VibeBuddy.on) return n > 0 ? _Count(n) : const SizedBox.shrink();
+        final board = Container(
+          width: 40,
+          height: 26,
+          decoration: BoxDecoration(
+            color: cs.surface,
+            borderRadius: BorderRadius.circular(7),
+            border: Border.all(color: cs.primary, width: 2),
+            boxShadow: const [
+              BoxShadow(color: Color(0x2E1E2850), blurRadius: 8, offset: Offset(0, 3)),
+            ],
+          ),
+          alignment: Alignment.center,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                n > 99 ? '99+' : '$n',
+                style: TextStyle(fontSize: 12.5, height: 1, fontWeight: FontWeight.w800, color: cs.primary),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+              Text(
+                spaces ? 'CHATS' : 'NEW',
+                style: TextStyle(
+                  fontSize: 7,
+                  height: 1.2,
+                  letterSpacing: 0.4,
+                  fontWeight: FontWeight.w700,
+                  color: cs.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        );
+        Widget hand() => Container(
+          width: 9,
+          height: 9,
+          decoration: BoxDecoration(
+            color: Color.lerp(cs.primary, Colors.white, 0.32),
+            shape: BoxShape.circle,
+          ),
+        );
+        return Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            BujjiHome(unread: n),
+            // the board pops up in its hands when something is unread
+            Positioned(
+              bottom: -8,
+              child: IgnorePointer(
+                child: AnimatedScale(
+                  scale: n > 0 ? 1 : 0,
+                  duration: const Duration(milliseconds: 320),
+                  curve: n > 0 ? Curves.easeOutBack : Curves.easeIn,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Transform.translate(offset: const Offset(3, 0), child: hand()),
+                      board,
+                      Transform.translate(offset: const Offset(-3, 0), child: hand()),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Chats / Spaces as a switch that opens over the title: slide the thumb or
+/// tap the other side, and it closes on the one picked.
+class _ModeSwitch extends StatefulWidget {
+  final Rect at;
+  final bool spaces;
+  final int chatsUnread;
+  final int spacesUnread;
+  final ValueChanged<bool> onMode;
+  const _ModeSwitch({
+    required this.at,
+    required this.spaces,
+    required this.chatsUnread,
+    required this.spacesUnread,
+    required this.onMode,
+  });
+
+  static Future<void> open(
+    BuildContext context,
+    Rect at,
+    bool spaces,
+    int chatsUnread,
+    int spacesUnread,
+    ValueChanged<bool> onMode,
+  ) {
+    VibeHaptics.selection();
+    return Navigator.of(context).push(
+      PageRouteBuilder<void>(
+        opaque: false,
+        barrierDismissible: true,
+        barrierLabel: 'Close',
+        barrierColor: Theme.of(context).colorScheme.surfaceContainerLowest.withValues(alpha: 0.7),
+        transitionDuration: const Duration(milliseconds: 280),
+        reverseTransitionDuration: const Duration(milliseconds: 170),
+        pageBuilder: (context, a, _) => _ModeSwitch(
+          at: at,
+          spaces: spaces,
+          chatsUnread: chatsUnread,
+          spacesUnread: spacesUnread,
+          onMode: onMode,
+        ),
+        transitionsBuilder: (context, a, _, child) => FadeTransition(opacity: a, child: child),
+      ),
+    );
+  }
+
+  @override
+  State<_ModeSwitch> createState() => _ModeSwitchState();
+}
+
+class _ModeSwitchState extends State<_ModeSwitch> with SingleTickerProviderStateMixin {
+  static const _w = 236.0, _h = 52.0, _pad = 4.0;
+  late final AnimationController _x = AnimationController.unbounded(
+    vsync: this,
+    value: widget.spaces ? 1 : 0,
+  );
+  bool _done = false;
+
+  @override
+  void dispose() {
+    _x.dispose();
+    super.dispose();
+  }
+
+  void _settle(bool spaces, [double velocity = 0]) {
+    if (_done) return;
+    _done = true;
+    VibeHaptics.selection();
+    _x.animateWith(
+      SpringSimulation(
+        SpringDescription.withDampingRatio(mass: 1, stiffness: 520, ratio: 0.8),
+        _x.value,
+        spaces ? 1 : 0,
+        velocity,
+      ),
+    );
+    if (spaces != widget.spaces) widget.onMode(spaces);
+    Future<void>.delayed(const Duration(milliseconds: 220), () {
+      if (mounted) Navigator.of(context).maybePop();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final screen = MediaQuery.sizeOf(context);
+    final left = (widget.at.left - 8).clamp(12.0, math.max(12.0, screen.width - _w - 12));
+    const thumbW = (_w - _pad * 2) / 2;
+    final route = ModalRoute.of(context)?.animation ?? kAlwaysCompleteAnimation;
+    Widget seg(bool sp) {
+      final n = sp ? widget.spacesUnread : widget.chatsUnread;
+      return Expanded(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => _settle(sp),
+          child: AnimatedBuilder(
+            animation: _x,
+            builder: (context, _) {
+              final on = (sp ? _x.value : 1 - _x.value) > 0.5;
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     sp ? 'Spaces' : 'Chats',
                     style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: on ? FontWeight.w700 : FontWeight.w600,
-                      color: on ? cs.onPrimary : cs.onSurfaceVariant,
+                      fontSize: 16,
+                      fontWeight: on ? FontWeight.w800 : FontWeight.w600,
+                      color: on ? cs.onPrimary : cs.onSurface,
                     ),
                   ),
-                  // how many of each are unread
                   if (n > 0) ...[
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     _Count(n, inverted: on),
                   ],
                 ],
-              ),
-            ),
+              );
+            },
           ),
         ),
       );
     }
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [seg(false), seg(true)],
+    return Stack(
+      children: [
+        Positioned(
+          left: left,
+          top: widget.at.center.dy - _h / 2,
+          child: ScaleTransition(
+            scale: Tween(begin: 0.86, end: 1.0).animate(
+              CurvedAnimation(parent: route, curve: Curves.easeOutBack, reverseCurve: Curves.easeIn),
+            ),
+            alignment: Alignment.centerLeft,
+            child: GestureDetector(
+              onHorizontalDragUpdate: (d) {
+                if (_done) return;
+                _x.value = (_x.value + d.delta.dx / (_w - thumbW - _pad * 2)).clamp(-0.08, 1.08);
+              },
+              onHorizontalDragEnd: (d) {
+                final v = d.primaryVelocity ?? 0;
+                final to = v.abs() > 300 ? v > 0 : _x.value > 0.5;
+                _settle(to, v / (_w - thumbW - _pad * 2));
+              },
+              child: Material(
+                color: cs.surfaceContainerHigh,
+                elevation: 6,
+                shadowColor: const Color(0x55000000),
+                shape: const StadiumBorder(),
+                child: SizedBox(
+                  width: _w,
+                  height: _h,
+                  child: Stack(
+                    children: [
+                      AnimatedBuilder(
+                        animation: _x,
+                        builder: (context, child) => Transform.translate(
+                          offset: Offset(_pad + _x.value * (_w - thumbW - _pad * 2), _pad),
+                          child: child,
+                        ),
+                        child: Container(
+                            width: thumbW,
+                            height: _h - _pad * 2,
+                            decoration: BoxDecoration(
+                              color: cs.primary,
+                              borderRadius: BorderRadius.circular(22),
+                              boxShadow: const [
+                                BoxShadow(color: Color(0x401E2850), blurRadius: 8, offset: Offset(0, 2)),
+                              ],
+                            ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(_pad),
+                        child: Row(children: [seg(false), seg(true)]),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

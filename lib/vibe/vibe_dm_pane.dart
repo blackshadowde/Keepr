@@ -225,11 +225,7 @@ class _VibeDmPaneState extends State<VibeDmPane> {
                           ),
                         ),
                       ),
-                    // adding lives in the + tile above, not on each label
-                    if (rest.isNotEmpty)
-                      () => _SectionLabel(
-                        widget.spacesMode ? 'All groups' : 'All chats',
-                      ),
+                    // the rest follow the unread cards without a label
                     for (var i = 0; i < rest.length; i++)
                       () => dmTile(
                         rest[i],
