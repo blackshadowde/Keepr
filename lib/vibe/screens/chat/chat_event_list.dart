@@ -203,9 +203,11 @@ class ChatEventList extends StatelessWidget {
                 return Column(
                   mainAxisSize: .min,
                   children: [
+                    // right under the newest message: when its sender
+                    // writes on, the dots join its card
+                    TypingIndicators(controller),
                     if (events.isNotEmpty)
                       SeenByRow(event: events.first, timeline: timeline),
-                    TypingIndicators(controller),
                     EncryptionInfo(room: controller.room),
                   ],
                 );

@@ -3,7 +3,11 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'dart:math' as math;
 import 'dart:ui' as ui;
+
+import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 
 import 'package:flutter/services.dart';
 import 'package:vibe/vibe/vibe_event_body.dart';
@@ -27,6 +31,7 @@ import 'package:vibe/l10n/l10n.dart';
 import 'package:vibe/vibe/screens/chat/events/message_content.dart';
 import 'package:vibe/vibe/screens/chat/events/message_reactions.dart';
 import 'package:vibe/utils/date_time_extension.dart';
+import 'package:vibe/utils/matrix_sdk_extensions/filtered_timeline_extension.dart';
 import 'package:vibe/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:vibe/utils/string_color.dart';
 import 'package:vibe/vibe/vibe_disappearing.dart';
@@ -486,6 +491,18 @@ class VibeMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // the newest message: when its sender is writing again, their dots join
+    // its card below, so it hands them its picture and time
+    if (previousEvent == null && !threadView) {
+      return ValueListenableBuilder<String?>(
+        valueListenable: VibeCards.continuing,
+        builder: (context, id, _) => _build(context, id == event.eventId),
+      );
+    }
+    return _build(context, false);
+  }
+
+  Widget _build(BuildContext context, bool writingOn) {
     if (VibeDisappearing.isExpired(event)) return const SizedBox.shrink();
     final once = VibeViewOnce.of(event) && !event.redacted;
     final theme = Theme.of(context);
@@ -515,7 +532,7 @@ class VibeMessage extends StatelessWidget {
     // line, and every message is its own row (avatar + name).
     final replying = !threadView && hasReply(event);
     final first = threadView || replying || !sameGroup(nextEvent);
-    final last =
+    final runLast =
         threadView || hasReply(previousEvent) || !sameGroup(previousEvent);
 
     // edits of a post-quantum message are wrapped too
@@ -559,6 +576,17 @@ class VibeMessage extends StatelessWidget {
         !displayEvent.onlyEmotes &&
         VibeChunks.info(displayEvent) == null &&
         !VibeLinkPreview.onlyLink(displayEvent);
+    final last = runLast && !(writingOn && bubble && !ownMessage);
+    // one card per run: their text messages in a row share one card with a
+    // hairline between them; photos, stickers and cards sit between cards
+    final cardFirst = first || !VibeCards.inCard(nextEvent, timeline);
+    final cardLast =
+        (last || !VibeCards.inCard(previousEvent, timeline)) && runLast == last;
+    final card = bubble && !threadView
+        ? VibeCards.width(VibeCards.keyOf(event, timeline))
+        : null;
+    // how far a bubble reaches past its box towards the picture
+    const reach = avatarSize / 2 + nestGap;
     // solid colours from the phone's colour theme when it has one: yours in
     // the theme colour, theirs neutral
     final dark = theme.brightness == Brightness.dark;
@@ -881,96 +909,138 @@ class VibeMessage extends StatelessWidget {
               } else {
                 final meta = bubbleInk.withValues(alpha: 0.62);
                 final name = sender.calcDisplayname();
-                shown = ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: MediaQuery.sizeOf(context).width * 0.76 +
-                        (last ? 0 : avatarSize / 2 + nestGap),
-                  ),
-                  child: CustomPaint(
-                    painter: _BubblePainter(
-                      color: bubbleColor,
-                      left: picLeft,
-                      top: first ? 20 : 6,
-                      bottom: last ? 20 : 6,
-                      // every bubble of a run ends at the picture's middle,
-                      // so their edges line up; the last one reaches there
-                      // and curves in round the picture, the others sit
-                      // there themselves so their text keeps even padding
-                      reach: last ? avatarSize / 2 + nestGap : 0,
-                      cut: last,
+                final maxW = MediaQuery.sizeOf(context).width * 0.76 +
+                    (last ? 0 : reach);
+                // text clears the picture: the last one's box starts after
+                // it, the others reach there themselves
+                final padNear = last ? 14.0 : 14.0 + reach;
+                // the time, edited and the ticks: after the text, at the
+                // card's far edge
+                final trailing = <Widget>[
+                  if (isEdited)
+                    Text(
+                      L10n.of(context).edited,
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        height: 1.2,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.4,
+                        color: meta,
+                      ),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // groups: who it is, inside their first bubble
-                          if (first && !ownMessage && !event.room.isDirectChat)
-                            Wrap(
-                              crossAxisAlignment: WrapCrossAlignment.center,
-                              spacing: 6,
-                              children: [
-                                VibeNameText(
-                                  name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: VibeTextSize.message * 0.84,
-                                    height: 1.3,
-                                    color: dark
-                                        ? name.colorScheme.primaryContainer
-                                        : name.colorScheme.primary,
-                                  ),
-                                ),
-                                ...VibeMemberTags.chips(event.room, sender),
-                              ],
-                            ),
-                          Wrap(
-                            alignment: WrapAlignment.end,
-                            crossAxisAlignment: WrapCrossAlignment.end,
+                  if (last && event.status.isSent)
+                    Text(
+                      vibeTime(event.originServerTs),
+                      style: TextStyle(fontSize: 11, height: 1.2, color: meta),
+                    ),
+                  // only warn when a chat is NOT encrypted
+                  if (last && event.status.isSent && !event.room.encrypted)
+                    const Icon(Icons.lock_open, size: 12, color: Colors.redAccent),
+                  // Encrypting, Sent, Delivered: inside the bubble
+                  if (ticks) _StatusBits(event, timeline, ink: meta),
+                ];
+                Widget bubbleOf(double cardW) {
+                  final boxMin = math.min(maxW, math.max(0.0, cardW - (last ? reach : 0)));
+                  final inner = math.max(0.0, boxMin - padNear - 14);
+                  return ConstrainedBox(
+                    constraints: BoxConstraints(minWidth: boxMin, maxWidth: maxW),
+                    child: _ReportWidth(
+                      card: card,
+                      extra: last ? reach : 0,
+                      child: CustomPaint(
+                        painter: VibeBubblePainter(
+                          color: bubbleColor,
+                          left: picLeft,
+                          top: cardFirst ? 20 : 0,
+                          bottom: cardLast ? 20 : 0,
+                          farTop: cardFirst ? 20 : 0,
+                          farBottom: cardLast ? 20 : 0,
+                          // every bubble of a run ends at the picture's
+                          // middle, so their edges line up; the last one
+                          // reaches there and curves in round the picture
+                          reach: last ? reach : 0,
+                          cut: last,
+                          // a hairline between messages of one card
+                          line: cardFirst
+                              ? null
+                              : bubbleInk.withValues(alpha: 0.12),
+                          lineNear: padNear,
+                        ),
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(
+                            picLeft ? padNear : 14,
+                            8,
+                            picLeft ? 14 : padNear,
+                            8,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              content,
-                              if (isEdited)
-                                Padding(
-                                  padding: const EdgeInsets.only(
-                                    left: 8,
-                                    bottom: 3,
-                                  ),
-                                  child: Text(
-                                    L10n.of(context).edited,
-                                    style: TextStyle(
-                                      fontSize: 10.5,
-                                      height: 1.2,
-                                      fontWeight: FontWeight.w600,
-                                      letterSpacing: 0.4,
-                                      color: meta,
+                              // groups: who it is, inside their first bubble
+                              if (first && !ownMessage && !event.room.isDirectChat)
+                                Wrap(
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  spacing: 6,
+                                  children: [
+                                    VibeNameText(
+                                      name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: VibeTextSize.message * 0.84,
+                                        height: 1.3,
+                                        color: dark
+                                            ? name.colorScheme.primaryContainer
+                                            : name.colorScheme.primary,
+                                      ),
                                     ),
-                                  ),
+                                    ...VibeMemberTags.chips(event.room, sender),
+                                  ],
                                 ),
-                              // Encrypting, Sent, Delivered: inside the bubble
-                              if (ticks)
+                              trailing.isEmpty
+                                  ? content
+                                  : VibeTimeFlow(
+                                      minWidth: inner,
+                                      content: content,
+                                      trailing: Padding(
+                                        padding: const EdgeInsets.only(bottom: 3),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          spacing: 5,
+                                          children: trailing,
+                                        ),
+                                      ),
+                                    ),
+                              // a link's preview and the reactions stay in
+                              // the card, under their own message
+                              VibeLinkPreview(event: displayEvent),
+                              if (hasReactions)
                                 Padding(
-                                  padding: const EdgeInsets.only(bottom: 3),
-                                  child: _StatusBits(
-                                    event,
-                                    timeline,
-                                    ink: meta,
-                                  ),
+                                  padding: const EdgeInsets.only(top: 6),
+                                  child: MessageReactions(event, timeline),
                                 ),
                             ],
                           ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                );
+                  );
+                }
+                shown = card == null
+                    ? bubbleOf(0)
+                    : ValueListenableBuilder<double>(
+                        valueListenable: card,
+                        builder: (context, w, _) => bubbleOf(w),
+                      );
               }
               // the last message of a run carries the picture; a bubble
               // curves in round it
               Widget place(Widget w) => Padding(
-                padding: EdgeInsets.only(top: first ? 0 : 2),
+                padding: EdgeInsets.only(
+                  top: first || (bubble && !cardFirst) ? 0 : 2,
+                ),
                 child: last
                     ? Row(
                         mainAxisSize: MainAxisSize.min,
@@ -1029,14 +1099,15 @@ class VibeMessage extends StatelessWidget {
             },
           ),
         ),
-        VibeLinkPreview(event: displayEvent),
-        if (hasReactions)
+        if (!bubble) VibeLinkPreview(event: displayEvent),
+        if (hasReactions && !bubble)
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: MessageReactions(event, timeline),
           ),
-        // the time, once, under the last message of a run
-        if (last && event.status.isSent)
+        // the time, once, under the last message of a run (a card has it
+        // inside)
+        if (last && event.status.isSent && !bubble)
           Padding(
             padding: const EdgeInsets.only(top: 3),
             child: Wrap(
@@ -1451,32 +1522,41 @@ class _ReplyCurve extends CustomPainter {
   bool shouldRepaint(covariant _ReplyCurve old) => old.color != color;
 }
 
-/// A bubble's solid shape, corners tighter where bubbles stack. It reaches
-/// [reach] past its box towards the picture, so every bubble of a run lines
-/// up; with [cut] (the last one) that end curves in round the picture:
-/// O)____) for theirs, (____(O for yours.
-class _BubblePainter extends CustomPainter {
+/// A bubble's solid shape: one card per run, so its corners are round only
+/// at the card's top and bottom. It reaches [reach] past its box towards the
+/// picture, so every bubble of a run lines up; with [cut] (the last one) that
+/// end curves in round the picture: O)____) for theirs, (____(O for yours.
+class VibeBubblePainter extends CustomPainter {
   final Color color;
 
   /// The picture is on the left.
   final bool left;
 
-  /// Corner sizes on the picture's side.
-  final double top, bottom;
+  /// Corner sizes on the picture's side, and on the far side.
+  final double top, bottom, farTop, farBottom;
   final double reach;
   final bool cut;
-  const _BubblePainter({
+
+  /// A hairline across the top (between messages of one card), from where
+  /// the text starts on the picture's side to near the far edge.
+  final Color? line;
+  final double lineNear;
+  const VibeBubblePainter({
     required this.color,
     required this.left,
     required this.top,
     required this.bottom,
+    this.farTop = 20,
+    this.farBottom = 20,
     this.reach = 0,
     this.cut = false,
+    this.line,
+    this.lineNear = 14,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    const r = Radius.circular(20);
+    final ft = Radius.circular(farTop), fb = Radius.circular(farBottom);
     final t = Radius.circular(top), b = Radius.circular(bottom);
     var path = Path()
       ..addRRect(
@@ -1487,10 +1567,10 @@ class _BubblePainter extends CustomPainter {
             size.width + (left ? 0 : reach),
             size.height,
           ),
-          topLeft: left ? t : r,
-          bottomLeft: left ? b : r,
-          topRight: left ? r : t,
-          bottomRight: left ? r : b,
+          topLeft: left ? t : ft,
+          bottomLeft: left ? b : fb,
+          topRight: left ? ft : t,
+          bottomRight: left ? fb : b,
         ),
       );
     if (cut && reach > 0) {
@@ -1510,14 +1590,227 @@ class _BubblePainter extends CustomPainter {
       );
     }
     canvas.drawPath(path, Paint()..color = color);
+    final l = line;
+    if (l != null) {
+      final from = left ? lineNear : 4.0;
+      final to = left ? size.width - 4 : size.width - lineNear;
+      if (to > from) {
+        canvas.drawRect(
+          Rect.fromLTWH(from, 0, to - from, 0.8),
+          Paint()..color = l,
+        );
+      }
+    }
   }
 
   @override
-  bool shouldRepaint(covariant _BubblePainter old) =>
+  bool shouldRepaint(covariant VibeBubblePainter old) =>
       old.color != color ||
       old.left != left ||
       old.top != top ||
       old.bottom != bottom ||
+      old.farTop != farTop ||
+      old.farBottom != farBottom ||
       old.reach != reach ||
-      old.cut != cut;
+      old.cut != cut ||
+      old.line != line ||
+      old.lineNear != lineNear;
+}
+
+/// One card per run: a person's text messages in a row share one card, as
+/// wide as its widest message.
+abstract class VibeCards {
+  /// The newest message, when its sender is writing again right under it
+  /// (their dots join its card): set by the typing indicator.
+  static final continuing = ValueNotifier<String?>(null);
+
+  static final _widths = <String, ValueNotifier<double>>{};
+
+  /// The card's width as painted, by card (its oldest message).
+  static ValueNotifier<double> width(String key) {
+    if (_widths.length > 3000) _widths.clear();
+    return _widths.putIfAbsent(key, () => ValueNotifier(0));
+  }
+
+  /// Text that sits in a card; photos, stickers, big emoji and cards don't.
+  static bool inCard(Event? e, Timeline timeline) {
+    if (e == null || e.type != EventTypes.Message) return false;
+    if (VibeViewOnce.of(e) && !e.redacted) return false;
+    final d = VibePq.open(e.getDisplayEvent(timeline));
+    return d.type == EventTypes.Message &&
+        const {
+          MessageTypes.Text,
+          MessageTypes.Notice,
+          MessageTypes.Emote,
+        }.contains(d.messageType) &&
+        VibeLive.checkIn(d) == null &&
+        !d.onlyEmotes &&
+        VibeChunks.info(d) == null &&
+        !VibeLinkPreview.onlyLink(d);
+  }
+
+  /// The card [e] is in, named by its oldest message: back through the
+  /// shown messages while they're the same person's, close in time, in a
+  /// card, and no reply starts a new one.
+  static String keyOf(Event e, Timeline timeline) {
+    final events = timeline.events;
+    final i = events.indexWhere((x) => x.eventId == e.eventId);
+    if (i < 0) return e.eventId;
+    var cur = e;
+    for (var j = i + 1; j < events.length; j++) {
+      final older = events[j];
+      if (!older.isVisibleInGui ||
+          older.relationshipType == RelationshipTypes.thread) {
+        continue;
+      }
+      if (cur.inReplyToEventId(includingFallback: false) != null ||
+          older.senderId != cur.senderId ||
+          !older.originServerTs.sameEnvironment(cur.originServerTs) ||
+          !inCard(older, timeline)) {
+        break;
+      }
+      cur = older;
+    }
+    return cur.eventId;
+  }
+}
+
+/// Tells the card how wide this message is (as painted), after layout.
+class _ReportWidth extends SingleChildRenderObjectWidget {
+  final ValueNotifier<double>? card;
+  final double extra;
+  const _ReportWidth({required this.card, required this.extra, super.child});
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderReportWidth(card, extra);
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderReportWidth r) => r
+    ..card = card
+    ..extra = extra;
+}
+
+class _RenderReportWidth extends RenderProxyBox {
+  _RenderReportWidth(this.card, this.extra);
+  ValueNotifier<double>? card;
+  double extra;
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    final c = card;
+    final w = size.width + extra;
+    if (c != null && w > c.value + 0.5) {
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        if (w > c.value + 0.5) c.value = w;
+      });
+    }
+  }
+}
+
+/// The text, then the time and ticks at the far edge: on the text's last
+/// line when they fit beside it, under it otherwise. At least [minWidth]
+/// wide, so the time sits at the card's edge.
+class VibeTimeFlow extends MultiChildRenderObjectWidget {
+  final double minWidth;
+  VibeTimeFlow({
+    required Widget content,
+    required Widget trailing,
+    this.minWidth = 0,
+    super.key,
+  }) : super(children: [content, trailing]);
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderTimeFlow(minWidth);
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderTimeFlow r) =>
+      r.minWidth = minWidth;
+}
+
+class _TimeFlowData extends ContainerBoxParentData<RenderBox> {}
+
+class _RenderTimeFlow extends RenderBox
+    with
+        ContainerRenderObjectMixin<RenderBox, _TimeFlowData>,
+        RenderBoxContainerDefaultsMixin<RenderBox, _TimeFlowData> {
+  _RenderTimeFlow(this._minWidth);
+  static const _gap = 8.0;
+
+  double _minWidth;
+  set minWidth(double v) {
+    if (v == _minWidth) return;
+    _minWidth = v;
+    markNeedsLayout();
+  }
+
+  @override
+  void setupParentData(RenderBox child) {
+    if (child.parentData is! _TimeFlowData) child.parentData = _TimeFlowData();
+  }
+
+  Size _place(BoxConstraints c, Size text, Size time) {
+    final inline = text.width + _gap + time.width <= c.maxWidth;
+    final w = math.max(
+      _minWidth,
+      inline ? text.width + _gap + time.width : math.max(text.width, time.width),
+    );
+    final h = inline
+        ? math.max(text.height, time.height)
+        : text.height + time.height;
+    return c.constrain(Size(w, h));
+  }
+
+  @override
+  Size computeDryLayout(BoxConstraints constraints) {
+    final text = firstChild!, time = childAfter(text)!;
+    final loose = BoxConstraints(maxWidth: constraints.maxWidth);
+    return _place(constraints, text.getDryLayout(loose), time.getDryLayout(loose));
+  }
+
+  @override
+  void performLayout() {
+    final text = firstChild!, time = childAfter(text)!;
+    final loose = BoxConstraints(maxWidth: constraints.maxWidth);
+    text.layout(loose, parentUsesSize: true);
+    time.layout(loose, parentUsesSize: true);
+    size = _place(constraints, text.size, time.size);
+    (text.parentData as _TimeFlowData).offset = Offset.zero;
+    (time.parentData as _TimeFlowData).offset = Offset(
+      size.width - time.size.width,
+      size.height - time.size.height,
+    );
+  }
+
+  @override
+  double computeMinIntrinsicWidth(double height) => math.max(
+    firstChild!.getMinIntrinsicWidth(height),
+    childAfter(firstChild!)!.getMinIntrinsicWidth(height),
+  );
+
+  @override
+  double computeMaxIntrinsicWidth(double height) =>
+      firstChild!.getMaxIntrinsicWidth(height) +
+      _gap +
+      childAfter(firstChild!)!.getMaxIntrinsicWidth(height);
+
+  @override
+  double computeMinIntrinsicHeight(double width) =>
+      firstChild!.getMinIntrinsicHeight(width) +
+      childAfter(firstChild!)!.getMinIntrinsicHeight(width);
+
+  @override
+  double computeMaxIntrinsicHeight(double width) =>
+      firstChild!.getMaxIntrinsicHeight(width) +
+      childAfter(firstChild!)!.getMaxIntrinsicHeight(width);
+
+  @override
+  void paint(PaintingContext context, Offset offset) =>
+      defaultPaint(context, offset);
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) =>
+      defaultHitTestChildren(result, position: position);
 }

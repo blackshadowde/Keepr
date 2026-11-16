@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import 'package:flutter/material.dart';
-import 'package:vibe/vibe/screens/chat/typing_indicators.dart';
 
 /// Entrance for a brand new message: the row opens up from the bottom (so
 /// the timeline glides up) and the message itself stretches out of the
@@ -99,9 +98,8 @@ class VibeGrowOut extends StatelessWidget {
       child: child,
       builder: (context, child) {
         final p = grow.value;
-        // someone else's waits until the dots have become their picture
-        final start = left ? VibeTypingMorph.end * 0.85 : 0.0;
-        final q = ((p - start) / (1 - start)).clamp(0.0, 1.0);
+        // their picture is already there (it was typing): grows at once
+        final q = p.clamp(0.0, 1.0);
         final w = const ElasticOutCurve(0.75).transform(
           ((q - 0.05) / 0.95).clamp(0.0, 1.0),
         );
@@ -122,9 +120,9 @@ class VibeGrowOut extends StatelessWidget {
   }
 }
 
-/// The picture of a brand new message from someone else: it starts as the
-/// typing dots in their circle (where the typing indicator was) and turns
-/// into their picture, then the message grows out of it ([VibeGrowOut]).
+/// The picture of a brand new message from someone else. Their typing
+/// indicator already shows their picture where the message lands, so it
+/// just stays; the message grows out of it ([VibeGrowOut]).
 class VibeTypingMorph extends StatefulWidget {
   final double size;
   final Widget child;
@@ -142,53 +140,6 @@ class _VibeTypingMorphState extends State<VibeTypingMorph> {
   final _key = GlobalKey();
 
   @override
-  Widget build(BuildContext context) {
-    final picture = KeyedSubtree(key: _key, child: widget.child);
-    final grow = VibeEntrance.of(context);
-    if (grow == null) return picture;
-    final cs = Theme.of(context).colorScheme;
-    final s = widget.size;
-    return AnimatedBuilder(
-      animation: grow,
-      child: picture,
-      builder: (context, picture) {
-        final t = Curves.easeInOut.transform(
-          (grow.value / VibeTypingMorph.end).clamp(0.0, 1.0),
-        );
-        return SizedBox.square(
-          dimension: s,
-          child: Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.center,
-            children: [
-              if (t < 1)
-                Opacity(
-                  opacity: 1 - t,
-                  child: Transform.scale(
-                    scale: 1 + 0.18 * t,
-                    child: Container(
-                      width: s,
-                      height: s,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: cs.surfaceContainerHigh,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const VibeTypingDots(),
-                    ),
-                  ),
-                ),
-              Opacity(
-                opacity: t,
-                child: Transform.scale(
-                  scale: 0.6 + 0.4 * Curves.easeOutBack.transform(t),
-                  child: picture,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+  Widget build(BuildContext context) =>
+      KeyedSubtree(key: _key, child: widget.child);
 }
