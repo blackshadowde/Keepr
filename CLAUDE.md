@@ -172,7 +172,16 @@ Last updated: 2026-11-16.
     `vibe_buddy_bar.dart`): headphones, dancing, hops to messages; a sad
     song (Last.fm tags or sad words in the title) makes it sad with a tear.
     The old notification listener stays off.
+  - Bujji: smooth `groove` to music (no shaking), hides behind a message
+    after too many pokes until petted a few times (`_hideAway`,
+    `_petHidden`); no fade behind its row (stops in `chat_view.dart`).
+  - Replies: the line runs down the card's edge to the picture
+    (`_ReplyRail` in `vibe_message.dart`).
 - Waiting for the owner:
+  - Voice notes mockups (recorder pane with a stage, Cancel / mic / Send;
+    voice notes as cards with a play button, rounded bars, speed): on the
+    design canvas. Code today: `recording_input_row.dart`,
+    `recording_view_model.dart`, `events/audio_player.dart`.
   - Pane extras from the study (dim follows the pull, the page behind steps
     back): they reach into Flutter's own pane code, so try them with a test
     APK. Questions in Keepr already open as panes (`showVibeDialog`), so the
