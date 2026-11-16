@@ -391,57 +391,6 @@ class ChatView extends StatelessWidget {
                   ),
                 ),
               ),
-              floatingActionButton:
-                  controller.showScrollDownButton &&
-                      controller.selectedEvents.isEmpty
-                  ? Padding(
-                      padding: EdgeInsets.only(
-                        bottom: theme.appBarTheme.toolbarHeight ?? 56,
-                      ),
-                      // Vibe X's "Jump to present" pill
-                      child: Material(
-                        color: !VibePalette.isVibe
-                            ? theme.colorScheme.surfaceContainerHigh
-                            : theme.brightness == Brightness.dark
-                            ? const Color(0xFF2B2D31)
-                            : const Color(0xFFEBEDEF),
-                        elevation: 3,
-                        shadowColor: Colors.black54,
-                        shape: const StadiumBorder(),
-                        clipBehavior: Clip.antiAlias,
-                        child: InkWell(
-                          onTap: controller.scrollDown,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 9,
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.keyboard_arrow_down,
-                                  size: 20,
-                                  color: theme.colorScheme.onSurface,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Jump to present',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: theme.colorScheme.onSurface,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    )
-                  : null,
-              floatingActionButtonLocation:
-                  FloatingActionButtonLocation.centerFloat,
               body: NotificationListener<SizeChangedLayoutNotification>(
                 onNotification: (SizeChangedLayoutNotification notification) {
                   WidgetsBinding.instance.addPostFrameCallback(
@@ -690,6 +639,52 @@ class ChatView extends StatelessWidget {
                           ),
                             ],
                           ),
+                        ),
+                        // back to the newest message: a small round button
+                        // right above the send button, in the theme's colours
+                        ValueListenableBuilder<double?>(
+                          valueListenable: controller.inputBarHeightNotifier,
+                          builder: (context, barHeight, _) {
+                            final show =
+                                controller.showScrollDownButton &&
+                                controller.selectedEvents.isEmpty;
+                            final cs = theme.colorScheme;
+                            return Positioned(
+                              right: 17,
+                              bottom: (barHeight ?? 72) + 10,
+                              child: IgnorePointer(
+                                ignoring: !show,
+                                child: AnimatedScale(
+                                  scale: show ? 1 : 0.6,
+                                  duration: const Duration(milliseconds: 180),
+                                  curve: Curves.easeOutBack,
+                                  child: AnimatedOpacity(
+                                    opacity: show ? 1 : 0,
+                                    duration: const Duration(milliseconds: 160),
+                                    child: Material(
+                                      color: cs.secondaryContainer,
+                                      shape: const CircleBorder(),
+                                      elevation: 3,
+                                      shadowColor: Colors.black38,
+                                      clipBehavior: Clip.antiAlias,
+                                      child: InkWell(
+                                        onTap: controller.scrollDown,
+                                        child: SizedBox.square(
+                                          dimension: 44,
+                                          child: Icon(
+                                            Icons.keyboard_arrow_down_rounded,
+                                            size: 26,
+                                            color: cs.onSecondaryContainer,
+                                            semanticLabel: 'Jump to present',
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                         if (controller.dragging)
                           Container(
