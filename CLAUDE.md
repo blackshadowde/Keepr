@@ -148,19 +148,31 @@ Last updated: 2026-11-16.
   - Jump to present: a small round button above the send button.
   - Swipe down on panes follows the finger and springs with its speed
     (`vibe_sheet_drag.dart`).
-- Approved, to build next (together): the quiet home (one row: picture,
-  "Chats" title that opens a Chats / Spaces switch, search, new chat; Bujji
-  sits on the title holding the unread count; unread cards unchanged) and
-  one profile page that merges Edit profile and Share ID.
+  - The samurai (deleting a message) has a jointed body and eased timing,
+    about 3.4 s, and never looks back (`vibe_samurai.dart`, played by
+    `VibeSlashRow` in `vibe_slash.dart`; the message card is marked with
+    `VibeSlashBubble`). The owner's motion study is a private artifact.
+  - Quiet home: one line (picture, "Chats" title that opens a Chats / Spaces
+    switch, search, new chat); Bujji sits on the title holding the unread
+    count; no "All chats" label (`vibe_home_view.dart`: `_QuietTop`,
+    `_BujjiBoard`, `_ModeSwitch`).
+  - One profile page: picture and name both open `VibeSetStatusPage` (photo,
+    name, style, pill, ID copy, status, Keepr ID code with Share and Copy,
+    group tag, settings). `VibeOwnProfile.show` points there.
 - Waiting for the owner:
-  - Profile page mock (on the design canvas) before building it.
-  - Samurai motion study (a private claude.ai artifact): jointed body,
-    eased timing, about 3.1 s. Once approved, port it to
-    `lib/vibe/vibe_slash.dart`; for the split, take a picture of the row
-    (`toImageSync`) and cut that; use the card's real width; keep
-    `paintPlantedSword` for the placeholder.
-  - Pane and popup ideas in the same study: dim follows the pull, the page
-    behind steps back, popups grow from the button tapped.
+  - Connections (what you're listening to): mockups on the design canvas.
+    Plan: on the profile page, connect Last.fm or ListenBrainz with just a
+    username; the phone checks what's playing every 30 s while Keepr runs
+    and shares it through the status `activity` (`VibeActivityCard` already
+    shows it). Spotify can't be connected directly (since February 2026 its
+    developer access allows 5 users with Premium), but it can feed Last.fm
+    or ListenBrainz. Last.fm needs an API key: keep it in a repo secret
+    passed with `--dart-define`, not in the code. The old notification
+    listener stays off (`VibeNowPlaying.supported` is false).
+  - Pane extras from the study (dim follows the pull, the page behind steps
+    back): they reach into Flutter's own pane code, so try them with a test
+    APK. Questions in Keepr already open as panes (`showVibeDialog`), so the
+    "popup grows from the button" idea fits menus rather than questions.
 - Open threads of work:
   - A "Could not be sent" problem the owner raised: ask the owner for details.
   - Nearby (offline chat over Bluetooth): plan in `docs/nearby.md`, decisions

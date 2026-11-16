@@ -883,7 +883,7 @@ class _ModeSwitchState extends State<_ModeSwitch> with SingleTickerProviderState
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final screen = MediaQuery.sizeOf(context);
-    final left = (widget.at.left - 8).clamp(12.0, math.max(12.0, screen.width - _w - 12));
+    final left = (widget.at.left - 8).clamp(12.0, math.max(12.0, screen.width - _w - 12)).toDouble();
     const thumbW = (_w - _pad * 2) / 2;
     final route = ModalRoute.of(context)?.animation ?? kAlwaysCompleteAnimation;
     Widget seg(bool sp) {

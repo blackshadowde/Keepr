@@ -919,10 +919,10 @@ class _VibeSetStatusPageState extends State<VibeSetStatusPage> {
                         child: PrettyQrView.data(
                           data: AppConfig.shareLink(userId),
                           // dark on white, so any phone can read it
-                          decoration: PrettyQrDecoration(
+                          decoration: const PrettyQrDecoration(
                             shape: PrettyQrSmoothSymbol(
                               roundFactor: 1,
-                              color: const Color(0xFF16181D),
+                              color: Color(0xFF16181D),
                             ),
                           ),
                         ),
