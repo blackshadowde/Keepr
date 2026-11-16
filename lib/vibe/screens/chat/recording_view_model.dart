@@ -14,6 +14,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:matrix/matrix.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:path/path.dart' as path_lib;
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
@@ -42,6 +43,16 @@ class RecordingViewModelState extends State<RecordingViewModel> {
   String? fileName;
 
   bool isPaused = false;
+
+  /// Stopped to listen back before sending: the recorded file.
+  String? reviewPath;
+  bool get reviewing => reviewPath != null;
+  AudioPlayer? _review;
+  StreamSubscription? _reviewPos, _reviewState;
+
+  /// Listening back: how far it has played (0 to 1), and whether it plays.
+  final reviewAt = ValueNotifier<double>(0);
+  final reviewPlaying = ValueNotifier<bool>(false);
 
   Future<void> startRecording(Room room) async {
     room.client.getConfig(); // Preload server file configuration.
@@ -120,6 +131,8 @@ class RecordingViewModelState extends State<RecordingViewModel> {
   @override
   void dispose() {
     _reset();
+    reviewAt.dispose();
+    reviewPlaying.dispose();
     super.dispose();
   }
 
@@ -143,6 +156,7 @@ class RecordingViewModelState extends State<RecordingViewModel> {
     _recorderSubscription?.cancel();
     _audioRecorder?.stop();
     _audioRecorder = null;
+    _endReview();
 
     fileName = null;
     duration = Duration.zero;
@@ -170,6 +184,91 @@ class RecordingViewModelState extends State<RecordingViewModel> {
     });
   }
 
+  /// Stop recording to listen back before sending.
+  Future<void> stopToReview() async {
+    _recorderSubscription?.cancel();
+    final path = await _audioRecorder?.stop();
+    if (path == null || !mounted) return;
+    await WakelockPlus.disable();
+    setState(() {
+      reviewPath = path;
+      isPaused = false;
+    });
+  }
+
+  /// How long the recording is, once it can be played back.
+  Duration get reviewLength => _review?.duration ?? duration;
+
+  void _endReview() {
+    _reviewPos?.cancel();
+    _reviewState?.cancel();
+    _review?.dispose();
+    _review = null;
+    reviewPath = null;
+    reviewAt.value = 0;
+    reviewPlaying.value = false;
+  }
+
+  /// Load the recording to listen back, if not loaded yet.
+  Future<AudioPlayer?> _player() async {
+    final path = reviewPath;
+    if (path == null) return null;
+    final loaded = _review;
+    if (loaded != null) return loaded;
+    final player = _review = AudioPlayer();
+    if (kIsWeb) {
+      await player.setUrl(path);
+    } else {
+      await player.setFilePath(path);
+    }
+    _reviewPos = player.positionStream.listen((pos) {
+      final d = reviewLength.inMilliseconds;
+      reviewAt.value = d <= 0 ? 0 : (pos.inMilliseconds / d).clamp(0.0, 1.0);
+    });
+    _reviewState = player.playerStateStream.listen((s) {
+      final done = s.processingState == ProcessingState.completed;
+      reviewPlaying.value = s.playing && !done;
+      // played to the end: back to the start, ready to play again
+      if (done) {
+        player.pause();
+        player.seek(Duration.zero);
+      }
+    });
+    if (mounted) setState(() {});
+    return player;
+  }
+
+  /// Play or pause what you recorded.
+  Future<void> playReview() async {
+    final player = await _player();
+    if (player == null) return;
+    if (player.playing) {
+      await player.pause();
+    } else {
+      await player.play();
+    }
+  }
+
+  /// Jump to [f] (0 to 1) of the recording.
+  Future<void> seekReview(double f) async {
+    final player = await _player();
+    if (player == null) return;
+    final at = f.clamp(0.0, 1.0);
+    reviewAt.value = at;
+    await player.seek(Duration(milliseconds: (reviewLength.inMilliseconds * at).round()));
+  }
+
+  /// Throw it away and record again, without closing the pane.
+  Future<void> recordAgain(Room room) async {
+    setState(() {
+      _endReview();
+      amplitudeTimeline.clear();
+      duration = Duration.zero;
+      isPaused = false;
+    });
+    await startRecording(room);
+  }
+
   Future<void> stopAndSend(
     Future<void> Function(
       String path,
@@ -180,7 +279,8 @@ class RecordingViewModelState extends State<RecordingViewModel> {
     onSend,
   ) async {
     _recorderSubscription?.cancel();
-    final path = await _audioRecorder?.stop();
+    // listened back already: send that file
+    final path = reviewPath ?? await _audioRecorder?.stop();
 
     if (path == null) throw ('Recording failed!');
     const waveCount = AudioPlayerWidget.wavesCount;

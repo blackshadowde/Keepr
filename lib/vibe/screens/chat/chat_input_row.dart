@@ -61,6 +61,7 @@ class ChatInputRow extends StatelessWidget {
           return RecordingInputRow(
             state: recordingViewModel,
             onSend: controller.onVoiceMessageSend,
+            onAgain: () => recordingViewModel.recordAgain(controller.room),
           );
         }
         return Row(

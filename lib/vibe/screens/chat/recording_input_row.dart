@@ -11,13 +11,18 @@ import 'package:flutter/material.dart';
 
 /// Recording a voice note: a pane over the text box in your colour theme.
 /// A little stage shows the time, a mic and your voice as bars (Bujji
-/// listens in its headphones); below, Cancel, pause or go on, and Send.
+/// listens in its headphones); below, Cancel, Stop and Send. Stop lets you
+/// listen back first, then Delete, Retake or Send.
 class RecordingInputRow extends StatelessWidget {
   final RecordingViewModelState state;
   final Future<void> Function(String, int, List<int>, String) onSend;
+
+  /// Throw the recording away and record again.
+  final VoidCallback onAgain;
   const RecordingInputRow({
     required this.state,
     required this.onSend,
+    required this.onAgain,
     super.key,
   });
 
@@ -27,7 +32,9 @@ class RecordingInputRow extends StatelessWidget {
     final l10n = L10n.of(context);
     final d = state.duration;
     final time = '${d.inMinutes}:${(d.inSeconds % 60).toString().padLeft(2, '0')}';
-    final live = !state.isPaused;
+    final review = state.reviewing;
+    final live = !state.isPaused && !review;
+    String fmt(Duration d) => '${d.inMinutes}:${(d.inSeconds % 60).toString().padLeft(2, '0')}';
     Widget pill({
       required String tip,
       required Color bg,
@@ -54,7 +61,16 @@ class RecordingInputRow extends StatelessWidget {
               child: InkWell(
                 customBorder: const StadiumBorder(),
                 onTap: onTap,
-                child: Center(child: child),
+                child: Center(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 220),
+                    transitionBuilder: (c, a) => FadeTransition(
+                      opacity: a,
+                      child: ScaleTransition(scale: Tween(begin: 0.8, end: 1.0).animate(a), child: c),
+                    ),
+                    child: child,
+                  ),
+                ),
               ),
             ),
           ),
@@ -62,6 +78,7 @@ class RecordingInputRow extends StatelessWidget {
       ),
     );
     Widget label(IconData icon, String text, Color c) => Row(
+      key: ValueKey(text),
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, color: c, size: 22),
@@ -69,6 +86,7 @@ class RecordingInputRow extends StatelessWidget {
         Text(text, style: TextStyle(color: c, fontSize: 15.5, fontWeight: FontWeight.w700)),
       ],
     );
+    const tabular = [FontFeature.tabularFigures()];
     // the pane rises in with a little spring
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
@@ -99,7 +117,7 @@ class RecordingInputRow extends StatelessWidget {
               ),
               child: Stack(
                 children: [
-                  // how long, with a dot that breathes while it records
+                  // how long; while listening back, how far it has played
                   Positioned(
                     top: 12,
                     left: 0,
@@ -112,45 +130,110 @@ class RecordingInputRow extends StatelessWidget {
                           color: cs.surface.withValues(alpha: 0.8),
                           borderRadius: BorderRadius.circular(15),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _Breathing(color: live ? cs.error : cs.outline, on: live),
-                            const SizedBox(width: 8),
-                            Text(
-                              live ? time : 'Paused · $time',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: cs.onSurface,
-                                fontFeatures: const [FontFeature.tabularFigures()],
+                        child: review
+                            ? ValueListenableBuilder<double>(
+                                valueListenable: state.reviewAt,
+                                builder: (context, at, _) => Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.headphones_rounded, size: 16, color: cs.primary),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '${fmt(state.reviewLength * at)} / ${fmt(state.reviewLength)}',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        color: cs.onSurface,
+                                        fontFeatures: tabular,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _Breathing(color: live ? cs.error : cs.outline, on: live),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    live ? time : 'Paused · $time',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: cs.onSurface,
+                                      fontFeatures: tabular,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                          ],
-                        ),
                       ),
                     ),
                   ),
-                  // the mic, your voice as bars, Bujji listening
+                  // pause or go on, out of the way in the corner
+                  if (!review)
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: VibePressable(
+                        child: IconButton(
+                          tooltip: live ? l10n.pause : l10n.resume,
+                          style: IconButton.styleFrom(
+                            backgroundColor: cs.surface.withValues(alpha: 0.8),
+                            foregroundColor: cs.onSurface,
+                          ),
+                          onPressed: live ? state.pause : state.resume,
+                          icon: Icon(live ? Icons.pause_rounded : Icons.mic_rounded, size: 20),
+                        ),
+                      ),
+                    ),
+                  // recording: the mic and your voice as bars; listening
+                  // back: play, the whole note to tap or drag through
                   Positioned(
                     left: 16,
                     right: 16,
                     bottom: 18,
                     child: Row(
                       children: [
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            color: cs.surface,
-                            shape: BoxShape.circle,
-                            boxShadow: live
-                                ? [BoxShadow(color: cs.primary.withValues(alpha: 0.18), spreadRadius: 8)]
-                                : const [],
+                        if (review)
+                          ValueListenableBuilder<bool>(
+                            valueListenable: state.reviewPlaying,
+                            builder: (context, playing, _) => VibePressable(
+                              child: GestureDetector(
+                                onTap: state.playReview,
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 260),
+                                  width: 52,
+                                  height: 52,
+                                  decoration: BoxDecoration(
+                                    color: cs.primary,
+                                    shape: BoxShape.circle,
+                                    boxShadow: playing
+                                        ? [BoxShadow(color: cs.primary.withValues(alpha: 0.25), spreadRadius: 7)]
+                                        : const [],
+                                  ),
+                                  child: Icon(
+                                    playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                                    color: cs.onPrimary,
+                                    size: 30,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          )
+                        else
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: cs.surface,
+                              shape: BoxShape.circle,
+                              boxShadow: live
+                                  ? [BoxShadow(color: cs.primary.withValues(alpha: 0.18), spreadRadius: 8)]
+                                  : const [],
+                            ),
+                            child: Icon(Icons.mic_rounded, color: cs.onSurface, size: 28),
                           ),
-                          child: Icon(Icons.mic_rounded, color: cs.onSurface, size: 28),
-                        ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: SizedBox(
@@ -159,6 +242,36 @@ class RecordingInputRow extends StatelessWidget {
                               builder: (context, box) {
                                 const w = 4.0, gap = 3.0;
                                 final n = (box.maxWidth / (w + gap)).floor();
+                                if (review) {
+                                  final amps = _fit(state.amplitudeTimeline, n);
+                                  double at(Offset o) => (o.dx / box.maxWidth).clamp(0.0, 1.0);
+                                  return GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTapDown: (d) => state.seekReview(at(d.localPosition)),
+                                    onHorizontalDragUpdate: (d) => state.reviewAt.value = at(d.localPosition),
+                                    onHorizontalDragEnd: (_) => state.seekReview(state.reviewAt.value),
+                                    child: ValueListenableBuilder<double>(
+                                      valueListenable: state.reviewAt,
+                                      builder: (context, played, _) => Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          for (var i = 0; i < amps.length; i++)
+                                            AnimatedContainer(
+                                              duration: const Duration(milliseconds: 160),
+                                              width: w,
+                                              height: 6 + 40 * (amps[i] / 100).clamp(0.0, 1.0),
+                                              decoration: BoxDecoration(
+                                                color: (i + 0.5) / amps.length <= played
+                                                    ? cs.primary
+                                                    : cs.primary.withValues(alpha: 0.28),
+                                                borderRadius: BorderRadius.circular(w / 2),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }
                                 final amps = state.amplitudeTimeline.reversed.take(n).toList().reversed.toList();
                                 return Row(
                                   mainAxisAlignment: MainAxisAlignment.end,
@@ -182,16 +295,20 @@ class RecordingInputRow extends StatelessWidget {
                         ),
                         if (VibeBuddy.on) ...[
                           const SizedBox(width: 10),
-                          VibeBuddyFace(
-                            size: 50,
-                            color: cs.primary,
-                            mood: BuddyMood.happy,
-                            prop: BuddyProp.headphones,
-                            outfit: VibeBuddy.outfit,
-                            gaze: -0.8,
-                            look: 0.3,
-                            floating: true,
-                            groove: live ? 1 : 0,
+                          // Bujji listens along, and sways while it plays back
+                          ValueListenableBuilder<bool>(
+                            valueListenable: state.reviewPlaying,
+                            builder: (context, playing, _) => VibeBuddyFace(
+                              size: 50,
+                              color: cs.primary,
+                              mood: BuddyMood.happy,
+                              prop: BuddyProp.headphones,
+                              outfit: VibeBuddy.outfit,
+                              gaze: -0.8,
+                              look: 0.3,
+                              floating: true,
+                              groove: live || playing ? 1 : 0,
+                            ),
                           ),
                         ],
                       ],
@@ -204,29 +321,36 @@ class RecordingInputRow extends StatelessWidget {
             Row(
               children: [
                 pill(
-                  tip: l10n.cancel,
+                  tip: review ? l10n.delete : l10n.cancel,
                   bg: cs.secondaryContainer,
                   onTap: state.cancel,
-                  child: label(Icons.close_rounded, l10n.cancel, cs.onSecondaryContainer),
+                  child: review
+                      ? label(Icons.delete_outline_rounded, l10n.delete, cs.onSecondaryContainer)
+                      : label(Icons.close_rounded, l10n.cancel, cs.onSecondaryContainer),
                 ),
                 const SizedBox(width: 10),
                 pill(
-                  tip: live ? l10n.pause : l10n.resume,
-                  bg: cs.primary,
+                  tip: review ? 'Record again' : 'Stop to listen back',
+                  bg: review ? cs.secondaryContainer : cs.primary,
                   glow: live,
-                  onTap: live ? state.pause : state.resume,
-                  child: Icon(
-                    live ? Icons.pause_rounded : Icons.mic_rounded,
-                    color: cs.onPrimary,
-                    size: 28,
-                  ),
+                  onTap: () {
+                    if (review) {
+                      onAgain();
+                    } else {
+                      state.stopToReview();
+                    }
+                  },
+                  child: review
+                      ? label(Icons.replay_rounded, 'Retake', cs.onSecondaryContainer)
+                      : label(Icons.stop_rounded, 'Stop', cs.onPrimary),
                 ),
                 const SizedBox(width: 10),
                 pill(
                   tip: l10n.sendAudio,
-                  bg: cs.primaryContainer,
+                  bg: review ? cs.primary : cs.primaryContainer,
+                  glow: review,
                   onTap: () => state.stopAndSend(onSend),
-                  child: label(Icons.send_rounded, 'Send', cs.onPrimaryContainer),
+                  child: label(Icons.send_rounded, 'Send', review ? cs.onPrimary : cs.onPrimaryContainer),
                 ),
               ],
             ),
@@ -234,6 +358,24 @@ class RecordingInputRow extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// The whole recording as [n] bars.
+  static List<double> _fit(List<double> a, int n) {
+    if (n <= 0) return const [];
+    if (a.isEmpty) return List.filled(n, 1.0);
+    return [
+      for (var i = 0; i < n; i++)
+        () {
+          final from = (i * a.length / n).floor();
+          final to = (((i + 1) * a.length / n).ceil()).clamp(from + 1, a.length);
+          var top = 0.0;
+          for (var j = from; j < to; j++) {
+            if (a[j] > top) top = a[j];
+          }
+          return top;
+        }(),
+    ];
   }
 }
 
