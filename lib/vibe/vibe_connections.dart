@@ -217,7 +217,8 @@ abstract class VibeConnections {
         .timeout(const Duration(seconds: 12));
     if (r.statusCode == 404) return (found: false, track: null);
     final j = jsonDecode(r.body);
-    final listens = j is Map ? (j['payload'] as Map?)?['listens'] : null;
+    final payload = j is Map ? j['payload'] : null;
+    final listens = payload is Map ? payload['listens'] : null;
     if (listens is! List || listens.isEmpty) return (found: true, track: null);
     final m = (listens.first as Map?)?['track_metadata'];
     if (m is! Map) return (found: true, track: null);
