@@ -9,8 +9,15 @@ import 'package:vibe/vibe/vibe_now_playing.dart';
 import 'package:vibe/config/setting_keys.dart';
 import 'package:vibe/widgets/avatar.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
+import 'package:vibe/vibe/vibe_member_tags.dart';
+import 'package:vibe/vibe/vibe_own_profile.dart';
+import 'package:vibe/config/app_config.dart';
+import 'package:vibe/widgets/qr_code_viewer.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:matrix/matrix.dart';
+import 'package:pretty_qr_code/pretty_qr_code.dart';
 
 const _statusHint = 'What are you up to?';
 const _bannerColor = Color(0xFF1F2624);
@@ -395,6 +402,24 @@ class _VibeSetStatusPageState extends State<VibeSetStatusPage> {
     );
   }
 
+  void _copy(String text, String done) {
+    Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(done), duration: const Duration(seconds: 2)),
+    );
+  }
+
+  Future<void> _changePhoto(Profile? p) async {
+    final changed = await VibeOwnProfile.changePhoto(
+      context,
+      widget.client,
+      hasPhoto: p?.avatarUrl != null,
+    );
+    if (!changed || !mounted) return;
+    VibeProfileCache.refresh();
+    setState(() => _profile = VibeProfileCache.get(widget.client));
+  }
+
   Future<void> _save({bool clear = false}) async {
     if (_saving) return;
     final text = _text.text.trim();
@@ -477,7 +502,7 @@ class _VibeSetStatusPageState extends State<VibeSetStatusPage> {
         ),
         centerTitle: true,
         title: const Text(
-          'Edit profile',
+          'Your profile',
           style: TextStyle(fontWeight: FontWeight.w700),
         ),
         actions: [
@@ -527,12 +552,39 @@ class _VibeSetStatusPageState extends State<VibeSetStatusPage> {
                           Positioned(
                             left: 14,
                             top: 74,
-                            child: VibeRingAvatar(
-                              mxc: p?.avatarUrl,
-                              name: name,
-                              client: widget.client,
-                              ring: pageColor,
-                              size: 96,
+                            // tap your picture (or the camera) to change it
+                            child: GestureDetector(
+                              onTap: () => _changePhoto(p),
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  VibeRingAvatar(
+                                    mxc: p?.avatarUrl,
+                                    name: name,
+                                    client: widget.client,
+                                    ring: pageColor,
+                                    size: 96,
+                                  ),
+                                  Positioned(
+                                    right: 0,
+                                    bottom: 2,
+                                    child: Container(
+                                      width: 34,
+                                      height: 34,
+                                      decoration: BoxDecoration(
+                                        color: cs.primary,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: pageColor, width: 3),
+                                      ),
+                                      child: Icon(
+                                        Icons.photo_camera_rounded,
+                                        size: 16,
+                                        color: cs.onPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                           Positioned(
@@ -666,7 +718,17 @@ class _VibeSetStatusPageState extends State<VibeSetStatusPage> {
                   color: fieldColor,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(userId, style: TextStyle(fontSize: 15, color: cs.onSurfaceVariant)),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(userId, style: TextStyle(fontSize: 15, color: cs.onSurfaceVariant)),
+                    ),
+                    GestureDetector(
+                      onTap: () => _copy(userId, 'Copied'),
+                      child: Icon(Icons.copy_rounded, size: 18, color: cs.onSurfaceVariant),
+                    ),
+                  ],
+                ),
               ),
               Padding(
                 padding: const EdgeInsets.only(left: 4, top: 6),
@@ -836,6 +898,101 @@ class _VibeSetStatusPageState extends State<VibeSetStatusPage> {
                   ),
                 ),
               ],
+              // your Keepr ID: the code right here, with Share and Copy link
+              const SizedBox(height: 22),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: fieldColor,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: SizedBox.square(
+                        dimension: 104,
+                        child: PrettyQrView.data(
+                          data: AppConfig.shareLink(userId),
+                          // dark on white, so any phone can read it
+                          decoration: PrettyQrDecoration(
+                            shape: PrettyQrSmoothSymbol(
+                              roundFactor: 1,
+                              color: const Color(0xFF16181D),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'YOUR KEEPR ID',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.6),
+                          ),
+                          const SizedBox(height: 6),
+                          const Text(
+                            'Scan or share to chat with you',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              FilledButton.icon(
+                                onPressed: () => showQrCodeViewer(context, userId),
+                                icon: const Icon(Icons.share_rounded, size: 18),
+                                label: const Text('Share'),
+                              ),
+                              const SizedBox(width: 6),
+                              IconButton.filledTonal(
+                                tooltip: 'Copy link',
+                                onPressed: () => _copy(AppConfig.shareLink(userId), 'Link copied'),
+                                icon: const Icon(Icons.copy_rounded, size: 18),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  color: fieldColor,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.sell_outlined),
+                      title: const Text('Group tag'),
+                      subtitle: const Text('A short tag next to your name in groups'),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () => VibeMemberTags.pick(context, widget.client),
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.settings_rounded),
+                      title: const Text('Settings'),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () {
+                        final router = GoRouter.of(context);
+                        Navigator.of(context).pop();
+                        router.go('/rooms/settings');
+                      },
+                    ),
+                  ],
+                ),
+              ),
                   ],
                 ),
               ),
