@@ -146,8 +146,21 @@ Last updated: 2026-11-16.
     opens Android's photo picker (Google Photos too).
   - Photo stacks open the new hold menu and show their reactions.
   - Jump to present: a small round button above the send button.
-- Mockups waiting for the owner's pick: "Home, less clutter" (three ideas;
-  the unread cards stay as they are).
+  - Swipe down on panes follows the finger and springs with its speed
+    (`vibe_sheet_drag.dart`).
+- Approved, to build next (together): the quiet home (one row: picture,
+  "Chats" title that opens a Chats / Spaces switch, search, new chat; Bujji
+  sits on the title holding the unread count; unread cards unchanged) and
+  one profile page that merges Edit profile and Share ID.
+- Waiting for the owner:
+  - Profile page mock (on the design canvas) before building it.
+  - Samurai motion study (a private claude.ai artifact): jointed body,
+    eased timing, about 3.1 s. Once approved, port it to
+    `lib/vibe/vibe_slash.dart`; for the split, take a picture of the row
+    (`toImageSync`) and cut that; use the card's real width; keep
+    `paintPlantedSword` for the placeholder.
+  - Pane and popup ideas in the same study: dim follows the pull, the page
+    behind steps back, popups grow from the button tapped.
 - Open threads of work:
   - A "Could not be sent" problem the owner raised: ask the owner for details.
   - Nearby (offline chat over Bluetooth): plan in `docs/nearby.md`, decisions
