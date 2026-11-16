@@ -190,13 +190,18 @@ Last updated: 2026-11-16.
   - Notifications settings: rules made for one chat (`!…`) or one person
     (`@…`) show by name in their own section, "Chats and people with their
     own setting", with what they do in plain words.
+  - Settings in the owner's pick, "Soft tiles" (design canvas): big title
+    that moves into the bar (`VibeTitledPage`), your card, Search settings
+    (`vibe_settings_search.dart`, over `BujjiSettings.all`), rows with icons
+    in grey tiles (`VibeSettingsRow`, `VibeIconTile`), cards radius 24 with
+    no lines, small capital labels, switches whose dot grows. All in
+    `vibe_settings_style.dart`, so every settings page follows; `VibeGroups`
+    puts plain row icons in tiles. Notifications uses `VibeTitledPage` with
+    plain-named rules (Direct chats, Groups, mentions, Calls) and All rules.
+  - Bujji reminders: "after 2 mins", a bare "2 mins" and similar; when it
+    can't read the time it keeps the task and asks again (`_when` and the
+    pending answer in `bujji.dart`).
 - Waiting for the owner:
-  - Settings revamp mockups on the design canvas ("Settings: minimal, one
-    colour"): 1 Soft tiles (grey icon tiles like the profile page, your card,
-    search from `BujjiSettings.all`), 2 Plain lines, 3 Rounded stack, plus
-    dark and a Notifications page. Build the picked one in
-    `vibe_settings_style.dart` (shared by every settings page) and
-    `screens/settings/settings_view.dart`.
   - Pane extras from the study (dim follows the pull, the page behind steps
     back): they reach into Flutter's own pane code, so try them with a test
     APK. Questions in Keepr already open as panes (`showVibeDialog`), so the
