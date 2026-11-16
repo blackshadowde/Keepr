@@ -159,16 +159,20 @@ Last updated: 2026-11-16.
   - One profile page: picture and name both open `VibeSetStatusPage` (photo,
     name, style, pill, ID copy, status, Keepr ID code with Share and Copy,
     group tag, settings). `VibeOwnProfile.show` points there.
+  - Connections (`vibe_connections.dart`): on the profile page, connect
+    Last.fm or ListenBrainz with a username; the phone asks every 30 s while
+    Keepr runs and shares the song through the status `activity` (`'by':
+    'connection'`, `card` / `pill` switches). The card is
+    `VibeListeningCard`; the line by the name shows headphones. Spotify
+    can't be connected directly (since February 2026 its developer access
+    allows 5 users with Premium), but it can feed either service. Last.fm
+    needs the `LASTFM_API_KEY` repository secret (the workflows pass it with
+    `--dart-define`); without it Last.fm shows as not in this version and
+    ListenBrainz still works. Bujji listens along (`_onMusic` in
+    `vibe_buddy_bar.dart`): headphones, dancing, hops to messages; a sad
+    song (Last.fm tags or sad words in the title) makes it sad with a tear.
+    The old notification listener stays off.
 - Waiting for the owner:
-  - Connections (what you're listening to): mockups on the design canvas.
-    Plan: on the profile page, connect Last.fm or ListenBrainz with just a
-    username; the phone checks what's playing every 30 s while Keepr runs
-    and shares it through the status `activity` (`VibeActivityCard` already
-    shows it). Spotify can't be connected directly (since February 2026 its
-    developer access allows 5 users with Premium), but it can feed Last.fm
-    or ListenBrainz. Last.fm needs an API key: keep it in a repo secret
-    passed with `--dart-define`, not in the code. The old notification
-    listener stays off (`VibeNowPlaying.supported` is false).
   - Pane extras from the study (dim follows the pull, the page behind steps
     back): they reach into Flutter's own pane code, so try them with a test
     APK. Questions in Keepr already open as panes (`showVibeDialog`), so the
