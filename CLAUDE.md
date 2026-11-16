@@ -145,6 +145,9 @@ Last updated: 2026-11-16.
   - Photo grid without flicker, numbered picks, and an All photos tile that
     opens Android's photo picker (Google Photos too).
   - Photo stacks open the new hold menu and show their reactions.
+  - Jump to present: a small round button above the send button.
+- Mockups waiting for the owner's pick: "Home, less clutter" (three ideas;
+  the unread cards stay as they are).
 - Open threads of work:
   - A "Could not be sent" problem the owner raised: ask the owner for details.
   - Nearby (offline chat over Bluetooth): plan in `docs/nearby.md`, decisions
