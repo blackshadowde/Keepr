@@ -7,6 +7,7 @@ import 'package:vibe/vibe/vibe_dialog.dart';
 import 'dart:typed_data';
 
 import 'package:vibe/vibe/vibe_contact_share.dart';
+import 'package:vibe/vibe/vibe_haptics.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:vibe/vibe/screens/chat/chat.dart';
@@ -55,6 +56,20 @@ class _AttachSheetState extends State<_AttachSheet> {
   bool _loading = false;
   bool _end = false;
   bool _denied = false;
+
+  // each picture's thumbnail, made once: a tile that rebuilds (picking,
+  // more loading) shows the same one instead of flashing grey
+  final Map<String, Future<Uint8List?>> _thumbs = {};
+  final Map<String, Uint8List?> _ready = {};
+
+  Future<Uint8List?> _thumb(AssetEntity a) => _thumbs.putIfAbsent(a.id, () async {
+    final data = await a.thumbnailDataWithSize(
+      const ThumbnailSize(260, 260),
+      quality: 85,
+    );
+    _ready[a.id] = data;
+    return data;
+  });
 
   @override
   void initState() {
@@ -122,15 +137,18 @@ class _AttachSheetState extends State<_AttachSheet> {
   }
 
   Future<void> _sendSelected() async {
+    // in the order they were picked
+    final byId = {for (final a in _assets) a.id: a};
     final files = <XFile>[];
-    for (final a in _assets.where((a) => _selected.contains(a.id))) {
-      final f = await a.originFile;
+    for (final id in _selected) {
+      final f = await byId[id]?.originFile;
       if (f != null) files.add(XFile(f.path));
     }
     await _openSend(files);
   }
 
-  /// System photo picker (needs no permission).
+  /// Android's own photo picker (needs no permission): every album, and
+  /// Google Photos when it's set up there.
   Future<void> _pickSystem() async {
     final files = await ImagePicker().pickMultipleMedia();
     await _openSend(files);
@@ -187,6 +205,12 @@ class _AttachSheetState extends State<_AttachSheet> {
                   onPressed: PhotoManager.openSetting,
                   child: const Text('Open settings'),
                 ),
+                // Android's photo picker needs no access
+                FilledButton.tonalIcon(
+                  onPressed: _pickSystem,
+                  icon: const Icon(Icons.photo_library_outlined),
+                  label: const Text('Choose from all photos'),
+                ),
               ],
             ),
           )
@@ -199,20 +223,47 @@ class _AttachSheetState extends State<_AttachSheet> {
               mainAxisSpacing: 4,
               crossAxisSpacing: 4,
             ),
-            itemCount: VibeUpdater.fromPlay ? 2 : _assets.length + 1,
+            itemCount: VibeUpdater.fromPlay ? 2 : _assets.length + 2,
             itemBuilder: (context, i) {
-              if (VibeUpdater.fromPlay && i == 1) {
-                return InkWell(
-                  onTap: _pickSystem,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: cs.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Icon(
-                      Icons.photo_library,
-                      size: 40,
-                      color: cs.onSurfaceVariant,
+              // every album and Google Photos, in Android's photo picker
+              if (i == 1) {
+                return Material(
+                  color: cs.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(14),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: _pickSystem,
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.photo_library_outlined,
+                            size: 28,
+                            color: cs.onSurface,
+                          ),
+                          const SizedBox(height: 6),
+                          const Text(
+                            'All photos',
+                            maxLines: 1,
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            'Google Photos too',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              color: cs.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -238,81 +289,20 @@ class _AttachSheetState extends State<_AttachSheet> {
                   ),
                 );
               }
-              final asset = _assets[i - 1];
-              final picked = _selected.contains(asset.id);
-              return GestureDetector(
-                onTap: () => setState(() {
-                  if (!_selected.add(asset.id)) _selected.remove(asset.id);
-                }),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      FutureBuilder<Uint8List?>(
-                        future: asset.thumbnailDataWithSize(
-                          const ThumbnailSize(260, 260),
-                        ),
-                        builder: (context, snap) => snap.data == null
-                            ? ColoredBox(color: cs.surfaceContainerHighest)
-                            : Image.memory(snap.data!, fit: BoxFit.cover),
-                      ),
-                      if (asset.type == AssetType.video)
-                        Positioned(
-                          right: 6,
-                          bottom: 6,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.black54,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.videocam,
-                                  size: 13,
-                                  color: Colors.white,
-                                ),
-                                const SizedBox(width: 3),
-                                Text(
-                                  _fmt(asset.videoDuration),
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      Positioned(
-                        top: 6,
-                        right: 6,
-                        child: Container(
-                          width: 22,
-                          height: 22,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: picked ? cs.primary : Colors.black38,
-                            border: Border.all(color: Colors.white, width: 1.5),
-                          ),
-                          child: picked
-                              ? Icon(
-                                  Icons.check,
-                                  size: 15,
-                                  color: cs.onPrimary,
-                                )
-                              : null,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              final asset = _assets[i - 2];
+              final order = _selected.toList().indexOf(asset.id);
+              return _Tile(
+                key: ValueKey(asset.id),
+                asset: asset,
+                thumb: _thumb(asset),
+                ready: _ready[asset.id],
+                order: order < 0 ? null : order + 1,
+                onTap: () {
+                  VibeHaptics.light();
+                  setState(() {
+                    if (!_selected.add(asset.id)) _selected.remove(asset.id);
+                  });
+                },
               );
             },
           ),
@@ -408,10 +398,127 @@ class _AttachSheetState extends State<_AttachSheet> {
     );
   }
 
+}
+
+/// One picture in the grid: its thumbnail fades in once and stays put;
+/// picked, it shrinks a little and shows its number in the order picked.
+class _Tile extends StatelessWidget {
+  final AssetEntity asset;
+  final Future<Uint8List?> thumb;
+  final Uint8List? ready;
+  final int? order;
+  final VoidCallback onTap;
+  const _Tile({
+    required this.asset,
+    required this.thumb,
+    required this.ready,
+    required this.order,
+    required this.onTap,
+    super.key,
+  });
+
   static String _fmt(Duration d) {
     final m = d.inMinutes;
     final s = d.inSeconds % 60;
     return '$m:${s.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final picked = order != null;
+    const quick = Duration(milliseconds: 170);
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedScale(
+        scale: picked ? 0.88 : 1,
+        duration: quick,
+        curve: Curves.easeOutBack,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(picked ? 18 : 14),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              ColoredBox(color: cs.surfaceContainerHighest),
+              FutureBuilder<Uint8List?>(
+                future: thumb,
+                initialData: ready,
+                builder: (context, snap) {
+                  final data = snap.data;
+                  if (data == null) return const SizedBox.shrink();
+                  return Image.memory(
+                    data,
+                    fit: BoxFit.cover,
+                    gaplessPlayback: true,
+                    // fades in the first time only
+                    frameBuilder: (context, child, frame, sync) => sync
+                        ? child
+                        : AnimatedOpacity(
+                            opacity: frame == null ? 0 : 1,
+                            duration: const Duration(milliseconds: 180),
+                            child: child,
+                          ),
+                  );
+                },
+              ),
+              AnimatedOpacity(
+                opacity: picked ? 1 : 0,
+                duration: quick,
+                child: ColoredBox(color: cs.primary.withValues(alpha: 0.18)),
+              ),
+              if (asset.type == AssetType.video)
+                Positioned(
+                  right: 6,
+                  bottom: 6,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.videocam, size: 13, color: Colors.white),
+                        const SizedBox(width: 3),
+                        Text(
+                          _fmt(asset.videoDuration),
+                          style: const TextStyle(color: Colors.white, fontSize: 11),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              Positioned(
+                top: 6,
+                right: 6,
+                child: AnimatedContainer(
+                  duration: quick,
+                  width: 24,
+                  height: 24,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: picked ? cs.primary : Colors.black26,
+                    border: Border.all(color: Colors.white, width: 1.5),
+                  ),
+                  child: picked
+                      ? Text(
+                          '$order',
+                          style: TextStyle(
+                            color: cs.onPrimary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        )
+                      : null,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

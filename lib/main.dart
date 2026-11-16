@@ -25,6 +25,7 @@ import 'package:universal_html/universal_html.dart' as web;
 
 import 'config/setting_keys.dart';
 import 'vibe/vibe_storage.dart';
+import 'vibe/vibe_photo_picker.dart';
 import 'utils/background_push.dart';
 import 'widgets/vibe_app.dart';
 
@@ -59,6 +60,8 @@ void main(List<String> args) async {
   // To make sure that the parts of flutter needed are started up already, we need to ensure that the
   // widget bindings are initialized already.
   WidgetsFlutterBinding.ensureInitialized();
+  // photos come from Android's own picker (Google Photos too)
+  VibePhotoPicker.useSystem();
 
   final store = await AppSettings.init();
   // Telegram-style caches: pictures in memory, media on the phone.
