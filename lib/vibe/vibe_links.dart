@@ -22,10 +22,12 @@ abstract class VibeLinks {
     required TextStyle linkStyle,
     required void Function(LinkableElement) onOpen,
   }) {
-    final parts = linkify(
-      text,
-      options: const LinkifyOptions(humanize: false),
-    );
+    // as linkify() does, with the web and email linkifiers
+    const options = LinkifyOptions(humanize: false);
+    var parts = <LinkifyElement>[TextElement(text)];
+    for (final l in const [UrlLinkifier(), EmailLinkifier()]) {
+      parts = l.parse(parts, options);
+    }
     return TextSpan(
       children: [
         for (final e in parts)
