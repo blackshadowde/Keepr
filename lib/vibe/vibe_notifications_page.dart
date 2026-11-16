@@ -13,6 +13,7 @@ import 'package:vibe/widgets/future_loading_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:matrix/matrix.dart';
 import 'package:vibe/widgets/matrix.dart';
+import 'package:vibe/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:vibe/vibe/vibe_settings_style.dart';
 import 'package:vibe/config/setting_keys.dart';
 import 'package:vibe/config/themes.dart';
@@ -190,18 +191,56 @@ class _VibeNotificationsPageState extends State<VibeNotificationsPage> {
     }
   }
 
+  /// A rule made for one chat (named after its address, !…) or one person
+  /// (@…): muting a chat makes one.
+  static bool _perChat(PushRule r) =>
+      r.ruleId.startsWith('!') || r.ruleId.startsWith('@');
+
+  /// The chat's or person's name instead of their address.
+  String _nameOf(PushRule rule) {
+    final id = rule.ruleId;
+    if (id.startsWith('!')) {
+      final room = Matrix.of(context).client.getRoomById(id);
+      return room?.getLocalizedDisplayname(MatrixLocals(L10n.of(context))) ??
+          'A chat you are no longer in';
+    }
+    return id.localpart ?? id;
+  }
+
+  /// What the rule does, in plain words.
+  String _whatItDoes(PushRule rule, PushRuleKind kind) {
+    final quiet = rule.actions.isEmpty || rule.actions.contains('dont_notify');
+    if (!quiet) return 'Always notifies';
+    if (rule.ruleId.startsWith('@')) return 'Muted: nothing from this person';
+    return kind == PushRuleKind.room
+        ? 'Only when you are mentioned'
+        : 'Muted: no notifications from this chat';
+  }
+
   @override
   Widget build(BuildContext context) {
     final pushRules = Matrix.of(context).client.globalPushRules;
+    List<PushRule> general(List<PushRule>? l) =>
+        (l ?? const <PushRule>[]).where((r) => !_perChat(r)).toList();
     final pushCategories = [
-      if (pushRules?.override?.isNotEmpty ?? false)
-        (rules: pushRules?.override ?? [], kind: PushRuleKind.override),
+      if (general(pushRules?.override).isNotEmpty)
+        (rules: general(pushRules?.override), kind: PushRuleKind.override),
       if (pushRules?.content?.isNotEmpty ?? false)
         (rules: pushRules?.content ?? [], kind: PushRuleKind.content),
-      if (pushRules?.sender?.isNotEmpty ?? false)
-        (rules: pushRules?.sender ?? [], kind: PushRuleKind.sender),
+      if (general(pushRules?.sender).isNotEmpty)
+        (rules: general(pushRules?.sender), kind: PushRuleKind.sender),
       if (pushRules?.underride?.isNotEmpty ?? false)
         (rules: pushRules?.underride ?? [], kind: PushRuleKind.underride),
+    ];
+    // chats and people with a setting of their own, shown by name (they
+    // used to show as their long addresses)
+    final ownRules = [
+      for (final r in pushRules?.override ?? const <PushRule>[])
+        if (_perChat(r)) (rule: r, kind: PushRuleKind.override),
+      for (final r in pushRules?.room ?? const <PushRule>[])
+        if (_perChat(r)) (rule: r, kind: PushRuleKind.room),
+      for (final r in pushRules?.sender ?? const <PushRule>[])
+        if (_perChat(r)) (rule: r, kind: PushRuleKind.sender),
     ];
     final pushService = Matrix.of(context).backgroundPush;
     return Scaffold(
@@ -291,6 +330,30 @@ class _VibeNotificationsPageState extends State<VibeNotificationsPage> {
                         ),
                       Divider(color: theme.dividerColor),
                     ],
+                  if (ownRules.isNotEmpty) ...[
+                    ListTile(
+                      title: Text(
+                        'Chats and people with their own setting',
+                        style: TextStyle(
+                          color: theme.colorScheme.secondary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    for (final o in ownRules)
+                      ListTile(
+                        title: Text(_nameOf(o.rule)),
+                        subtitle: Text(_whatItDoes(o.rule, o.kind)),
+                        onTap: () => editPushRule(o.rule, o.kind),
+                        trailing: Switch.adaptive(
+                          value: o.rule.enabled,
+                          onChanged: isLoading
+                              ? null
+                              : (_) => togglePushRule(o.kind, o.rule),
+                        ),
+                      ),
+                    Divider(color: theme.dividerColor),
+                  ],
 
                   if (PlatformInfos.isAndroid)
                     FutureBuilder(
