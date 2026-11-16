@@ -8,6 +8,8 @@ import 'package:vibe/vibe/vibe_swipe.dart';
 import 'package:vibe/vibe/vibe_haptics.dart';
 import 'package:vibe/utils/date_time_extension.dart';
 import 'package:vibe/vibe/vibe_media_viewer.dart';
+import 'package:vibe/vibe/vibe_message_orbit.dart';
+import 'package:vibe/vibe/screens/chat/events/message_reactions.dart';
 import 'package:vibe/widgets/avatar.dart';
 import 'package:vibe/widgets/mxc_image.dart';
 
@@ -21,10 +23,14 @@ class VibePhotoStack extends StatefulWidget {
 
   /// Long-press on a photo: the message menu for that photo.
   final void Function(Event)? onLongPress;
+
+  /// For the reactions on the photos.
+  final Timeline? timeline;
   const VibePhotoStack(
     this.events, {
     super.key,
     this.onLongPress,
+    this.timeline,
   });
 
   static const int minCount = 2;
@@ -44,6 +50,9 @@ class _VibePhotoStackState extends State<VibePhotoStack> {
   /// The photo on top; swipe the stack to flip through.
   int _i = 0;
   double _dx = 0;
+
+  /// The photo on top, for the menu round it.
+  final _top = GlobalKey();
 
   List<Event> get events => widget.events;
   void Function(Event)? get onLongPress => widget.onLongPress;
@@ -138,9 +147,26 @@ class _VibePhotoStackState extends State<VibePhotoStack> {
                   VibeNoBackSwipe(
                     child: GestureDetector(
                     onTap: () => VibeMediaViewer.open(context, events, _i),
-                    onLongPress: onLongPress == null
+                    // hold: the same menu round the photo as for a message,
+                    // and slide onto an action without lifting
+                    onLongPressStart: onLongPress == null
                         ? null
-                        : () => onLongPress!(events[_i]),
+                        : (_) {
+                            VibeHaptics.heavy();
+                            final box = _top.currentContext?.findRenderObject();
+                            if (box is RenderBox && box.hasSize) {
+                              VibeMessageOrbit.hold(
+                                box.localToGlobal(Offset.zero) & box.size,
+                              );
+                            }
+                            onLongPress!(events[_i]);
+                          },
+                    onLongPressMoveUpdate: onLongPress == null
+                        ? null
+                        : (d) => VibeMessageOrbit.move(d.globalPosition),
+                    onLongPressEnd: onLongPress == null
+                        ? null
+                        : (d) => VibeMessageOrbit.release(d.globalPosition),
                     onHorizontalDragUpdate: (d) =>
                         setState(() => _dx += d.delta.dx),
                     onHorizontalDragEnd: (d) {
@@ -154,6 +180,7 @@ class _VibePhotoStackState extends State<VibePhotoStack> {
                       }
                     },
                     child: AnimatedSlide(
+                      key: _top,
                       offset: Offset(_dx / w, 0),
                       duration: Duration(milliseconds: _dx == 0 ? 220 : 0),
                       curve: Curves.easeOutCubic,
@@ -219,11 +246,45 @@ class _VibePhotoStackState extends State<VibePhotoStack> {
               ),
             ),
           ),
+          ..._reactions(context),
         ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  /// The reactions on the photo on top, and how many the others have.
+  List<Widget> _reactions(BuildContext context) {
+    final timeline = widget.timeline;
+    if (timeline == null) return const [];
+    final top = events[_i];
+    var others = 0;
+    for (final (k, e) in events.indexed) {
+      if (k != _i) {
+        others += e.aggregatedEvents(timeline, RelationshipTypes.reaction).length;
+      }
+    }
+    return [
+      if (top.hasAggregatedEvents(timeline, RelationshipTypes.reaction))
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: MessageReactions(top, timeline),
+        ),
+      if (others > 0)
+        Padding(
+          padding: const EdgeInsets.only(top: 3),
+          child: Text(
+            others == 1
+                ? '1 reaction on another photo'
+                : '$others reactions on the other photos',
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+    ];
   }
 }
