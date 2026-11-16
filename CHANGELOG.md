@@ -5,6 +5,7 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 
 ## 2026-11-16
 
+- Swiping a pane down is smoother: the pane follows the finger one to one, gives a little when pushed up and stops, ticks once when letting go would close it, and on letting go either carries on down at the speed of the flick or springs back into place from that speed. Closing panes is quicker and starts moving at once ([d1b40f4fb](https://github.com/blackshadowde/keepr/commit/d1b40f4fb))
 - Jump to present is now a small round button with a down arrow right above the send button, in the colour theme's colours (Material You when it's on); it pops in when you scroll up and out at the newest message ([c51923a44](https://github.com/blackshadowde/keepr/commit/c51923a44))
 - Photo stacks: holding a photo in a stack opens the same menu round it as any message (slide onto an action without lifting) instead of the old sheet, and reactions on the photo on top show under the stack, with a line saying how many the other photos have ([8c34c2c02](https://github.com/blackshadowde/keepr/commit/8c34c2c02))
 - Attaching photos: the grid no longer flickers when you pick a photo or more load, thumbnails fade in once, and a picked photo shrinks a little and shows its number in the order picked (they're sent in that order). A new All photos tile opens Android's own photo picker, which needs no permission and, with Google Photos set up, can search and pick from Google Photos too; picking photos anywhere in the app uses it ([ab68f2b97](https://github.com/blackshadowde/keepr/commit/ab68f2b97))
