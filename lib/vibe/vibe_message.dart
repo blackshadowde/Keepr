@@ -588,6 +588,15 @@ class VibeMessage extends StatelessWidget {
         : null;
     // how far a bubble reaches past its box towards the picture
     const reach = avatarSize / 2 + nestGap;
+    // a card that starts with a reply: the reply's line runs on down the
+    // card's edge to their picture beside the newest message
+    final cardKey = bubble && !threadView ? VibeCards.keyOf(event, timeline) : null;
+    final rail = cardKey != null &&
+        hasReply(
+          cardKey == event.eventId
+              ? event
+              : timeline.events.where((e) => e.eventId == cardKey).firstOrNull,
+        );
     // solid colours from the phone's colour theme when it has one: yours in
     // the theme colour, theirs neutral
     final dark = theme.brightness == Brightness.dark;
@@ -1053,7 +1062,16 @@ class VibeMessage extends StatelessWidget {
               }
               // the last message of a run carries the picture; a bubble
               // curves in round it
-              Widget place(Widget w) => Padding(
+              Widget place(Widget w) => CustomPaint(
+                foregroundPainter: rail
+                    ? _ReplyRail(
+                        cs.onSurfaceVariant.withValues(alpha: 0.45),
+                        left: picLeft,
+                        toPicture: last,
+                        pic: avatarSize,
+                      )
+                    : null,
+                child: Padding(
                 padding: EdgeInsets.only(
                   top: first || (bubble && !cardFirst) ? 0 : 2,
                 ),
@@ -1080,6 +1098,7 @@ class VibeMessage extends StatelessWidget {
                             : inset,
                         child: VibeGrowOut(left: picLeft, child: w),
                       ),
+              ),
               );
               // Bujji can find it on screen and come and sit on it
               if ((!ticks || bubble) && effect == null) {
@@ -1542,6 +1561,35 @@ class _ReplyCurve extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ReplyCurve old) => old.color != color;
+}
+
+/// A reply's line carried on down the card's edge, row by row, to the top of
+/// the sender's picture beside the newest message.
+class _ReplyRail extends CustomPainter {
+  final Color color;
+  final bool left, toPicture;
+  final double pic;
+  const _ReplyRail(this.color, {required this.left, required this.toPicture, required this.pic});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final x = left ? pic / 2 : size.width - pic / 2;
+    // the newest row: down to its picture (centred beside the bubble)
+    final end = toPicture ? size.height / 2 - pic / 2 - 2 : size.height;
+    if (end <= 0) return;
+    canvas.drawLine(
+      Offset(x, 0),
+      Offset(x, end),
+      Paint()
+        ..color = color
+        ..strokeWidth = 2
+        ..strokeCap = StrokeCap.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_ReplyRail old) =>
+      old.color != color || old.left != left || old.toPicture != toPicture;
 }
 
 /// A bubble's solid shape: one card per run, so its corners are round only
