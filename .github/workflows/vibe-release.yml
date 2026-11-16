@@ -153,6 +153,7 @@ jobs:
           echo "Building Vibe $VERSION"
           set -o pipefail
           flutter build apk --release --target-platform android-arm64 \
+            --dart-define=LASTFM_API_KEY=${{ secrets.LASTFM_API_KEY }} \
             --build-name="$VERSION" --build-number="${{ github.run_number }}" $EXTRA 2>&1 | tee build.txt || {
             # the reason as annotations (readable without the full log)
             grep -E "What went wrong|error:|Error:|e: |FAILURE|Could not|Execution failed|> " build.txt | head -40 | while IFS= read -r line; do echo "::error::$line"; done

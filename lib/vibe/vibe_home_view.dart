@@ -15,6 +15,7 @@ import 'package:vibe/vibe/vibe_chat_actions.dart';
 import 'package:vibe/vibe/vibe_communities.dart';
 import 'package:vibe/vibe/vibe_cascade.dart';
 import 'package:vibe/vibe/vibe_lock.dart';
+import 'package:vibe/vibe/vibe_motion.dart';
 import 'package:vibe/vibe/vibe_dm_detail.dart';
 import 'package:vibe/vibe/vibe_dm_pane.dart';
 import 'package:vibe/widgets/avatar.dart';
@@ -618,11 +619,14 @@ class _QuietTop extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final client = Matrix.of(context).client;
+    // round buttons squeeze a little under the finger
     Widget round(IconData icon, String tip, Color bg, Color fg, VoidCallback onTap) => Padding(
       padding: const EdgeInsets.only(left: 8),
       child: Tooltip(
         message: tip,
-        child: Material(
+        child: VibePressable(
+          scale: 0.9,
+          child: Material(
           color: bg,
           shape: const CircleBorder(),
           clipBehavior: Clip.antiAlias,
@@ -630,6 +634,7 @@ class _QuietTop extends StatelessWidget {
             onTap: onTap,
             child: SizedBox.square(dimension: 44, child: Icon(icon, color: fg)),
           ),
+        ),
         ),
       ),
     );

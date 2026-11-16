@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import 'package:vibe/vibe/vibe_now_playing.dart';
+import 'package:vibe/vibe/vibe_connections.dart';
 import 'package:vibe/vibe/vibe_call.dart';
 import 'package:flutter_callkit_incoming/entities/entities.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
@@ -293,6 +294,7 @@ class MatrixState extends State<Matrix> {
     // Vibe: ring for calls someone starts in your chats
     VibeCall.watch(c);
     VibeNowPlaying.start(c);
+    VibeConnections.start(c);
     onRoomKeyRequestSub[name] ??= c.onRoomKeyRequest.stream.listen((
       RoomKeyRequest request,
     ) async {
@@ -452,7 +454,10 @@ class MatrixState extends State<Matrix> {
     }
     // locked chats ask for the fingerprint again after leaving Vibe
     if (state == AppLifecycleState.paused) VibeLock.relock();
-    if (state == AppLifecycleState.resumed) VibeNowPlaying.poke();
+    if (state == AppLifecycleState.resumed) {
+      VibeNowPlaying.poke();
+      VibeConnections.poke();
+    }
     final foreground =
         // only on screen counts (left with Back is "detached")
         state == AppLifecycleState.resumed;

@@ -1402,8 +1402,28 @@ class _BuddyPainter extends CustomPainter {
       canvas.drawCircle(p(50, -2), 3.5 * u, Paint()..color = const Color(0xFFE5484D));
     }
     if (prop == BuddyProp.headphones) {
-      final k = t;
-      final note = Paint()..color = Color.lerp(color, Colors.black, 0.3)!.withValues(alpha: 1 - k);
+      // a sad song: slower, paler notes and a tear rolling down
+      final sad = mood == BuddyMood.worried;
+      final k = sad ? (t * 0.6) % 1 : t;
+      final note = Paint()
+        ..color = (sad
+                ? const Color(0xFF7D8FB3)
+                : Color.lerp(color, Colors.black, 0.3)!)
+            .withValues(alpha: 1 - k);
+      if (sad) {
+        final d = (t * 0.8) % 1;
+        final c = p(31, 56 + 18 * d);
+        final tear = Paint()..color = const Color(0xFF8EC5FF).withValues(alpha: 1 - d * 0.8);
+        canvas.drawCircle(c, 3.6 * u, tear);
+        canvas.drawPath(
+          Path()
+            ..moveTo(c.dx - 3.2 * u, c.dy - 1 * u)
+            ..lineTo(c.dx, c.dy - 8 * u)
+            ..lineTo(c.dx + 3.2 * u, c.dy - 1 * u)
+            ..close(),
+          tear,
+        );
+      }
       final stem = Paint()
         ..color = note.color
         ..strokeWidth = 3 * u

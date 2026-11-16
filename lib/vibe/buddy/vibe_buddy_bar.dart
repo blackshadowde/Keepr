@@ -17,6 +17,7 @@ import 'package:vibe/vibe/buddy/bujji.dart';
 import 'package:vibe/vibe/buddy/bujji_life.dart';
 import 'package:vibe/vibe/buddy/vibe_buddy.dart';
 import 'package:vibe/vibe/screens/chat/chat.dart';
+import 'package:vibe/vibe/vibe_connections.dart';
 import 'package:vibe/vibe/vibe_effects.dart';
 import 'package:vibe/vibe/vibe_haptics.dart';
 import 'package:vibe/vibe/vibe_hot_words.dart';
@@ -94,6 +95,11 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
 
   /// Held while something lasts (headphones while a voice note plays).
   BuddyProp? _hold;
+
+  /// The song you're playing (from your connected account): it dances to
+  /// it, hopping between messages, or feels it quietly if it's a sad one.
+  VibeTrack? _music;
+  Timer? _danceTimer;
 
   /// Poked too often: cross, then its back to you.
   bool _cross = false, _away = false;
@@ -201,6 +207,8 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
       t?.cancel();
     }
     _voice?.removeListener(_onVoice);
+    VibeConnections.playing.removeListener(_onMusic);
+    _danceTimer?.cancel();
     c.sendController.removeListener(_onText);
     VibeBuddy.sent.removeListener(_onSent);
     VibeBuddy.changed.removeListener(_refresh);
@@ -307,6 +315,8 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
     Future.delayed(const Duration(seconds: 2), _streak);
     if (!mounted) return;
     _listenVoice();
+    VibeConnections.playing.addListener(_onMusic);
+    _onMusic();
     _listenShake();
     // its day: the first chat of the morning, it's having its coffee
     final now = DateTime.now();
@@ -823,6 +833,7 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
       final (mood, prop) = switch (trip.why) {
         'sleep' => (BuddyMood.sleepy, BuddyProp.bed),
         'hammer' => (BuddyMood.happy, there ? BuddyProp.hammer : BuddyProp.none),
+        'dance' => (BuddyMood.happy, BuddyProp.headphones),
         _ => (BuddyMood.curious, BuddyProp.none),
       };
       final face = GestureDetector(
@@ -891,7 +902,9 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
     _playing?.cancel();
     _playing = null;
     if (_voice?.value == null || !mounted) {
-      _setHold(null);
+      // back to your music if some is playing
+      _hold = null;
+      _setHold(_music != null && _alive ? BuddyProp.headphones : null);
       return;
     }
     Future.delayed(const Duration(milliseconds: 300), () {
@@ -909,10 +922,46 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
     setState(() => _hold = v);
     _bopTimer?.cancel();
     if (v == BuddyProp.headphones) {
-      _bopTimer = Timer.periodic(const Duration(milliseconds: 900), (_) {
+      // dances to your music, sways slowly to a sad song
+      final music = _voice?.value == null ? _music : null;
+      final beat = music == null ? 900 : music.sad ? 1500 : 470;
+      _bopTimer = Timer.periodic(Duration(milliseconds: beat), (_) {
         if (mounted) setState(() => _wiggle++);
       });
     }
+  }
+
+  // your music (from a connected account): headphones on while it plays
+  void _onMusic() {
+    if (!mounted) return;
+    final t = VibeConnections.playing.value;
+    final was = _music;
+    _music = t;
+    _danceTimer?.cancel();
+    _danceTimer = null;
+    // a voice note playing keeps its own headphones
+    if (_voice?.value != null) return;
+    if (was?.sad != t?.sad || (was == null) != (t == null)) _hold = null;
+    _setHold(t != null && _alive ? BuddyProp.headphones : null);
+    if (t == null || t.sad) {
+      if (_trip?.why == 'dance') _comeBack();
+      return;
+    }
+    // now and then it hops over to a message and dances on it
+    _danceTimer = Timer.periodic(const Duration(seconds: 15), (_) => _danceHop());
+    Future<void>.delayed(const Duration(seconds: 3), _danceHop);
+  }
+
+  void _danceHop() {
+    final t = _music;
+    if (!mounted || t == null || t.sad || _trip != null || _busy != null) return;
+    final shown = (c.timeline?.events ?? const <Event>[])
+        .take(14)
+        .where((e) => e.type == EventTypes.Message && BujjiLife.rectOf(e.eventId) != null)
+        .toList();
+    if (shown.isEmpty) return;
+    final e = shown[math.Random().nextInt(shown.length)];
+    _wander(e.eventId, 'dance', const Duration(seconds: 6));
   }
 
   // shake the phone: it gets dizzy
@@ -1217,7 +1266,9 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
               (_sleepy
                   ? BuddyMood.sleepy
                   : _hold == BuddyProp.headphones
-                  ? BuddyMood.happy
+                  ? (_music?.sad == true && _voice?.value == null
+                        ? BuddyMood.worried
+                        : BuddyMood.happy)
                   : awake);
     final bed = _sleepy && _alive && (VibeBuddy.night || VibeBuddy.bedtime);
     final prop =

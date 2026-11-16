@@ -135,6 +135,7 @@ jobs:
           echo "VIBE_VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "VIBE_BUILD=$N" >> "$GITHUB_ENV"
           flutter build ios --release --no-codesign \
+            --dart-define=LASTFM_API_KEY=${{ secrets.LASTFM_API_KEY }} \
             --build-name="$VERSION" --build-number="$N"
 
       - name: Package unsigned IPA

@@ -10,6 +10,7 @@ import 'package:vibe/config/setting_keys.dart';
 import 'package:vibe/widgets/avatar.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
 import 'package:vibe/vibe/vibe_member_tags.dart';
+import 'package:vibe/vibe/vibe_connections.dart';
 import 'package:vibe/vibe/vibe_own_profile.dart';
 import 'package:vibe/config/app_config.dart';
 import 'package:vibe/widgets/qr_code_viewer.dart';
@@ -945,10 +946,12 @@ class _VibeSetStatusPageState extends State<VibeSetStatusPage> {
                           const SizedBox(height: 12),
                           Row(
                             children: [
-                              FilledButton.icon(
-                                onPressed: () => showQrCodeViewer(context, userId),
-                                icon: const Icon(Icons.share_rounded, size: 18),
-                                label: const Text('Share'),
+                              VibePressable(
+                                child: FilledButton.icon(
+                                  onPressed: () => showQrCodeViewer(context, userId),
+                                  icon: const Icon(Icons.share_rounded, size: 18),
+                                  label: const Text('Share'),
+                                ),
                               ),
                               const SizedBox(width: 6),
                               IconButton.filledTonal(
@@ -980,6 +983,21 @@ class _VibeSetStatusPageState extends State<VibeSetStatusPage> {
                       trailing: const Icon(Icons.chevron_right_rounded),
                       onTap: () => VibeMemberTags.pick(context, widget.client),
                     ),
+                  ],
+                ),
+              ),
+              // what you're listening to, from Last.fm or ListenBrainz
+              const SizedBox(height: 12),
+              VibeConnectionsCard(color: fieldColor),
+              const SizedBox(height: 12),
+              Container(
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  color: fieldColor,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Column(
+                  children: [
                     ListTile(
                       leading: const Icon(Icons.settings_rounded),
                       title: const Text('Settings'),

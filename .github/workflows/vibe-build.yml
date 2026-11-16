@@ -108,7 +108,7 @@ jobs:
             exit 1
           }
 
-      - run: flutter build apk --debug
+      - run: flutter build apk --debug --dart-define=LASTFM_API_KEY=${{ secrets.LASTFM_API_KEY }}
 
       - name: Native libraries in the APK
         run: unzip -l build/app/outputs/flutter-apk/app-debug.apk | grep -E 'lib/.*\.so$' | grep -iE 'keepr_pq|vodozemac' | tee -a "$GITHUB_STEP_SUMMARY"

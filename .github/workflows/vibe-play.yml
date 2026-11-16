@@ -174,6 +174,7 @@ jobs:
           echo "VIBE_VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "Building Vibe $VERSION (version code $N) for Google Play"
           flutter build appbundle --release --target-platform android-arm64 \
+            --dart-define=LASTFM_API_KEY=${{ secrets.LASTFM_API_KEY }} \
             --dart-define=VIBE_STORE=play \
             --build-name="$VERSION" --build-number="$N" 2>&1 | tee build.txt || {
             grep -E "What went wrong|error:|Error:|e: |FAILURE|Could not|Execution failed|> " build.txt | head -40 | while IFS= read -r line; do echo "::error::$line"; done

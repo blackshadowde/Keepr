@@ -74,6 +74,12 @@ class VibeStatus {
       untilMs == o.untilMs &&
       updatedMs == o.updatedMs;
 
+  /// What you're listening to (from a connected account).
+  bool get listening => activity?['kind'] == 'listening';
+
+  /// False when you chose not to show the song by your name.
+  bool get showsText => activity?['pill'] != false;
+
   bool get active =>
       text.trim().isNotEmpty &&
       (untilMs == null || DateTime.now().millisecondsSinceEpoch < untilMs!);
@@ -398,7 +404,7 @@ class _VibeStatusLineState extends State<VibeStatusLine> {
   Widget build(BuildContext context) {
     final s = VibeStatus.of(widget.room, widget.userId);
     final parts = <String>[];
-    if (s != null && s.active) {
+    if (s != null && s.active && s.showsText) {
       final until = s.until;
       parts.add(
         '${s.emoji.isEmpty ? '' : '${s.emoji} '}${s.text}'
@@ -422,7 +428,7 @@ class _VibeStatusLineState extends State<VibeStatusLine> {
     }
     final text = parts.isEmpty ? widget.fallback : parts.join('  ·  ');
     if (text == null || text.isEmpty) return const SizedBox.shrink();
-    return Text(
+    final line = Text(
       text,
       maxLines: widget.maxLines,
       overflow: TextOverflow.ellipsis,
@@ -432,6 +438,22 @@ class _VibeStatusLineState extends State<VibeStatusLine> {
             fontSize: 12.5,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
+    );
+    // a song they're playing: headphones in front of it
+    if (s == null || !s.active || !s.listening || !s.showsText || s.emoji.isNotEmpty) {
+      return line;
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.headphones_rounded,
+          size: (widget.style?.fontSize ?? 12.5) + 2,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+        const SizedBox(width: 4),
+        Flexible(child: line),
+      ],
     );
   }
 }
@@ -554,7 +576,7 @@ class _VibeStatusBubbleState extends State<VibeStatusBubble> {
   Widget build(BuildContext context) {
     final s = VibeStatus.of(widget.room, widget.userId);
     String? statusText;
-    if (s != null && s.active) {
+    if (s != null && s.active && s.showsText) {
       final until = s.until;
       statusText =
           '${s.emoji.isEmpty ? '' : '${s.emoji} '}${s.text}'
