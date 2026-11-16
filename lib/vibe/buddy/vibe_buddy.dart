@@ -291,6 +291,10 @@ class VibeBuddyFace extends StatefulWidget {
 
   /// Turned its back on you (cross).
   final bool away;
+
+  /// Moving to music: 0 still, 1 a smooth sway and bob, in between a slow
+  /// sway (a sad song).
+  final double groove;
   const VibeBuddyFace({
     required this.color,
     this.size = 40,
@@ -304,6 +308,7 @@ class VibeBuddyFace extends StatefulWidget {
     this.wiggle = 0,
     this.squish = 0,
     this.away = false,
+    this.groove = 0,
     super.key,
   });
 
@@ -396,11 +401,17 @@ class _VibeBuddyFaceState extends State<VibeBuddyFace>
           final tilt = w == 0
               ? 0.0
               : math.sin(w * math.pi * 6) * (1 - w) * 0.25;
-          final up = jump * s * 0.55 + (float ? s * (0.05 + 0.08 * lift) : 0);
+          // to music: side to side and up a little, smoothly (two sways a
+          // breath when dancing, one slow one for a sad song)
+          final g = widget.groove;
+          final beat = g > 0.5 ? 2.0 : 1.0;
+          final grooveTilt = g * 0.07 * math.sin(cycle * beat);
+          final grooveUp = g > 0.5 ? g * s * 0.04 * (0.5 - 0.5 * math.cos(cycle * beat * 2)) : 0.0;
+          final up = jump * s * 0.55 + (float ? s * (0.05 + 0.08 * lift) : 0) + grooveUp;
           final face = Transform.translate(
             offset: Offset(0, -up + (float ? 0 : breathe * s * 0.015)),
             child: Transform.rotate(
-              angle: tilt + sway,
+              angle: tilt + sway + grooveTilt,
               alignment: Alignment.bottomCenter,
               child: Transform(
                 alignment: Alignment.bottomCenter,

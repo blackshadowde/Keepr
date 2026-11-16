@@ -242,7 +242,21 @@ class _VibeSetStatusPageState extends State<VibeSetStatusPage> {
       _text.text = s.text;
       _emoji = s.emoji;
       _clearAt = s.until;
-      if (s.until == null) _choice = _Clear.never;
+      // the chip closest to when it clears
+      final until = s.until;
+      if (until == null) {
+        _choice = _Clear.never;
+      } else {
+        final now = DateTime.now();
+        final left = until.difference(now);
+        if (left <= const Duration(minutes: 65)) {
+          _choice = _Clear.hour1;
+        } else if (until.day == now.day && left < const Duration(days: 1)) {
+          _choice = _Clear.today;
+        } else if (left <= const Duration(days: 7)) {
+          _choice = _Clear.week;
+        }
+      }
     } else {
       _choice = _Clear.today;
       _clearAt = _resolve(_Clear.today);
@@ -531,7 +545,7 @@ class _VibeSetStatusPageState extends State<VibeSetStatusPage> {
                 _pill != _origPill));
     final userId = widget.client.userID ?? '';
     final top = MediaQuery.paddingOf(context).top;
-    final card = cs.surfaceContainerLow;
+    final card = cs.surfaceContainer;
     final tile = cs.surfaceContainerHigh;
     final sub = cs.onSurfaceVariant;
     Widget label(String t) => Text(

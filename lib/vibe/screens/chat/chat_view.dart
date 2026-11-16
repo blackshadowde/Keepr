@@ -501,6 +501,11 @@ class ChatView extends StatelessWidget {
                                           theme.colorScheme.surface,
                                           theme.colorScheme.surface,
                                         ],
+                                  // clear behind Bujji's row; it fades in
+                                  // only where the text box starts
+                                  stops: accountConfig.wallpaperUrl != null
+                                      ? null
+                                      : const [0, 0.55, 0.8, 1],
                                   begin: Alignment.topCenter,
                                   end: Alignment.bottomCenter,
                                 ),

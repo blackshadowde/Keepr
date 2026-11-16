@@ -101,6 +101,10 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
   VibeTrack? _music;
   Timer? _danceTimer;
 
+  /// Poked too much: it hides behind a message until you pet it there.
+  bool _sulking = false;
+  int _pets = 0;
+
   /// Poked too often: cross, then its back to you.
   bool _cross = false, _away = false;
   int _pokes = 0, _pokeAt = 0, _shakes = 0, _shakeAt = 0;
@@ -782,6 +786,13 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
       setState(() {
         _trip = null;
         _squish++;
+        // still upset (its message scrolled away): its back to you until
+        // you hold it
+        if (_sulking) {
+          _sulking = false;
+          _cross = true;
+          _away = true;
+        }
       });
     });
   }
@@ -812,7 +823,7 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
       final end = switch (trip.why) {
         'typing' => Offset(to.right + box * 0.5, to.bottom - 2),
         'hammer' => Offset(to.right - box * 0.75, to.top + 4),
-        'peek' => Offset(to.left + box * 0.65, to.top + box * 0.34),
+        'peek' || 'hide' => Offset(to.left + box * 0.65, to.top + box * 0.34),
         _ => Offset(
           to.center.dx.clamp(to.left + box / 2, math.max(to.left + box / 2, to.right - box / 2)),
           to.top + 4,
@@ -834,11 +845,17 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
         'sleep' => (BuddyMood.sleepy, BuddyProp.bed),
         'hammer' => (BuddyMood.happy, there ? BuddyProp.hammer : BuddyProp.none),
         'dance' => (BuddyMood.happy, BuddyProp.headphones),
+        // hiding, upset; softening as you pet it
+        'hide' => (_pets < 2 ? BuddyMood.angry : BuddyMood.shy, BuddyProp.none),
         _ => (BuddyMood.curious, BuddyProp.none),
       };
       final face = GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () {
+          if (trip.why == 'hide') {
+            _petHidden();
+            return;
+          }
           VibeHaptics.light();
           _activity(pet: true);
           _comeBack();
@@ -849,6 +866,9 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
           mood: mood,
           prop: prop,
           outfit: VibeBuddy.outfit,
+          // hiding: its back to you until the first pet
+          away: trip.why == 'hide' && _pets == 0,
+          groove: trip.why == 'dance' ? 1 : 0,
           gaze: trip.why == 'typing' ? -1 : trip.why == 'peek' ? 1 : 0,
           look: trip.why == 'sleep' ? 0 : 1,
           floating: !there,
@@ -857,7 +877,7 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
           squish: _squish,
         ),
       );
-      if (trip.why == 'peek' && _hopper.value > 0.7) {
+      if ((trip.why == 'peek' || trip.why == 'hide') && _hopper.value > 0.7) {
         // only its top shows above your message: it peeks from behind it
         final edge = ob.globalToLocal(Offset(0, to.top)).dy;
         return Stack(
@@ -922,12 +942,12 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
     setState(() => _hold = v);
     _bopTimer?.cancel();
     if (v == BuddyProp.headphones) {
-      // dances to your music, sways slowly to a sad song
-      final music = _voice?.value == null ? _music : null;
-      final beat = music == null ? 900 : music.sad ? 1500 : 470;
-      _bopTimer = Timer.periodic(Duration(milliseconds: beat), (_) {
-        if (mounted) setState(() => _wiggle++);
-      });
+      // your music moves it smoothly (see groove); a voice note bops it
+      if (_voice?.value != null || _music == null) {
+        _bopTimer = Timer.periodic(const Duration(milliseconds: 900), (_) {
+          if (mounted) setState(() => _wiggle++);
+        });
+      }
     }
   }
 
@@ -948,8 +968,8 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
       return;
     }
     // now and then it hops over to a message and dances on it
-    _danceTimer = Timer.periodic(const Duration(seconds: 15), (_) => _danceHop());
-    Future<void>.delayed(const Duration(seconds: 3), _danceHop);
+    _danceTimer = Timer.periodic(const Duration(seconds: 25), (_) => _danceHop());
+    Future<void>.delayed(const Duration(seconds: 4), _danceHop);
   }
 
   void _danceHop() {
@@ -1022,18 +1042,60 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
     _crossTimer = Timer(const Duration(milliseconds: 1600), () {
       if (!mounted || !_cross) return;
       setState(() => _away = true);
-      _say(
-        const _Hint('Hold me to make up', Icons.touch_app_outlined),
-        seconds: 4,
-      );
-      _crossTimer = Timer(const Duration(seconds: 5), () {
-        if (mounted) {
-          setState(() {
-            _away = false;
-            _cross = false;
-          });
+      // then it walks off and hides behind a message, until you pet it
+      _crossTimer = Timer(const Duration(milliseconds: 1400), () {
+        if (!mounted || !_cross) return;
+        if (_hideAway()) {
+          _say(
+            const _Hint('Hiding. Find me and pet me', Icons.visibility_off_outlined),
+            seconds: 4,
+          );
+          return;
         }
+        // nowhere to hide: it stays turned away until you hold it
+        _say(
+          const _Hint('Hold me to make up', Icons.touch_app_outlined),
+          seconds: 4,
+        );
       });
+    });
+  }
+
+  /// Hops off to a message on screen and hides behind it.
+  bool _hideAway() {
+    final shown = (c.timeline?.events ?? const <Event>[])
+        .take(14)
+        .where((e) => e.type == EventTypes.Message && BujjiLife.rectOf(e.eventId) != null)
+        .toList();
+    if (shown.isEmpty) return false;
+    final e = shown[math.Random().nextInt(shown.length)];
+    // a trip can't start while cross
+    _cross = false;
+    _pets = 0;
+    if (!_wander(e.eventId, 'hide', const Duration(hours: 6), force: true)) {
+      _cross = true;
+      return false;
+    }
+    setState(() {
+      _sulking = true;
+      _away = false;
+    });
+    return true;
+  }
+
+  /// Petting it where it hides: a few pets and it comes back, friends again.
+  void _petHidden() {
+    VibeHaptics.light();
+    _activity(pet: true);
+    setState(() {
+      _pets++;
+      _squish++;
+    });
+    if (_pets < 4) return;
+    _sulking = false;
+    _comeBack();
+    Future<void>.delayed(const Duration(milliseconds: 820), () {
+      if (mounted) _makeUp();
     });
   }
 
@@ -1044,6 +1106,7 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
     setState(() {
       _away = false;
       _cross = false;
+      _sulking = false;
       _hint = null;
     });
     _show(BuddyMood.shy, null, 1100);
@@ -1434,6 +1497,11 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
                               // it watches your words in the box below
                               look: mood == BuddyMood.sleepy ? 0 : 0.85,
                               floating: true,
+                              groove: _hold == BuddyProp.headphones &&
+                                      _music != null &&
+                                      _voice?.value == null
+                                  ? (_music!.sad ? 0.4 : 1.0)
+                                  : 0,
                               hop: _hop,
                               wiggle: _wiggle,
                               squish: _squish,
