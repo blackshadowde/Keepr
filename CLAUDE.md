@@ -152,5 +152,11 @@ Last updated: 2026-11-16.
   - Post-quantum: steps 1 to 3 are in the code (`packages/keepr_pq`,
     `lib/vibe/vibe_pq.dart`) even though the boxes in `docs/post-quantum.md`
     aren't ticked; step 4 (settings and wording) is next.
+- While the owner is away (until about 2026-12-16), a daily scheduled task
+  watches for critical or high security fixes (Matrix SDK, vodozemac,
+  FluffyChat, packages Keepr uses). It fixes them on a `hotfix/…` branch made
+  from `Vibe`, releases the Android APK only, merges `Vibe` back into
+  `vibe-next`, and logs everything, including lower ones left for the owner,
+  in `docs/security-watch.md`.
 - Mockups live on the owner's design canvas (a private claude.ai artifact);
   ask the owner for screenshots if a design is needed.
