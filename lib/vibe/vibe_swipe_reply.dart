@@ -2,7 +2,6 @@
 
 import 'dart:async';
 
-import 'package:vibe/vibe/vibe_palette.dart';
 import 'package:vibe/vibe/vibe_haptics.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -158,20 +157,21 @@ class _VibeSwipeReplyState extends State<VibeSwipeReply>
                     scale: _armed ? 1.15 : 0.55 + 0.45 * progress,
                     duration: const Duration(milliseconds: 140),
                     curve: Curves.easeOutBack,
-                    child: Container(
+                    // the theme's soft colour; a gentle ring once letting
+                    // go would reply
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 160),
                       width: 38,
                       height: 38,
                       decoration: BoxDecoration(
-                        color: VibePalette.accent,
+                        color: Theme.of(context).colorScheme.primaryContainer,
                         shape: BoxShape.circle,
-                        boxShadow: _armed
-                            ? [
-                                BoxShadow(
-                                  color: VibePalette.accent.withAlpha(120),
-                                  blurRadius: 10,
-                                ),
-                              ]
-                            : null,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Theme.of(context).colorScheme.primary.withValues(alpha: _armed ? 0.22 : 0),
+                            spreadRadius: _armed ? 5 : 0,
+                          ),
+                        ],
                       ),
                       child: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 160),
@@ -180,7 +180,7 @@ class _VibeSwipeReplyState extends State<VibeSwipeReply>
                         child: Icon(
                           _quote ? Icons.format_quote_rounded : Icons.reply,
                           key: ValueKey(_quote),
-                          color: Colors.white,
+                          color: Theme.of(context).colorScheme.onPrimaryContainer,
                           size: 22,
                         ),
                       ),

@@ -1292,12 +1292,26 @@ class VibeMessage extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Material(
-                color: highlightMarker
-                    ? VibePalette.accent.withAlpha(64)
-                    : selected
+                color: selected && !highlightMarker
                     ? cs.secondaryContainer.withAlpha(110)
                     : Colors.transparent,
-                child: GestureDetector(
+                child: TweenAnimationBuilder<double>(
+                  // the message you're replying to (or jumped to) gets a
+                  // soft rounded wash in the theme colour, fading in and out
+                  tween: Tween(end: highlightMarker ? 1.0 : 0.0),
+                  duration: const Duration(milliseconds: 260),
+                  curve: Curves.easeOut,
+                  builder: (context, k, child) => CustomPaint(
+                    painter: k == 0
+                        ? null
+                        : _SoftWash(
+                            cs.primary.withValues(
+                              alpha: (theme.brightness == Brightness.dark ? 0.16 : 0.09) * k,
+                            ),
+                          ),
+                    child: child,
+                  ),
+                  child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: longPressSelect ? () => onSelect(event) : null,
                   onLongPressStart: longPressSelect
@@ -1428,6 +1442,7 @@ class VibeMessage extends StatelessWidget {
                       ],
                     ),
                   ),
+                ),
                 ),
               ),
                             if (enterThread != null)
@@ -1885,4 +1900,26 @@ class _RenderTimeFlow extends RenderBox
   @override
   bool hitTestChildren(BoxHitTestResult result, {required Offset position}) =>
       defaultHitTestChildren(result, position: position);
+}
+
+/// A soft rounded wash, set in a little from the sides, behind the message
+/// you're replying to.
+class _SoftWash extends CustomPainter {
+  final Color color;
+  const _SoftWash(this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = (Offset.zero & size).deflate(1);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTRB(r.left + 6, r.top, r.right - 6, r.bottom),
+        const Radius.circular(20),
+      ),
+      Paint()..color = color,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_SoftWash old) => old.color != color;
 }
