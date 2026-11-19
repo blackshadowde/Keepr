@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import 'package:vibe/vibe/vibe_palette.dart';
+import 'package:vibe/vibe/vibe_theme_set.dart';
 import 'package:vibe/config/app_config.dart';
 import 'package:vibe/vibe/vibe_swipe.dart';
 import 'package:flutter/material.dart';
@@ -50,78 +51,14 @@ abstract class VibeThemes {
     final brightness =
         VibePalette.isGlass ? Brightness.dark : requestedBrightness;
     // Vibe: Discord palette unless another look (wallpaper, glass) is on
-    final colorScheme = VibePalette.scheme(brightness) ??
+    var colorScheme = VibePalette.scheme(brightness) ??
         (brightness == Brightness.dark
-        ? const ColorScheme(
-            brightness: Brightness.dark,
-            primary: Color(0xFF5865F2),
-            onPrimary: Color(0xFFFFFFFF),
-            primaryContainer: Color(0xFF3C45A5),
-            onPrimaryContainer: Color(0xFFE0E3FF),
-            secondary: Color(0xFFB5BAC1),
-            onSecondary: Color(0xFF1A191E),
-            secondaryContainer: Color(0xFF2E2D33),
-            onSecondaryContainer: Color(0xFFF2F3F5),
-            tertiary: Color(0xFF949BA4),
-            onTertiary: Color(0xFF1A191E),
-            tertiaryContainer: Color(0xFF29282D),
-            onTertiaryContainer: Color(0xFFF2F3F5),
-            error: Color(0xFFF23F42),
-            onError: Color(0xFFFFFFFF),
-            errorContainer: Color(0xFF5A1D1E),
-            onErrorContainer: Color(0xFFFFDAD9),
-            surface: Color(0xFF1A191E),
-            onSurface: Color(0xFFF2F3F5),
-            surfaceContainerLowest: Color(0xFF121214),
-            surfaceContainerLow: Color(0xFF1E1D22),
-            surfaceContainer: Color(0xFF252429),
-            surfaceContainerHigh: Color(0xFF29282D),
-            surfaceContainerHighest: Color(0xFF323136),
-            onSurfaceVariant: Color(0xFFB5BAC1),
-            outline: Color(0xFF6D6F78),
-            outlineVariant: Color(0xFF3A393F),
-            inverseSurface: Color(0xFFF2F3F5),
-            onInverseSurface: Color(0xFF1A191E),
-            inversePrimary: Color(0xFF5865F2),
-            shadow: Color(0xFF000000),
-            scrim: Color(0xFF000000),
-            surfaceTint: Color(0x00000000),
-          )
-        : const ColorScheme(
-            brightness: Brightness.light,
-            primary: Color(0xFF5865F2),
-            onPrimary: Color(0xFFFFFFFF),
-            primaryContainer: Color(0xFFE0E3FF),
-            onPrimaryContainer: Color(0xFF1E2370),
-            secondary: Color(0xFF5C5E66),
-            onSecondary: Color(0xFFFFFFFF),
-            secondaryContainer: Color(0xFFE3E5E8),
-            onSecondaryContainer: Color(0xFF313338),
-            tertiary: Color(0xFF80848E),
-            onTertiary: Color(0xFFFFFFFF),
-            tertiaryContainer: Color(0xFFF2F3F5),
-            onTertiaryContainer: Color(0xFF313338),
-            error: Color(0xFFD83C3E),
-            onError: Color(0xFFFFFFFF),
-            errorContainer: Color(0xFFFFDAD9),
-            onErrorContainer: Color(0xFF5A1D1E),
-            surface: Color(0xFFFFFFFF),
-            onSurface: Color(0xFF313338),
-            surfaceContainerLowest: Color(0xFFE3E5E8),
-            surfaceContainerLow: Color(0xFFF7F7F8),
-            surfaceContainer: Color(0xFFF2F3F5),
-            surfaceContainerHigh: Color(0xFFEBEDEF),
-            surfaceContainerHighest: Color(0xFFE3E5E8),
-            onSurfaceVariant: Color(0xFF5C5E66),
-            outline: Color(0xFF80848E),
-            outlineVariant: Color(0xFFD8D9DC),
-            inverseSurface: Color(0xFF313338),
-            onInverseSurface: Color(0xFFF2F3F5),
-            inversePrimary: Color(0xFF5865F2),
-            shadow: Color(0xFF000000),
-            scrim: Color(0xFF000000),
-            surfaceTint: Color(0x00000000),
-          ));
+            ? VibePalette.keeprDark
+            : VibePalette.keeprLight);
+    // pure black (Settings > Customisation): black page in dark mode
+    if (brightness == Brightness.dark && VibePalette.pureBlack) {
+      colorScheme = VibeThemeSet.black(colorScheme);
+    }
     final isColumnMode = VibeThemes.isColumnMode(context);
     final dividerColor = brightness == Brightness.dark
         ? colorScheme.surfaceContainerHighest

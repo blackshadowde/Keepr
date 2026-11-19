@@ -144,8 +144,7 @@ class _TypingCard extends StatelessWidget {
         ? name.colorScheme.primaryContainer
         : name.colorScheme.primary;
     // the same card colour as their messages
-    final under = dark ? const Color(0xFF1B1B1F) : const Color(0xFFF1F1F4);
-    final color = Color.alphaBlend(cs.surfaceContainerHigh, under);
+    final color = VibeCardColours.theirs(context, name);
     final meta = cs.onSurface.withValues(alpha: 0.62);
     // their own typing indicator (Settings > Customisation), or their
     // typing buddy, if they have one showing

@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import 'package:vibe/vibe/vibe_palette.dart';
+import 'package:vibe/vibe/vibe_theme_reveal.dart';
 import 'package:vibe/config/app_config.dart';
 import 'package:vibe/config/routes.dart';
 import 'package:vibe/config/setting_keys.dart';
@@ -104,7 +105,10 @@ class VibeApp extends StatelessWidget {
         builder: (context, child) {
           // the accent of the current look, for screens with custom colours
           VibePalette.accent = Theme.of(context).colorScheme.primary;
-          return MediaQuery(
+          // a new theme grows from where it was picked
+          return VibeThemeReveal(
+          key: VibeThemeReveal.key,
+          child: MediaQuery(
           data: MediaQuery.of(context).copyWith(
             textScaler: TextScaler.noScaling,
             boldText: false,
@@ -127,6 +131,7 @@ class VibeApp extends StatelessWidget {
               ),
             ),
           ),
+        ),
         ),
         ),
         );

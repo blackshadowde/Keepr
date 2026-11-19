@@ -199,7 +199,7 @@ class _PeekState extends State<_Peek> with SingleTickerProviderStateMixin {
         ? room.getLocalizedDisplayname(MatrixLocals(L10n.of(context)))
         : user.calcDisplayname();
     final pic = room.isDirectChat ? room.avatar : user.avatarUrl;
-    final bubble = !VibePalette.isVibe
+    final bubble = !VibePalette.fixed(context)
         ? Theme.of(context).colorScheme.surfaceContainerHigh
         : dark ? const Color(0xFF2B2D31) : Colors.white;
     return Padding(

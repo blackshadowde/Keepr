@@ -5,6 +5,7 @@
 
 import 'package:vibe/vibe/vibe_glass.dart';
 import 'package:vibe/vibe/vibe_palette.dart';
+import 'package:vibe/vibe/vibe_theme_set.dart';
 import 'package:collection/collection.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:vibe/utils/color_value.dart';
@@ -38,9 +39,14 @@ class ThemeController extends State<ThemeBuilder> {
   SharedPreferences? _sharedPreferences;
   ThemeMode? _themeMode;
   Color? _primaryColor;
-  VibeLook _look = VibeLook.vibe;
 
-  VibeLook get look => _look;
+  /// The theme picked in Settings > Customisation: 'keepr', 'material' (the
+  /// phone's wallpaper colours), a named theme's id, or one of your own.
+  String _theme = 'keepr';
+  bool _pureBlack = false;
+
+  String get theme => _theme;
+  bool get pureBlack => _pureBlack;
 
   ThemeMode get themeMode => _themeMode ?? ThemeMode.system;
 
@@ -56,10 +62,14 @@ class ThemeController extends State<ThemeBuilder> {
     final rawThemeMode = preferences.getString(widget.themeModeSettingsKey);
     final rawColor = preferences.getInt(widget.primaryColorSettingsKey);
     final rawLook = preferences.getString('vibe_look');
+    final rawTheme = preferences.getString('keepr_theme');
+    VibeThemeSet.loadCustom(preferences.getString(VibeThemeSet.customKey));
 
     setState(() {
-      _look = VibeLook.values.singleWhereOrNull((v) => v.name == rawLook) ??
-          VibeLook.vibe;
+      // before themes: the wallpaper colours look became Material You, and
+      // Keepr and the old Glass look became Keepr
+      _theme = rawTheme ?? (rawLook == 'wallpaper' ? 'material' : 'keepr');
+      _pureBlack = preferences.getBool('keepr_pure_black') ?? false;
       _themeMode = ThemeMode.values.singleWhereOrNull(
         (value) => value.name == rawThemeMode,
       );
@@ -76,14 +86,29 @@ class ThemeController extends State<ThemeBuilder> {
     });
   }
 
-  /// Vibe, wallpaper colours or glass.
-  Future<void> setLook(VibeLook look) async {
+  Future<void> setTheme(String id) async {
     final preferences = _sharedPreferences ??=
         await SharedPreferences.getInstance();
-    await preferences.setString('vibe_look', look.name);
-    setState(() {
-      _look = look;
-    });
+    await preferences.setString('keepr_theme', id);
+    setState(() => _theme = id);
+  }
+
+  Future<void> setPureBlack(bool on) async {
+    final preferences = _sharedPreferences ??=
+        await SharedPreferences.getInstance();
+    await preferences.setBool('keepr_pure_black', on);
+    setState(() => _pureBlack = on);
+  }
+
+  /// Your own themes changed: keep them, and show the change.
+  Future<void> saveCustomThemes() async {
+    final preferences = _sharedPreferences ??=
+        await SharedPreferences.getInstance();
+    await preferences.setString(
+      VibeThemeSet.customKey,
+      VibeThemeSet.saveCustom(),
+    );
+    if (mounted) setState(() {});
   }
 
   Future<void> setPrimaryColor(Color? newPrimaryColor) async {
@@ -159,7 +184,14 @@ class ThemeController extends State<ThemeBuilder> {
         builder: (light, dark) {
           VibePalette.wallLight = _wallLight ?? light;
           VibePalette.wallDark = _wallDark ?? dark;
-          VibePalette.look = _look;
+          final set = VibeThemeSet.byId(_theme);
+          VibePalette.set = set;
+          VibePalette.look = _theme == 'material'
+              ? VibeLook.wallpaper
+              : set != null
+              ? VibeLook.palette
+              : VibeLook.vibe;
+          VibePalette.pureBlack = _pureBlack;
           return widget.builder(context, themeMode, primaryColor);
         },
       ),

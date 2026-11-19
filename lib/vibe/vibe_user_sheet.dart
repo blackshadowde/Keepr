@@ -182,7 +182,7 @@ class _SheetState extends State<_Sheet> {
     final displayName = widget.displayName;
     final avatarUrl = widget.avatarUrl;
     final muted = cs.onSurfaceVariant;
-    final soft = !VibePalette.isVibe
+    final soft = !VibePalette.fixed(context)
         ? Theme.of(context).colorScheme.surfaceContainerHigh
         : dark ? const Color(0xFF2B2D31) : const Color(0xFFEBEDEF);
     final room = _room;

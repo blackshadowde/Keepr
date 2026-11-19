@@ -598,16 +598,19 @@ class VibeMessage extends StatelessWidget {
               ? event
               : timeline.events.where((e) => e.eventId == cardKey).firstOrNull,
         );
-    // solid colours from the phone's colour theme when it has one: yours in
-    // the theme colour, theirs neutral
+    // solid colours: yours in the theme's colour (Keepr's theme: the
+    // phone's colours when it has them), theirs as picked in Customisation
     final dark = theme.brightness == Brightness.dark;
-    final wall = (dark ? VibePalette.wallDark : VibePalette.wallLight) ?? cs;
+    final wall = VibePalette.isVibe
+        ? (dark ? VibePalette.wallDark : VibePalette.wallLight) ?? cs
+        : cs;
     final under = dark ? const Color(0xFF1B1B1F) : const Color(0xFFF1F1F4);
-    final bubbleColor = Color.alphaBlend(
-      ownMessage ? wall.primaryContainer : cs.surfaceContainerHigh,
-      under,
-    );
-    final bubbleInk = ownMessage ? wall.onPrimaryContainer : cs.onSurface;
+    final bubbleColor = ownMessage
+        ? Color.alphaBlend(wall.primaryContainer, under)
+        : VibeCardColours.theirs(context, sender.calcDisplayname());
+    final bubbleInk = ownMessage
+        ? wall.onPrimaryContainer
+        : VibeCardColours.theirInk(context);
     final showHeader = first && !bubble;
 
     final sentReactions = <String>{};
@@ -1705,6 +1708,37 @@ class VibeBubblePainter extends CustomPainter {
 
 /// One card per run: a person's text messages in a row share one card, as
 /// wide as its widest message.
+/// The colour of their message cards (Settings > Customisation > Their
+/// messages): a soft tone of each person's own colour (the colour of their
+/// name), the theme's second colour, or plain.
+abstract class VibeCardColours {
+  static Color theirs(BuildContext context, String name) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final dark = theme.brightness == Brightness.dark;
+    final under = dark ? const Color(0xFF1B1B1F) : const Color(0xFFF1F1F4);
+    final plain = cs.surfaceContainerHigh;
+    final c = switch (AppSettings.vibeTheirColour.value) {
+      'theme' => cs.tertiaryContainer,
+      'plain' => plain,
+      _ => Color.lerp(
+        plain,
+        (dark ? name.darkColorScheme : name.colorScheme).primaryContainer,
+        dark ? 0.7 : 0.6,
+      )!,
+    };
+    return Color.alphaBlend(c, under);
+  }
+
+  /// The words on their cards.
+  static Color theirInk(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return AppSettings.vibeTheirColour.value == 'theme'
+        ? cs.onTertiaryContainer
+        : cs.onSurface;
+  }
+}
+
 abstract class VibeCards {
   /// The newest message, when its sender is writing again right under it
   /// (their dots join its card): set by the typing indicator.

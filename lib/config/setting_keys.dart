@@ -103,6 +103,9 @@ enum AppSettings<T> {
   vibeMutedPopups<bool>('chat.keepr.muted_popups', false),
   // Notifications show only the app name and "New message" (no names, text or pictures)
   vibeHideNotificationContent<bool>('chat.keepr.notification_privacy', false),
+  // Their messages: 'own' (each person's own colour), 'theme' (the theme's
+  // second colour) or 'plain'
+  vibeTheirColour<String>('chat.keepr.their_colour', 'own'),
   // Glass look: palette ('wallbash' = from the wallpaper), the processed
   // (blurred) wallpaper file and the colour picked from it
   vibeGlassPalette<String>('chat.keepr.glass_palette', 'wallbash'),

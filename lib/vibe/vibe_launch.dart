@@ -124,7 +124,7 @@ class _VibeLaunchState extends State<VibeLaunch>
   Widget build(BuildContext context) {
     final bg = VibePalette.isGlass
         ? VibeGlass.palette.base
-        : !VibePalette.isVibe
+        : !VibePalette.fixed(context)
         ? Theme.of(context).colorScheme.surface
         : Theme.of(context).brightness == Brightness.dark
         ? const Color(0xFF1A191E)

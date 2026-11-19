@@ -100,7 +100,7 @@ abstract class BujjiSettings {
     BujjiSetting(
       'Colour',
       _style,
-      'color colour accent theme wallpaper material glass',
+      'color colour accent theme themes wallpaper material pure black amoled catppuccin nord dracula',
       route: '$_s/style',
     ),
     BujjiSetting(

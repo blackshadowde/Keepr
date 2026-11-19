@@ -35,7 +35,7 @@ class VibeThoughtBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final dark = theme.brightness == Brightness.dark;
-    final fill = !VibePalette.isVibe
+    final fill = !VibePalette.fixed(context)
         ? Theme.of(context).colorScheme.surfaceContainerHigh
         : dark ? const Color(0xFF2B2D31) : Colors.white;
     final edge = dark ? const Color(0xFF3F4147) : const Color(0xFFDDDEE1);

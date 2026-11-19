@@ -12,22 +12,22 @@ abstract class VibeSettingsStyle {
   static bool _dark(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark;
 
-  static Color page(BuildContext context) => !VibePalette.isVibe
+  static Color page(BuildContext context) => !VibePalette.fixed(context)
       ? Theme.of(context).colorScheme.surface
       : _dark(context) ? const Color(0xFF1C1B20) : const Color(0xFFFFFFFF);
 
-  static Color card(BuildContext context) => !VibePalette.isVibe
+  static Color card(BuildContext context) => !VibePalette.fixed(context)
       ? Theme.of(context).colorScheme.surfaceContainer
       : _dark(context) ? const Color(0xFF26252B) : const Color(0xFFF2F3F5);
 
-  static Color line(BuildContext context) => !VibePalette.isVibe
+  static Color line(BuildContext context) => !VibePalette.fixed(context)
       ? Theme.of(context).colorScheme.outlineVariant
       : _dark(context) ? const Color(0xFF33323A) : const Color(0xFFE1E2E6);
 
   static Color get accent => VibePalette.accent;
 
   /// The small grey tile behind a row's icon, a step darker than the card.
-  static Color tile(BuildContext context) => !VibePalette.isVibe
+  static Color tile(BuildContext context) => !VibePalette.fixed(context)
       ? _dark(context)
             ? Theme.of(context).colorScheme.surfaceContainerHighest
             : Theme.of(context).colorScheme.surfaceContainerHigh
@@ -88,7 +88,7 @@ abstract class VibeSettingsStyle {
       trackColor: WidgetStateProperty.resolveWith(
         (s) => s.contains(WidgetState.selected)
             ? accent
-            : !VibePalette.isVibe
+            : !VibePalette.fixed(context)
             ? Theme.of(context).colorScheme.surfaceContainerHighest
             : (dark ? const Color(0xFF4E5058) : const Color(0xFFE3E5E8)),
       ),
@@ -97,11 +97,11 @@ abstract class VibeSettingsStyle {
     );
   }
 
-  static Color text(BuildContext context) => !VibePalette.isVibe
+  static Color text(BuildContext context) => !VibePalette.fixed(context)
       ? Theme.of(context).colorScheme.onSurface
       : _dark(context) ? const Color(0xFFF2F3F5) : const Color(0xFF060607);
 
-  static Color text2(BuildContext context) => !VibePalette.isVibe
+  static Color text2(BuildContext context) => !VibePalette.fixed(context)
       ? Theme.of(context).colorScheme.onSurfaceVariant
       : _dark(context) ? const Color(0xFFB5BAC1) : const Color(0xFF5C5E66);
 }
@@ -526,7 +526,7 @@ class VibeSwitch extends StatelessWidget {
     final enabled = onChanged != null;
     final track = value
         ? VibeSettingsStyle.accent
-        : !VibePalette.isVibe
+        : !VibePalette.fixed(context)
         ? Theme.of(context).colorScheme.surfaceContainerHighest
         : (dark ? const Color(0xFF4E5058) : const Color(0xFFDADCE0));
     final knob = value ? Colors.white : VibeSettingsStyle.text2(context);
