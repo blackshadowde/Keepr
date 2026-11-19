@@ -201,14 +201,21 @@ Last updated: 2026-11-19.
   - Bujji reminders: "after 2 mins", a bare "2 mins" and similar; when it
     can't read the time it keeps the task and asks again (`_when` and the
     pending answer in `bujji.dart`).
+  - Themes (the owner's pick from the canvas): Customisation has Light /
+    Dark / Auto (`VibeModeSwitch`), a row of theme cards (`VibeThemePicker`,
+    mini chats) with Material You, Keepr and all of mpvRx's palettes
+    (`vibe_theme_set.dart`; Ocean, Tidal and Cloudflare renamed Cyan, Teal
+    and Tangerine; "Default" is Mauve), Pure black (`VibeThemeSet.black`),
+    Your own theme from one colour (`VibeThemeEditor`, kept in
+    `chat.keepr.custom_themes`). A change grows from the tap
+    (`VibeThemeReveal` round the app in `vibe_app.dart`). The pick lives in
+    `ThemeController.theme` ('keepr', 'material', a palette id or
+    'custom:…'); `VibeLook.palette` + `VibePalette.set`. Glass is no longer
+    offered (old Glass users get Keepr); its code is still there, unused.
+    Chat wallpaper is the account wallpaper (plain). Their messages: each
+    person's own colour by default (`VibeCardColours`,
+    `AppSettings.vibeTheirColour`: own / theme / plain).
 - Waiting for the owner:
-  - Themes mockups on the design canvas ("Themes from cards, and their
-    messages in colour"): Light / Dark / Auto, a row of theme cards (mini
-    chats) with named palettes, a soft circular reveal from the tapped card,
-    Pure black, Your own theme; Glass goes. Messages: A each person in their
-    own colour, or B theirs in the theme's second colour. Code today:
-    `vibe_style_page.dart`, `vibe_palette.dart` (`VibeLook`), `vibe_glass.dart`,
-    `theme_builder.dart`; card colours in `vibe_message.dart` (`bubbleColor`).
   - Pane extras from the study (dim follows the pull, the page behind steps
     back): they reach into Flutter's own pane code, so try them with a test
     APK. Questions in Keepr already open as panes (`showVibeDialog`), so the
