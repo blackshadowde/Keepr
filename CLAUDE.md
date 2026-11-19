@@ -130,7 +130,7 @@ If you can read the repo but can't edit, build or push:
 
 ## Where things stand (update this)
 
-Last updated: 2026-11-16.
+Last updated: 2026-11-19.
 
 - Released: Keepr 3.1.161 (Android only, with the Last.fm key; iPhone and
   web are still on 3.1.158, which had Bujji's What's new tour, tools held
@@ -202,6 +202,13 @@ Last updated: 2026-11-16.
     can't read the time it keeps the task and asks again (`_when` and the
     pending answer in `bujji.dart`).
 - Waiting for the owner:
+  - Themes mockups on the design canvas ("Themes from cards, and their
+    messages in colour"): Light / Dark / Auto, a row of theme cards (mini
+    chats) with named palettes, a soft circular reveal from the tapped card,
+    Pure black, Your own theme; Glass goes. Messages: A each person in their
+    own colour, or B theirs in the theme's second colour. Code today:
+    `vibe_style_page.dart`, `vibe_palette.dart` (`VibeLook`), `vibe_glass.dart`,
+    `theme_builder.dart`; card colours in `vibe_message.dart` (`bubbleColor`).
   - Pane extras from the study (dim follows the pull, the page behind steps
     back): they reach into Flutter's own pane code, so try them with a test
     APK. Questions in Keepr already open as panes (`showVibeDialog`), so the
