@@ -107,7 +107,7 @@ class VibeApp extends StatelessWidget {
           VibePalette.accent = Theme.of(context).colorScheme.primary;
           // a new theme grows from where it was picked
           return VibeThemeReveal(
-          key: VibeThemeReveal.key,
+          key: VibeThemeReveal.globalKey,
           child: MediaQuery(
           data: MediaQuery.of(context).copyWith(
             textScaler: TextScaler.noScaling,

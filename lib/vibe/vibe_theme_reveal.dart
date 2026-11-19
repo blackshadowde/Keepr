@@ -14,7 +14,7 @@ class VibeThemeReveal extends StatefulWidget {
   final Widget child;
   const VibeThemeReveal({required this.child, super.key});
 
-  static final key = GlobalKey();
+  static final globalKey = GlobalKey();
 
   /// Runs [change] (the new theme) and reveals it from [from], a point on
   /// the screen.
@@ -23,7 +23,7 @@ class VibeThemeReveal extends StatefulWidget {
     Offset from,
     FutureOr<void> Function() change,
   ) async {
-    final state = key.currentState;
+    final state = globalKey.currentState;
     if (state is! _VibeThemeRevealState ||
         MediaQuery.disableAnimationsOf(context)) {
       await change();
