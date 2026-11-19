@@ -130,7 +130,7 @@ If you can read the repo but can't edit, build or push:
 
 ## Where things stand (update this)
 
-Last updated: 2026-11-19.
+Last updated: 2026-11-20.
 
 - Released: Keepr 3.1.161 (Android only, with the Last.fm key; iPhone and
   web are still on 3.1.158, which had Bujji's What's new tour, tools held
@@ -221,6 +221,10 @@ Last updated: 2026-11-19.
     APK. Questions in Keepr already open as panes (`showVibeDialog`), so the
     "popup grows from the button" idea fits menus rather than questions.
 - Open threads of work:
+  - Google Play: the owner is applying for production access. The Play
+    listing still shows the old mockups from before the redesign, and the
+    latest redesigned build is not uploaded to Play yet (Play takes the app
+    bundle from "Keepr for Google Play", `vibe-play.yml`).
   - A "Could not be sent" problem the owner raised: ask the owner for details.
   - Nearby (offline chat over Bluetooth): plan in `docs/nearby.md`, decisions
     still to make before building.
