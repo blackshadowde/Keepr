@@ -6,10 +6,22 @@ libcrux, FluffyChat and the pub and Rust packages in the lock files. Critical
 or high items are fixed on a `hotfix/…` branch and released (Android only);
 everything else is listed under "For the owner".
 
-Last checked: 2026-11-16 09:40 UTC (window 2026-11-09 to 2026-11-16)
+Last checked: 2026-11-19 09:15 UTC (window 2026-11-16 to 2026-11-19)
 
 ## For the owner
 
+- Matrix Dart SDK 17.0.0 (2026-11-18) has "fix: missing mac or iv handles
+  key as valid": a secret storage (recovery) key description without its
+  check values was taken as matching any key. Not rated and no advisory; it
+  needs the server or someone with account data access to plant such a key,
+  so it's left for you. It only ships in 17.0.0, a new major version (also
+  makes `Room.states` read-only, a breaking change), so it isn't a simple
+  bump from 16.x. Worth moving to 17 when you're back.
+  https://pub.dev/packages/matrix/changelog
+- This run's access was narrower than before: it could not reach GitHub's
+  global advisory list, FluffyChat's commits, pub.dev, crates.io or osv.dev,
+  only web search and web pages. FluffyChat commits since 2026-11-16 are not
+  checked yet; the next run with full access should cover them.
 - `pubspec.lock` on `Vibe` and `vibe-next` is out of date: it still says
   matrix 10.0.1, flutter_vodozemac 0.7.1 and vodozemac 0.7.0, while
   `pubspec.yaml` asks for matrix ^16.0.4 and flutter_vodozemac ^0.9.0. The
@@ -30,6 +42,26 @@ Last checked: 2026-11-16 09:40 UTC (window 2026-11-09 to 2026-11-16)
   matters if QR sign-in is added.
 
 ## Log
+
+### 2026-11-19
+
+- Matrix Dart SDK 17.0.0 (2026-11-18): secret storage key check fix (see
+  "For the owner"), Room.states read-only, webdev bump. Medium at most, not
+  a same-major bump. No change.
+  https://pub.dev/packages/matrix/changelog
+- RustSec advisories 2026-11-16 to 2026-11-18 (lettre, zip, libz-sys,
+  hickory, actix-http, chrono and others marked unmaintained): none for
+  crates the post-quantum layer uses (libcrux-ml-kem, aes-gcm, hkdf, sha2,
+  getrandom, tract, tokenizers) or vodozemac. No change.
+  https://rustsec.org/advisories/
+- vodozemac / flutter_vodozemac: nothing new since RUSTSEC-2026-0510
+  (2026-11-12, already covered). No change.
+- libcrux: no new advisories. No change.
+- matrix.org: no security disclosures; Governing Board report (2026-11-13)
+  has nothing needing client changes. No change.
+  https://matrix.org/category/security/
+- GitHub advisories (pub, rust) and FluffyChat commits: could not be read
+  this run (no access). Not checked.
 
 ### 2026-11-16
 
