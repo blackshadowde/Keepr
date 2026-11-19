@@ -132,10 +132,9 @@ If you can read the repo but can't edit, build or push:
 
 Last updated: 2026-11-20.
 
-- Released: Keepr 3.1.161 (Android only, with the Last.fm key; iPhone and
-  web are still on 3.1.158, which had Bujji's What's new tour, tools held
-  until a job is done, threads beside the name, pinned bar card). New in
-  3.1.161:
+- Released: Keepr 3.1.165 (2026-11-20, Android only; the Play app bundle
+  `keepr-play-3.1.165` was built from `Vibe` for the owner to upload).
+  iPhone and web are still on 3.1.158. Before that, 3.1.161 had:
   - One card per run for messages, with the picture nested beside the newest
     and the time inside.
   - Typing indicator in the same style (joins their card when they wrote
@@ -152,10 +151,7 @@ Last updated: 2026-11-20.
     about 3.4 s, and never looks back (`vibe_samurai.dart`, played by
     `VibeSlashRow` in `vibe_slash.dart`; the message card is marked with
     `VibeSlashBubble`). The owner's motion study is a private artifact.
-  - Quiet home: one line (picture, "Chats" title that opens a Chats / Spaces
-    switch, search, new chat); Bujji sits on the title holding the unread
-    count; no "All chats" label (`vibe_home_view.dart`: `_QuietTop`,
-    `_BujjiBoard`, `_ModeSwitch`).
+  - Quiet home (replaced in 3.1.165 by the big title and filters).
   - One profile page: picture and name both open `VibeSetStatusPage` (photo,
     name, style, pill, ID copy, status, Keepr ID code with Share and Copy,
     group tag, settings). `VibeOwnProfile.show` points there.
@@ -179,7 +175,12 @@ Last updated: 2026-11-20.
     (`_ReplyRail` in `vibe_message.dart`).
   - Voice notes: the recorder pane (`recording_input_row.dart`) and voice
     cards (`events/audio_player.dart`) as in the mockups.
-- On `vibe-next`, not released yet:
+- New in 3.1.165:
+  - Home: three dots (your profile, `tour.profile`), search, a filled +; a
+    big "Chats" that folds into the bar as the list scrolls (`_BigTop`,
+    `_homeLift`); filters All / Unread / Groups / Direct / Spaces
+    (`_Filters`, `VibeHomeFilter` in `vibe_dm_pane.dart`); chats fade under
+    the filters. Bujji no longer sits on the title.
   - Replies: the message being replied to gets
     a soft inset wash in the theme colour (`_SoftWash`); the swipe bubble
     uses the theme's soft colour (`vibe_swipe_reply.dart`).
@@ -215,6 +216,8 @@ Last updated: 2026-11-20.
     Chat wallpaper is the account wallpaper (plain). Their messages: each
     person's own colour by default (`VibeCardColours`,
     `AppSettings.vibeTheirColour`: own / theme / plain).
+- On `vibe-next`, not released yet: nothing (vibe-next and Vibe are the
+  same).
 - Waiting for the owner:
   - Pane extras from the study (dim follows the pull, the page behind steps
     back): they reach into Flutter's own pane code, so try them with a test
@@ -222,9 +225,11 @@ Last updated: 2026-11-20.
     "popup grows from the button" idea fits menus rather than questions.
 - Open threads of work:
   - Google Play: the owner is applying for production access. The Play
-    listing still shows the old mockups from before the redesign, and the
-    latest redesigned build is not uploaded to Play yet (Play takes the app
-    bundle from "Keepr for Google Play", `vibe-play.yml`).
+    listing still shows the old mockups from before the redesign (the README
+    images were given to him as a stopgap); new store screenshots are to be
+    made. The 3.1.165 app bundle is built for him to upload to the closed
+    test track (Play takes bundles from "Keepr for Google Play",
+    `vibe-play.yml`).
   - A "Could not be sent" problem the owner raised: ask the owner for details.
   - Nearby (offline chat over Bluetooth): plan in `docs/nearby.md`, decisions
     still to make before building.
