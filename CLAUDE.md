@@ -224,12 +224,21 @@ Last updated: 2026-11-20.
     APK. Questions in Keepr already open as panes (`showVibeDialog`), so the
     "popup grows from the button" idea fits menus rather than questions.
 - Open threads of work:
-  - Google Play: the owner is applying for production access. The Play
-    listing still shows the old mockups from before the redesign (the README
-    images were given to him as a stopgap); new store screenshots are to be
-    made. The 3.1.165 app bundle is built for him to upload to the closed
-    test track (Play takes bundles from "Keepr for Google Play",
-    `vibe-play.yml`).
+  - Google Play: the owner applied for production access (2026-11-20). The
+    Play listing still shows the old mockups from before the redesign (the
+    README images were given to him as a stopgap); new store screenshots are
+    to be made. 3.1.165 (code 165) is uploaded to "Closed testing - Alpha"
+    and sent for review with new screenshots, feature graphic and two
+    declarations. Foreground services: camera, microphone, phone call (calls),
+    location (live location), remote messaging entered as "Other" (Direct
+    connection / built-in notifications keep a connection open), with videos.
+    Full-screen intent: "Making and receiving calls", pre-granted Yes. Most of
+    these come from flutter_callkit_incoming's own manifest. If Google rejects
+    remote messaging, the Play build needs another way to keep that
+    connection. Keepr doesn't ask for full-screen intent itself
+    (`canUseFullScreenIntent`), so without approval calls show as a floating
+    notification on Android 14+. Play bundles come from "Keepr for Google
+    Play" (`vibe-play.yml`).
   - A "Could not be sent" problem the owner raised: ask the owner for details.
   - Nearby (offline chat over Bluetooth): plan in `docs/nearby.md`, decisions
     still to make before building.
