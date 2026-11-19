@@ -23,6 +23,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:matrix/matrix.dart';
 
+/// Which chats the home list shows (the filters under the big title).
+enum VibeHomeFilter { all, unread, groups, direct, spaces }
+
 /// Middle pane: search, starred, DM list, invites, user card.
 class VibeDmPane extends StatefulWidget {
   final List<Room> rooms;
@@ -33,10 +36,10 @@ class VibeDmPane extends StatefulWidget {
   /// The search field (the home screen's search button shows it).
   final bool showSearch;
 
-  /// false: only direct chats. true: only groups and communities.
-  final bool spacesMode;
+  /// Which chats to show; Spaces lists the communities.
+  final VibeHomeFilter filter;
 
-  /// Communities, listed in [spacesMode]; tapping one calls [onSpace].
+  /// Communities, listed under Spaces; tapping one calls [onSpace].
   final List<Room> spaces;
   final void Function(Room room)? onSpace;
 
@@ -46,7 +49,7 @@ class VibeDmPane extends StatefulWidget {
     required this.onTap,
     required this.onOpen,
     this.showSearch = true,
-    this.spacesMode = false,
+    this.filter = VibeHomeFilter.all,
     this.spaces = const [],
     this.onSpace,
     super.key,
@@ -78,14 +81,20 @@ class _VibeDmPaneState extends State<VibeDmPane> {
     String nameOf(Room r) =>
         r.getLocalizedDisplayname(MatrixLocals(l10n));
 
-    // Chats: direct chats only. Spaces: groups and communities only.
-    bool keep(Room r) =>
-        widget.spacesMode ? VibeGroups.isGroup(r) : !VibeGroups.isGroup(r);
+    // the filter picked under the title
+    bool keep(Room r) => switch (widget.filter) {
+      VibeHomeFilter.all => true,
+      VibeHomeFilter.unread =>
+        r.isUnread || r.membership == Membership.invite,
+      VibeHomeFilter.groups => VibeGroups.isGroup(r),
+      VibeHomeFilter.direct => !VibeGroups.isGroup(r),
+      VibeHomeFilter.spaces => false,
+    };
     final visible = widget.rooms
         .where((r) => keep(r))
         .where((r) => q.isEmpty || nameOf(r).toLowerCase().contains(q))
         .toList();
-    final spaces = !widget.spacesMode
+    final spaces = widget.filter != VibeHomeFilter.spaces
         ? const <Room>[]
         : widget.spaces
               .where((r) => q.isEmpty || nameOf(r).toLowerCase().contains(q))
@@ -177,8 +186,22 @@ class _VibeDmPaneState extends State<VibeDmPane> {
                           ),
                         ),
                     ],
+                    if (widget.filter == VibeHomeFilter.spaces &&
+                        spaces.isEmpty)
+                      () => Padding(
+                        padding: const EdgeInsets.fromLTRB(32, 28, 32, 8),
+                        child: Text(
+                          q.isEmpty
+                              ? 'No spaces yet. Start one with the + button.'
+                              : 'No space by that name.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 14.5,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
                     if (spaces.isNotEmpty) ...[
-                      () => const _SectionLabel('Communities'),
                       for (var i = 0; i < spaces.length; i++)
                         () => VibeStagger(
                           key: ValueKey('sp_${spaces[i].id}'),
@@ -244,7 +267,7 @@ class _VibeDmPaneState extends State<VibeDmPane> {
                     ),
                     transitionBuilder: vibeCascadeSwitch,
                     child: CustomScrollView(
-                    key: ValueKey(widget.spacesMode),
+                    key: ValueKey(widget.filter),
                     cacheExtent: 600,
                     slivers: [
                       SliverList.builder(

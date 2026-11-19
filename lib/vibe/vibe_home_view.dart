@@ -4,7 +4,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:vibe/vibe/buddy/bujji_home.dart';
 import 'package:vibe/vibe/vibe_glass.dart';
@@ -22,10 +21,8 @@ import 'package:vibe/widgets/avatar.dart';
 import 'package:vibe/vibe/vibe_groups.dart';
 import 'package:vibe/vibe/vibe_start_pane.dart';
 import 'package:vibe/vibe/vibe_swipe.dart';
-import 'package:vibe/vibe/buddy/vibe_buddy.dart';
 import 'package:vibe/vibe/vibe_haptics.dart';
 import 'package:vibe/vibe/vibe_own_profile.dart';
-import 'package:vibe/vibe/vibe_profile_cache.dart';
 import 'package:vibe/widgets/matrix.dart';
 import 'package:vibe/vibe/vibe_live_map.dart';
 import 'package:vibe/vibe/buddy/bujji_life.dart';
@@ -52,25 +49,14 @@ class _VibeHomeViewState extends State<VibeHomeView> {
   static const _startId = '+start';
   bool _search = false;
 
-  /// false: the list shows direct chats; true: groups and communities.
-  bool _spacesMode = false;
+  /// The filter picked under the big title.
+  VibeHomeFilter _filter = VibeHomeFilter.all;
 
-  /// "Chats" / "Spaces" shown in the profile bar for a moment after
-  /// switching, then your name again.
-  String? _flash;
-  Timer? _flashTimer;
-
-  void _setMode(bool spaces) {
-    _flashTimer?.cancel();
-    // the other list starts at its top, with the room above back
+  void _setFilter(VibeHomeFilter f) {
+    if (f == _filter) return;
+    // the new list starts at its top, with the big title back
     _homeLift.value = 0;
-    setState(() {
-      _spacesMode = spaces;
-      _flash = spaces ? 'Spaces' : 'Chats';
-    });
-    _flashTimer = Timer(const Duration(milliseconds: 1800), () {
-      if (mounted) setState(() => _flash = null);
-    });
+    setState(() => _filter = f);
   }
   String? selectedId;
   String? _lastOpenedId;
@@ -107,7 +93,6 @@ class _VibeHomeViewState extends State<VibeHomeView> {
     VibeLock.changes.removeListener(_onLockChange);
     VibeCommunities.select.removeListener(_onSelectCommunity);
     VibeSwipe.reset();
-    _flashTimer?.cancel();
     super.dispose();
   }
 
@@ -293,9 +278,8 @@ class _VibeHomeViewState extends State<VibeHomeView> {
                         quick: quick,
                         chatsUnread: chatsUnread,
                         spacesUnread: spacesUnread,
-                        spacesMode: _spacesMode,
-                        flash: _flash,
-                        onMode: _setMode,
+                        filter: _filter,
+                        onFilter: _setFilter,
                         onOpenChat: (room) {
                           _lastOpenedId = room.id;
                           controller.onChatTap(room);
@@ -314,8 +298,11 @@ class _VibeHomeViewState extends State<VibeHomeView> {
                         ),
                       ),
                     Expanded(
-                      // the list's scroll folds the space above the top line
-                      child: NotificationListener<ScrollNotification>(
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                      // the list's scroll moves the big title up into the bar
+                      NotificationListener<ScrollNotification>(
                         onNotification: (n) {
                           if (n.metrics.axis == Axis.vertical && selectedId == null) {
                             _homeLift.value = (n.metrics.pixels / 64).clamp(0.0, 1.0);
@@ -353,7 +340,7 @@ class _VibeHomeViewState extends State<VibeHomeView> {
                             ? VibeDmPane(
                                 key: const ValueKey('list'),
                                 showSearch: _search,
-                                spacesMode: _spacesMode,
+                                filter: _filter,
                                 spaces: spaces,
                                 onSpace: (room) =>
                                     setState(() => selectedId = room.id),
@@ -390,6 +377,37 @@ class _VibeHomeViewState extends State<VibeHomeView> {
                         ),
                       ),
                       ),
+                      ),
+                      // no edge under the filters: chats fade into the page
+                      // as they scroll up
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: 18,
+                        child: IgnorePointer(
+                          child: ValueListenableBuilder<double>(
+                            valueListenable: _homeLift,
+                            builder: (context, v, _) => Opacity(
+                              opacity: selectedId == null ? v : 0,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      theme.colorScheme.surfaceContainerLowest,
+                                      theme.colorScheme.surfaceContainerLowest
+                                          .withValues(alpha: 0),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                        ],
                       ),
                     ),
                   ],
@@ -483,11 +501,10 @@ class _HomeTop extends StatelessWidget {
   /// Unread direct chats, and unread groups / channels / communities.
   final int chatsUnread;
   final int spacesUnread;
-  final bool spacesMode;
-  final ValueChanged<bool> onMode;
+  final VibeHomeFilter filter;
+  final ValueChanged<VibeHomeFilter> onFilter;
   final void Function(Room room) onOpenChat;
   final VoidCallback onSearch;
-  final String? flash;
   final VoidCallback onAdd;
   final void Function(Room room) onLongPress;
   final VoidCallback onLockedChats;
@@ -495,11 +512,10 @@ class _HomeTop extends StatelessWidget {
     required this.quick,
     required this.chatsUnread,
     required this.spacesUnread,
-    required this.spacesMode,
-    required this.onMode,
+    required this.filter,
+    required this.onFilter,
     required this.onOpenChat,
     required this.onSearch,
-    required this.flash,
     required this.onAdd,
     required this.onLongPress,
     required this.onLockedChats,
@@ -559,23 +575,15 @@ class _HomeTop extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // one quiet line: your picture, the page's name (tap it to switch
-          // between Chats and Spaces, hold it for locked chats; Bujji sits
-          // on it holding up how many chats are unread), search, new chat
-          // room above it (folds away as the list scrolls)
-          ValueListenableBuilder<double>(
-            valueListenable: _homeLift,
-            builder: (context, v, _) => SizedBox(height: 36 * (1 - v)),
+          // three dots (your profile), search, new chat; the big "Chats"
+          // (hold it for locked chats), then the filters
+          _BigTop(onHold: onLockedChats, onSearch: onSearch, onAdd: onAdd),
+          _Filters(
+            filter: filter,
+            unread: chatsUnread + spacesUnread,
+            onFilter: onFilter,
           ),
-          _QuietTop(
-            spaces: spacesMode,
-            chatsUnread: chatsUnread,
-            spacesUnread: spacesUnread,
-            onMode: onMode,
-            onHold: onLockedChats,
-            onSearch: onSearch,
-            onAdd: onAdd,
-          ),
+          const SizedBox(height: 4),
           // sharing your live location (or a check-in): who with, Stop
           const VibeLiveBar(),
           // birthdays and reminders Bujji has for today
@@ -607,7 +615,7 @@ class _HomeTop extends StatelessWidget {
                 ],
               ),
             ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
         ],
       ),
       ),
@@ -615,21 +623,13 @@ class _HomeTop extends StatelessWidget {
   }
 }
 
-/// The top line of home: your picture (your profile), "Chats" or "Spaces"
-/// (tap for the switch), search and new chat.
-class _QuietTop extends StatelessWidget {
-  final bool spaces;
-  final int chatsUnread;
-  final int spacesUnread;
-  final ValueChanged<bool> onMode;
+/// The top of home: three dots (your profile), search and new chat; a big
+/// "Chats" under them that moves up into the bar as the list scrolls.
+class _BigTop extends StatelessWidget {
   final VoidCallback onHold;
   final VoidCallback onSearch;
   final VoidCallback onAdd;
-  const _QuietTop({
-    required this.spaces,
-    required this.chatsUnread,
-    required this.spacesUnread,
-    required this.onMode,
+  const _BigTop({
     required this.onHold,
     required this.onSearch,
     required this.onAdd,
@@ -640,406 +640,250 @@ class _QuietTop extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final client = Matrix.of(context).client;
     // round buttons squeeze a little under the finger
-    Widget round(IconData icon, String tip, Color bg, Color fg, VoidCallback onTap) => Padding(
-      padding: const EdgeInsets.only(left: 8),
-      child: Tooltip(
-        message: tip,
-        child: VibePressable(
-          scale: 0.9,
-          child: Material(
-          color: bg,
-          shape: const CircleBorder(),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: onTap,
-            child: SizedBox.square(dimension: 44, child: Icon(icon, color: fg)),
+    Widget round(
+      IconData icon,
+      String tip,
+      Color bg,
+      Color fg,
+      VoidCallback onTap, {
+      bool glow = false,
+    }) => Tooltip(
+      message: tip,
+      child: VibePressable(
+        scale: 0.9,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: glow
+                ? [
+                    BoxShadow(
+                      color: bg.withValues(alpha: 0.35),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ]
+                : const [],
           ),
-        ),
-        ),
-      ),
-    );
-    void pick(BuildContext title) {
-      final box = title.findRenderObject() as RenderBox?;
-      if (box == null || !box.hasSize) return;
-      final at = box.localToGlobal(Offset.zero) & box.size;
-      _ModeSwitch.open(context, at, spaces, chatsUnread, spacesUnread, onMode);
-    }
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(22, 10, 22, 10),
-      child: Row(
-        children: [
-          BujjiSpot(
-            id: 'tour.profile',
-            child: VibeOwnProfileBuilder(
-              client: client,
-              builder: (context, profile) => Avatar(
-                mxContent: profile?.avatarUrl,
-                name: profile?.displayName ?? client.userID?.localpart ?? '',
-                size: 44,
-                client: client,
-                onTap: () => VibeOwnProfile.show(context, client),
-                presenceUserId: client.userID,
-                presenceBackgroundColor: cs.surfaceContainerLowest,
+          child: Material(
+            color: bg,
+            shape: const CircleBorder(),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: onTap,
+              child: SizedBox.square(
+                dimension: 44,
+                child: Icon(icon, color: fg),
               ),
             ),
           ),
-          const SizedBox(width: 14),
-          Expanded(
+        ),
+      ),
+    );
+    final title = TextStyle(
+      fontWeight: FontWeight.w800,
+      color: cs.onSurface,
+    );
+    return ValueListenableBuilder<double>(
+      valueListenable: _homeLift,
+      builder: (context, v, _) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: Row(
               children: [
-                Flexible(
-                  child: Semantics(
-                    button: true,
-                    label: spaces ? 'Spaces, switch to Chats' : 'Chats, switch to Spaces',
-                    child: Builder(
-                      builder: (title) => GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () => pick(title),
-                      onLongPress: onHold,
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 240),
-                        transitionBuilder: (child, a) => FadeTransition(
-                          opacity: a,
-                          child: SlideTransition(
-                            position: Tween(begin: const Offset(0, 0.25), end: Offset.zero).animate(a),
-                            child: child,
-                          ),
-                        ),
+                // three dots: your profile page
+                BujjiSpot(
+                  id: 'tour.profile',
+                  child: round(
+                    Icons.more_horiz_rounded,
+                    'Your profile',
+                    cs.surfaceContainerHigh,
+                    cs.onSurface,
+                    () => VibeOwnProfile.show(context, client),
+                  ),
+                ),
+                // the small title, once the big one has scrolled away
+                Expanded(
+                  child: IgnorePointer(
+                    ignoring: v < 0.5,
+                    child: Opacity(
+                      opacity: ((v - 0.5) * 2).clamp(0.0, 1.0),
+                      child: GestureDetector(
+                        onLongPress: onHold,
                         child: Text(
-                          spaces ? 'Spaces' : 'Chats',
-                          key: ValueKey(spaces),
-                          maxLines: 1,
-                          overflow: TextOverflow.fade,
-                          softWrap: false,
-                          style: TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800,
-                            color: cs.onSurface,
-                            height: 1.1,
-                          ),
+                          'Chats',
+                          textAlign: TextAlign.center,
+                          style: title.copyWith(fontSize: 19),
                         ),
                       ),
                     ),
-                    ),
                   ),
                 ),
-                const SizedBox(width: 6),
-                // Bujji sits on the name, holding up the unread count
-                _BujjiBoard(n: chatsUnread, spaces: spaces),
+                round(
+                  Icons.search_rounded,
+                  'Search',
+                  cs.surfaceContainerHigh,
+                  cs.onSurface,
+                  onSearch,
+                ),
+                const SizedBox(width: 10),
+                round(
+                  Icons.add_rounded,
+                  'New chat',
+                  cs.primary,
+                  cs.onPrimary,
+                  onAdd,
+                  glow: true,
+                ),
               ],
             ),
           ),
-          round(Icons.search_rounded, 'Search', cs.surfaceContainerHigh, cs.onSurface, onSearch),
-          round(Icons.edit_rounded, 'New chat', cs.primaryContainer, cs.onPrimaryContainer, onAdd),
+          // the big title folds away as the list scrolls; hold it for
+          // locked chats
+          ClipRect(
+            child: Align(
+              alignment: Alignment.bottomLeft,
+              heightFactor: 1 - v,
+              child: Opacity(
+                opacity: (1 - v * 1.6).clamp(0.0, 1.0),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onLongPress: onHold,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(22, 18, 22, 16),
+                    child: Text(
+                      'Chats',
+                      maxLines: 1,
+                      style: title.copyWith(
+                        fontSize: 38,
+                        height: 1,
+                        letterSpacing: -0.4,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // a little room under the bar once the title has gone
+          SizedBox(height: 10 * v),
         ],
       ),
     );
   }
 }
 
-/// Bujji with a little board of how many chats are unread ("3 new", or "3
-/// chats" while you look at Spaces). With Bujji off, just the count.
-class _BujjiBoard extends StatelessWidget {
-  final int n;
-  final bool spaces;
-  const _BujjiBoard({required this.n, required this.spaces});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return ValueListenableBuilder<int>(
-      valueListenable: VibeBuddy.changed,
-      builder: (context, _, _) {
-        if (!VibeBuddy.on) return n > 0 ? _Count(n) : const SizedBox.shrink();
-        final board = Container(
-          width: 40,
-          height: 26,
-          decoration: BoxDecoration(
-            color: cs.surface,
-            borderRadius: BorderRadius.circular(7),
-            border: Border.all(color: cs.primary, width: 2),
-            boxShadow: const [
-              BoxShadow(color: Color(0x2E1E2850), blurRadius: 8, offset: Offset(0, 3)),
-            ],
-          ),
-          alignment: Alignment.center,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                n > 99 ? '99+' : '$n',
-                style: TextStyle(fontSize: 12.5, height: 1, fontWeight: FontWeight.w800, color: cs.primary),
-              ),
-              Text(
-                spaces ? 'CHATS' : 'NEW',
-                style: TextStyle(
-                  fontSize: 7,
-                  height: 1.2,
-                  letterSpacing: 0.4,
-                  fontWeight: FontWeight.w700,
-                  color: cs.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        );
-        Widget hand() => Container(
-          width: 9,
-          height: 9,
-          decoration: BoxDecoration(
-            color: Color.lerp(cs.primary, Colors.white, 0.32),
-            shape: BoxShape.circle,
-          ),
-        );
-        return Stack(
-          clipBehavior: Clip.none,
-          alignment: Alignment.center,
-          children: [
-            BujjiHome(unread: n),
-            // the board pops up in its hands when something is unread
-            Positioned(
-              bottom: -8,
-              child: IgnorePointer(
-                child: AnimatedScale(
-                  scale: n > 0 ? 1 : 0,
-                  duration: const Duration(milliseconds: 320),
-                  curve: n > 0 ? Curves.easeOutBack : Curves.easeIn,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Transform.translate(offset: const Offset(3, 0), child: hand()),
-                      board,
-                      Transform.translate(offset: const Offset(-3, 0), child: hand()),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-/// Chats / Spaces as a switch that opens over the title: slide the thumb or
-/// tap the other side, and it closes on the one picked.
-class _ModeSwitch extends StatefulWidget {
-  final Rect at;
-  final bool spaces;
-  final int chatsUnread;
-  final int spacesUnread;
-  final ValueChanged<bool> onMode;
-  const _ModeSwitch({
-    required this.at,
-    required this.spaces,
-    required this.chatsUnread,
-    required this.spacesUnread,
-    required this.onMode,
+/// All, Unread, Groups, Direct and Spaces under the title: the picked one
+/// filled in the theme's soft colour; the row slides sideways.
+class _Filters extends StatelessWidget {
+  final VibeHomeFilter filter;
+  final int unread;
+  final ValueChanged<VibeHomeFilter> onFilter;
+  const _Filters({
+    required this.filter,
+    required this.unread,
+    required this.onFilter,
   });
 
-  static Future<void> open(
-    BuildContext context,
-    Rect at,
-    bool spaces,
-    int chatsUnread,
-    int spacesUnread,
-    ValueChanged<bool> onMode,
-  ) {
-    VibeHaptics.selection();
-    return Navigator.of(context).push(
-      PageRouteBuilder<void>(
-        opaque: false,
-        barrierDismissible: true,
-        barrierLabel: 'Close',
-        barrierColor: Theme.of(context).colorScheme.surfaceContainerLowest.withValues(alpha: 0.7),
-        transitionDuration: const Duration(milliseconds: 280),
-        reverseTransitionDuration: const Duration(milliseconds: 170),
-        pageBuilder: (context, a, _) => _ModeSwitch(
-          at: at,
-          spaces: spaces,
-          chatsUnread: chatsUnread,
-          spacesUnread: spacesUnread,
-          onMode: onMode,
-        ),
-        transitionsBuilder: (context, a, _, child) => FadeTransition(opacity: a, child: child),
-      ),
-    );
-  }
-
-  @override
-  State<_ModeSwitch> createState() => _ModeSwitchState();
-}
-
-class _ModeSwitchState extends State<_ModeSwitch> with SingleTickerProviderStateMixin {
-  static const _w = 236.0, _h = 52.0, _pad = 4.0;
-  late final AnimationController _x = AnimationController.unbounded(
-    vsync: this,
-    value: widget.spaces ? 1 : 0,
-  );
-  bool _done = false;
-
-  @override
-  void dispose() {
-    _x.dispose();
-    super.dispose();
-  }
-
-  void _settle(bool spaces, [double velocity = 0]) {
-    if (_done) return;
-    _done = true;
-    VibeHaptics.selection();
-    _x.animateWith(
-      SpringSimulation(
-        SpringDescription.withDampingRatio(mass: 1, stiffness: 520, ratio: 0.8),
-        _x.value,
-        spaces ? 1 : 0,
-        velocity,
-      ),
-    );
-    if (spaces != widget.spaces) widget.onMode(spaces);
-    Future<void>.delayed(const Duration(milliseconds: 220), () {
-      if (mounted) Navigator.of(context).maybePop();
-    });
-  }
+  static String _label(VibeHomeFilter f) => switch (f) {
+    VibeHomeFilter.all => 'All',
+    VibeHomeFilter.unread => 'Unread',
+    VibeHomeFilter.groups => 'Groups',
+    VibeHomeFilter.direct => 'Direct',
+    VibeHomeFilter.spaces => 'Spaces',
+  };
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final screen = MediaQuery.sizeOf(context);
-    final left = (widget.at.left - 6).clamp(12.0, math.max(12.0, screen.width - _w - 12)).toDouble();
-    const thumbW = (_w - _pad * 2) / 2;
-    final route = ModalRoute.of(context)?.animation ?? kAlwaysCompleteAnimation;
-    Widget seg(bool sp) {
-      final n = sp ? widget.spacesUnread : widget.chatsUnread;
-      return Expanded(
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => _settle(sp),
-          child: AnimatedBuilder(
-            animation: _x,
-            builder: (context, _) {
-              final on = (sp ? _x.value : 1 - _x.value) > 0.5;
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    sp ? 'Spaces' : 'Chats',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: on ? FontWeight.w800 : FontWeight.w600,
-                      color: on ? cs.onPrimary : cs.onSurface,
-                    ),
-                  ),
-                  if (n > 0) ...[
-                    const SizedBox(width: 6),
-                    _Count(n, inverted: on),
-                  ],
-                ],
-              );
-            },
-          ),
-        ),
-      );
-    }
-
-    return Stack(
-      children: [
-        Positioned(
-          left: left,
-          top: widget.at.center.dy - _h / 2,
-          child: ScaleTransition(
-            scale: Tween(begin: 0.86, end: 1.0).animate(
-              CurvedAnimation(parent: route, curve: Curves.easeOutBack, reverseCurve: Curves.easeIn),
-            ),
-            alignment: Alignment.centerLeft,
-            child: GestureDetector(
-              onHorizontalDragUpdate: (d) {
-                if (_done) return;
-                _x.value = (_x.value + d.delta.dx / (_w - thumbW - _pad * 2)).clamp(-0.08, 1.08);
-              },
-              onHorizontalDragEnd: (d) {
-                final v = d.primaryVelocity ?? 0;
-                final to = v.abs() > 300 ? v > 0 : _x.value > 0.5;
-                _settle(to, v / (_w - thumbW - _pad * 2));
-              },
-              child: Material(
-                color: cs.surfaceContainerHigh,
-                elevation: 6,
-                shadowColor: const Color(0x55000000),
-                shape: const StadiumBorder(),
-                child: SizedBox(
-                  width: _w,
-                  height: _h,
-                  child: Stack(
-                    children: [
-                      AnimatedBuilder(
-                        animation: _x,
-                        builder: (context, child) => Transform.translate(
-                          offset: Offset(_pad + _x.value * (_w - thumbW - _pad * 2), _pad),
-                          child: child,
-                        ),
-                        child: Container(
-                            width: thumbW,
-                            height: _h - _pad * 2,
-                            decoration: BoxDecoration(
-                              color: cs.primary,
-                              borderRadius: BorderRadius.circular(22),
-                              boxShadow: const [
-                                BoxShadow(color: Color(0x401E2850), blurRadius: 8, offset: Offset(0, 2)),
-                              ],
-                            ),
-                        ),
-                      ),
-                      SizedBox(
-                        width: _w,
-                        height: _h,
+    return SizedBox(
+      height: 40,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        children: [
+          for (final f in VibeHomeFilter.values)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Builder(
+                builder: (chip) {
+                  final on = f == filter;
+                  final n = f == VibeHomeFilter.unread ? unread : 0;
+                  return VibePressable(
+                    scale: 0.94,
+                    child: Material(
+                      color: on ? cs.primaryContainer : cs.surfaceContainerHigh,
+                      shape: const StadiumBorder(),
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
+                        onTap: () {
+                          VibeHaptics.selection();
+                          onFilter(f);
+                          // a filter half off the edge slides into view
+                          Scrollable.ensureVisible(
+                            chip,
+                            alignment: 0.5,
+                            duration: const Duration(milliseconds: 280),
+                            curve: Curves.easeOutCubic,
+                          );
+                        },
                         child: Padding(
-                          padding: const EdgeInsets.all(_pad),
+                          padding: const EdgeInsets.symmetric(horizontal: 18),
                           child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [seg(false), seg(true)],
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _label(f),
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: on
+                                      ? FontWeight.w700
+                                      : FontWeight.w600,
+                                  color: on
+                                      ? cs.onPrimaryContainer
+                                      : cs.onSurfaceVariant,
+                                ),
+                              ),
+                              if (n > 0) ...[
+                                const SizedBox(width: 6),
+                                Container(
+                                  constraints: const BoxConstraints(
+                                    minWidth: 18,
+                                  ),
+                                  height: 18,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 5,
+                                  ),
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: on
+                                        ? cs.onPrimaryContainer
+                                        : cs.primary,
+                                    borderRadius: BorderRadius.circular(9),
+                                  ),
+                                  child: Text(
+                                    n > 99 ? '99+' : '$n',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: on
+                                          ? cs.primaryContainer
+                                          : cs.onPrimary,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                },
               ),
             ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// A small unread count: red, or white on the selected segment.
-class _Count extends StatelessWidget {
-  final int n;
-  final bool inverted;
-  const _Count(this.n, {this.inverted = false});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      constraints: const BoxConstraints(minWidth: 18),
-      height: 18,
-      padding: const EdgeInsets.symmetric(horizontal: 5),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: inverted ? cs.onPrimary : cs.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(9),
-      ),
-      child: Text(
-        n > 99 ? '99+' : '$n',
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: inverted ? cs.primary : cs.onSurface,
-        ),
+        ],
       ),
     );
   }
