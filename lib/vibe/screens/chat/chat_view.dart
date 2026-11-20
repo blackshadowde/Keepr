@@ -50,6 +50,12 @@ class ChatView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final bottomSheetPadding = VibeThemes.isColumnMode(context) ? 16.0 : 8.0;
+    // the text box shows (not an invite, an ended chat or read-only)
+    final composer =
+        !controller.room.isExtinct &&
+        controller.room.canSendDefaultMessages &&
+        controller.room.membership == Membership.join &&
+        controller.room.isAbandonedDMRoom != true;
     final scrollUpBannerEventId = controller.scrollUpBannerEventId;
 
     final accountConfig = Matrix.of(context).client.applicationAccountConfig;
@@ -487,11 +493,24 @@ class ChatView extends StatelessWidget {
                               // others typing / writing to you peek in here
                               VibePeekBar(room: controller.room),
                               SizeChangedLayoutNotifier(
-                            child: Container(
+                            // the text box: the page colour starts right at
+                            // it, so Bujji's row above stays clear however
+                            // tall the bar gets
+                            child: CustomPaint(
+                              painter: composer &&
+                                      accountConfig.wallpaperUrl == null
+                                  ? _InputBack(
+                                      bar: controller.inputBarKey,
+                                      row: controller.inputRowKey,
+                                      color: theme.colorScheme.surface,
+                                    )
+                                  : null,
+                              child: Container(
                               key: controller.inputBarKey,
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
-                                  colors: accountConfig.wallpaperUrl != null
+                                  colors: accountConfig.wallpaperUrl != null ||
+                                          composer
                                       ? const [
                                           Colors.transparent,
                                           Colors.transparent,
@@ -502,9 +521,8 @@ class ChatView extends StatelessWidget {
                                           theme.colorScheme.surface,
                                           theme.colorScheme.surface,
                                         ],
-                                  // clear behind Bujji's row; it fades in
-                                  // only where the text box starts
-                                  stops: accountConfig.wallpaperUrl != null
+                                  stops: accountConfig.wallpaperUrl != null ||
+                                          composer
                                       ? null
                                       : const [0, 0.55, 0.8, 1],
                                   begin: Alignment.topCenter,
@@ -632,7 +650,12 @@ class ChatView extends StatelessWidget {
                                                   VibeTextStickerBar(controller),
                                                   // the typing buddy
                                                   VibeBuddyBar(controller),
-                                                  ChatInputRow(controller),
+                                                  KeyedSubtree(
+                                                    key: controller.inputRowKey,
+                                                    child: ChatInputRow(
+                                                      controller,
+                                                    ),
+                                                  ),
                                                   ChatEmojiPicker(controller),
                                                   // room for the docked chat
                                                   const VibeDockSpace(),
@@ -641,6 +664,7 @@ class ChatView extends StatelessWidget {
                                       )
                                     : SizedBox.shrink(),
                               ),
+                            ),
                             ),
                           ),
                             ],
@@ -826,4 +850,39 @@ class _ThreadTitle extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The page colour behind the text box and below it, fading in over its
+/// first few pixels. It's measured from the text box itself, so Bujji's row
+/// (and its answers, and sticker suggestions) above it stay see-through.
+class _InputBack extends CustomPainter {
+  final GlobalKey bar, row;
+  final Color color;
+  _InputBack({required this.bar, required this.row, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final b = bar.currentContext?.findRenderObject();
+    final r = row.currentContext?.findRenderObject();
+    var top = size.height * 0.5;
+    if (b is RenderBox && r is RenderBox && b.attached && r.attached) {
+      top = r.localToGlobal(Offset.zero).dy - b.localToGlobal(Offset.zero).dy;
+    }
+    top = top.clamp(0.0, size.height);
+    const fade = 18.0;
+    canvas.drawRect(
+      Rect.fromLTRB(0, top, size.width, size.height),
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [color.withAlpha(0), color, color],
+          stops: [0, (fade / (size.height - top).clamp(fade, double.infinity)), 1],
+        ).createShader(Rect.fromLTRB(0, top, size.width, size.height)),
+    );
+  }
+
+  // it follows the bar's layout, which changes without a rebuild
+  @override
+  bool shouldRepaint(_InputBack old) => true;
 }

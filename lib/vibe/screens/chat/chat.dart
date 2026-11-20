@@ -163,6 +163,9 @@ class ChatController extends State<ChatPageWithRoom>
 
   final GlobalKey inputBarKey = GlobalKey();
 
+  /// The text box row, where the page colour behind the bar begins.
+  final GlobalKey inputRowKey = GlobalKey();
+
   void onDragEntered(_) => setState(() => dragging = true);
 
   void onDragExited(_) => setState(() => dragging = false);
