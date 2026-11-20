@@ -261,7 +261,10 @@ Last updated: 2026-11-20.
     `vibe_message.dart`: A Tab (grows out of the card's top, flush with its
     outer edge, a pill inside in the answered person's colour), B Echo (the
     answered message peeks out behind the card as a smaller card), C Dots (a
-    pill above, three dots into the card).
+    pill above, three dots into the card). The owner likes B and asked for
+    nicer dots: C2 (three beads falling from a soft pill, largest by the
+    pill) and C3 (five beads rising from the picture's column, turning into
+    a small pill) are on the canvas; waiting for his pick.
   - Pane extras from the study (dim follows the pull, the page behind steps
     back): they reach into Flutter's own pane code, so try them with a test
     APK. Questions in Keepr already open as panes (`showVibeDialog`), so the
