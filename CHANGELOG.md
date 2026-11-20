@@ -5,6 +5,7 @@ https://github.com/blackshadowde/Vibe-flutter/releases
 
 ## 2026-11-20
 
+- FluffyChat leftovers that nothing used are gone: the old chat list item, the side rail, the user bar, the shared page and two old call sounds (the app gets about 320 KB smaller) ([3aa669f6a](https://github.com/blackshadowde/keepr/commit/3aa669f6a))
 - Notifications package 22.3.3: no errors on iPhones when notifications aren't allowed, and repeating notifications keep their time across daylight saving ([544a2d171](https://github.com/blackshadowde/keepr/commit/544a2d171))
 - Matrix SDK 17: a recovery key description without its check values no longer counts as matching any key; room state can only be changed through the SDK (Keepr only reads it) ([f1e8c6e3a](https://github.com/blackshadowde/keepr/commit/f1e8c6e3a))
 - Package versions pinned: pubspec.lock now holds the exact versions the builds use (it was months old, so each build picked some versions fresh) ([0836966d1](https://github.com/blackshadowde/keepr/commit/0836966d1))
