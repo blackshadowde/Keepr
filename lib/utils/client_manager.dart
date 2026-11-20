@@ -10,6 +10,7 @@ import 'package:vibe/utils/custom_http_client.dart';
 import 'package:vibe/utils/custom_image_resizer.dart';
 import 'package:vibe/utils/init_with_restore.dart';
 import 'package:vibe/utils/platform_infos.dart';
+import 'package:vibe/vibe/vibe_send_retry.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_vodozemac/flutter_vodozemac.dart' as vod;
@@ -112,9 +113,10 @@ abstract class ClientManager {
     final shareKeysWith = AppSettings.shareKeysWith.value;
     final enableSoftLogout = AppSettings.enableSoftLogout.value;
 
-    return Client(
+    final client = Client(
       clientName,
-      httpClient: CustomHttpClient.createHTTPClient(),
+      // waiting messages are tried less often while there's no connection
+      httpClient: VibePatientHttp(CustomHttpClient.createHTTPClient()),
       verificationMethods: {
         KeyVerificationMethod.numbers,
         if (kIsWeb || PlatformInfos.isMobile || PlatformInfos.isLinux)
@@ -159,6 +161,9 @@ abstract class ClientManager {
         seconds: AppSettings.sendTimelineEventTimeout.value,
       ),
     );
+    // what was still waiting when Keepr closed is sent once it's back online
+    VibeSendRetry.watch(client);
+    return client;
   }
 
   static Future<void> sendInitNotification(String title, String body) async {

@@ -88,7 +88,8 @@ enum AppSettings<T> {
     'https://matrix.org/legal/privacy-notice/',
   ),
   tos<String>('chat.keepr.tos_url', 'https://matrix.org/legal/terms-and-conditions/'),
-  sendTimelineEventTimeout<int>('chat.keepr.send_timeline_event_timeout', 15),
+  // seconds a message keeps trying while there's no connection: two days
+  sendTimelineEventTimeout<int>('chat.keepr.send_timeline_event_timeout', 172800),
   webNotificationSound<bool>('chat.keepr.web_notification_sound', true),
   chatFilter<String>('chat.keepr.chat_filter', 'allChats'),
   hideRoomsInSpaces<bool>('chat.keepr.hideRoomsInSpaces', false),
