@@ -255,6 +255,13 @@ Last updated: 2026-11-20.
     in your theme's colours"; generator `gen/wall.py` in the scratchpad):
     Doodles, Flow, Shapes, Waves, Dots, all from the theme's colours, and
     photos softened (blur, dim, tint) with Pattern and Dim sliders.
+  - Reply mockups on the canvas ("Replies: Keepr's own way to show what's
+    answered"; generator `gen/reply.py`) to replace the corner line
+    (`_ReplyCurve`) and the line down the card (`_ReplyRail`) in
+    `vibe_message.dart`: A Tab (grows out of the card's top, flush with its
+    outer edge, a pill inside in the answered person's colour), B Echo (the
+    answered message peeks out behind the card as a smaller card), C Dots (a
+    pill above, three dots into the card).
   - Pane extras from the study (dim follows the pull, the page behind steps
     back): they reach into Flutter's own pane code, so try them with a test
     APK. Questions in Keepr already open as panes (`showVibeDialog`), so the
