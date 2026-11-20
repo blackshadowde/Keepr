@@ -328,6 +328,11 @@ Last updated: 2026-11-20.
     settings `vibeFrameGraph` / `vibeSmoothTouch`, shown in About after
     five taps on the version.
 - Also on `vibe-next` after 3.1.168 (not built yet):
+  - Drop to send (the owner's pick B, with A's words): `VibeDropTray`
+    (`vibe_drop_tray.dart`, `Positioned.fill` in `chat_view.dart`, driven by
+    `controller.dragging`): tray in `primaryContainer` with a dashed edge,
+    Bujji with `BuddyProp.basket` (an icon when Bujji is off), chat name,
+    chips, caption hint; 640 ms in on `Cubic(0.22, 1, 0.36, 1)`, 320 ms out.
   - Photo slideshow (`vibe_media_viewer.dart`): `_Backdrop` (the chat
     thumbnail, blur 40, 50% black) behind the pages; `_Slide.thumbOf` and the
     full picture get width and height `double.infinity`, because MxcImage's
@@ -395,9 +400,6 @@ Last updated: 2026-11-20.
   weekly "Keepr upstream watch" scheduled task (Mondays) writes
   `docs/upstream-watch.md` on `vibe-next`.
 - Waiting for the owner:
-  - Drop to send: options Now, A (card in the middle) and B (Bujji's
-    basket) are on the design canvas; build after the pick. The overlay is
-    in `chat_view.dart` (`if (controller.dragging)`).
   - Pane extras from the study (dim follows the pull, the page behind steps
     back): they reach into Flutter's own pane code, so try them with a test
     APK. Questions in Keepr already open as panes (`showVibeDialog`), so the
