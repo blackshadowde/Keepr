@@ -23,6 +23,13 @@ jobs:
 
       - run: flutter pub get
 
+      # the exact package versions this run used, to keep in pubspec.lock
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pubspec-lock
+          path: pubspec.lock
+          retention-days: 7
+
       - name: Check code
         run: |
           set -o pipefail
