@@ -271,6 +271,14 @@ Last updated: 2026-11-20.
   - Hot word "sorry" writes itself like hi and bye (`_sorryPath`, from the
     Hershey script lettering, with its credit). The owner wants only sorry
     changed; the other scenes stay.
+- On `vibe-next` after 3.1.166 (not built yet):
+  - Music wallpaper (`'music'` in `AppSettings.vibeWallpaper`,
+    `VibeWallpaper.music`, `VibeMusicWallpaper` in `vibe_wallpaper.dart`):
+    the cover from `VibeConnections.playing`, a 64 px copy blurred 18 and
+    covered with the surface colour (40% light, 55% dark), cross-fading per
+    song; Flow while nothing plays. Needs a connection with sharing on (the
+    poller only runs then). The Wallpaper page's Music tile and `_musicNote`
+    (connect buttons, sharing hint, what's playing).
 - Waiting for the owner:
   - Pane extras from the study (dim follows the pull, the page behind steps
     back): they reach into Flutter's own pane code, so try them with a test
