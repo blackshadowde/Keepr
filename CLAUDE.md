@@ -308,6 +308,15 @@ Last updated: 2026-11-20.
     the page back.
   - The owner decided against contacts discovery (3PID) and the simpler
     sign-in for now (2026-11-20).
+  - Calm motion: `Curves.easeOutBack` replaced by `easeOutCubic` in app
+    controls (VibeStagger, panes, jump button, switches, orbit, swipe reply,
+    photo grid, typing pen, cards); Bujji, hot words, welcome, map pins and
+    the launch keep theirs. Scrolling was already `BouncingScrollPhysics`
+    everywhere (`custom_scroll_behaviour.dart`). `vibe_smooth.dart`:
+    `VibeFrameGraph` (PerformanceOverlay over the app, in `vibe_app.dart`)
+    and Smooth touch (`GestureBinding.resamplingEnabled`, offset -20 ms),
+    settings `vibeFrameGraph` / `vibeSmoothTouch`, shown in About after
+    five taps on the version.
 - Waiting for the owner:
   - Pane extras from the study (dim follows the pull, the page behind steps
     back): they reach into Flutter's own pane code, so try them with a test
