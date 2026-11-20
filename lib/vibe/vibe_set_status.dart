@@ -609,18 +609,21 @@ class _VibeSetStatusPageState extends State<VibeSetStatusPage> {
             duration: const Duration(milliseconds: 200),
             height: 32,
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            alignment: Alignment.center,
             decoration: BoxDecoration(
               color: on ? cs.primaryContainer : Colors.transparent,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: on ? cs.primary : cs.outlineVariant),
             ),
-            child: Text(
-              text,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: on ? cs.onPrimaryContainer : cs.onSurface,
+            // as wide as its words, so the chips sit side by side
+            child: Align(
+              widthFactor: 1,
+              child: Text(
+                text,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: on ? cs.onPrimaryContainer : cs.onSurface,
+                ),
               ),
             ),
           ),
