@@ -318,9 +318,11 @@ Last updated: 2026-11-20.
     and Smooth touch (`GestureBinding.resamplingEnabled`, offset -20 ms),
     settings `vibeFrameGraph` / `vibeSmoothTouch`, shown in About after
     five taps on the version.
-- Branch `independent` (from `vibe-next`, 2026-11-20): the road to standing
-  on our own, small and safe first (plan in `docs/INDEPENDENCE.md`). Done
-  there so far: Keepr check prints and keeps `pubspec.lock` (the artifact
+- Branch `independent` (from `vibe-next`, 2026-11-20): for cutting the cord
+  from FluffyChat, small and safe first, then bigger, then risky (the ordered
+  list is in `docs/INDEPENDENCE.md` on that branch). Done there so far: dead
+  FluffyChat files removed (old chat list item, side rail, user bar, shared
+  page, two old call sounds), and on the way: Keepr check prints and keeps `pubspec.lock` (the artifact
   can't be downloaded from here; the log can), `pubspec.lock` pinned to what
   builds resolve, the unused Vibe logo removed, Matrix SDK 17. Next:
   flutter_local_notifications 23, then the Android build tools (Gradle
