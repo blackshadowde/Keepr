@@ -19,16 +19,19 @@ Small and safe
 - [x] Dead FluffyChat code and files: old chat list item, side rail, user bar,
       shared page, two unused call sounds (phone.ogg, call.ogg)
 - [x] Unused small logo that said Vibe
-- [ ] macOS project still named FluffyChat in several linked places (no macOS
-      build to test it; or drop the desktop folders if desktop isn't wanted)
+- [x] Desktop apps named Keepr (macOS app, Linux and Windows programs); the
+      owner keeps the desktop folders. Untested until someone builds desktop.
 
 Bigger
 - [ ] Keepr's own sounds for calls (join, leave, attention, waiting) and the
-      web notification, to listen to and pick first
-- [ ] One icon style everywhere (about 370 outlined and 320 plain icons are
-      FluffyChat's style; Keepr's own screens use rounded): owner picks
-- [ ] Rewrite FluffyChat's helpers in Keepr's own code, one at a time, with no
-      change on screen: `lib/utils/` (56), `lib/widgets/` (37), `lib/config/` (6)
+      web notification: three sets (Glass, Wood, Air) made for the owner to
+      pick, on a private preview page; waiting for the pick
+- [ ] One icon style everywhere: the owner picked rounded (688 icons in 140
+      files). On/off pairs (pinned, muted, saved, shown) keep the outline for
+      "off". Preview shown with the sounds
+- [ ] FluffyChat's helpers (`lib/utils/` 56, `lib/widgets/` 37, `lib/config/` 6):
+      the owner's call is "as we touch it": a helper moves into Keepr's own
+      folder and is rewritten when it needs a change, not just for the label
 - [ ] Screens still in FluffyChat's layout, mockups first: chat search, call
       page, stickers and emotes settings, encryption and access settings,
       backup setup, lock screen, message info, the question dialogs, the photo
