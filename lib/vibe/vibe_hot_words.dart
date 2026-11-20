@@ -20,7 +20,7 @@ enum VibeScene {
   missYou(3.4), // miss you: a paper plane carries a heart across and drops it
   goodMorning(3.4), // good morning: the sun rises, birds fly by
   thanks(3.0), // thank you: a flower blooms around 🙏, petals drift down
-  sorry(3.4), // sorry: a cloud rains a little, then a rainbow
+  sorry(3.4), // sorry: "Sorry" writes itself in one soft handwritten stroke
   wow(2.4), // wow / omg: a comic burst with speed lines behind "WOW!"
   sweetDreams(3.6), // sweet dreams: a soft dusk, a moon on a cloud, hearts and stars float up
   welcome(3.2), // welcome: golden rays, a ribbon with "WELCOME", stars fall
@@ -1035,37 +1035,169 @@ class _ScenePainter extends CustomPainter {
     }
   }
 
+  // Handwritten "Sorry", from the Hershey script lettering (made by Dr.
+  // A. V. Hershey at the U.S. National Bureau of Standards; the font data
+  // format by James Hurt, Cognition, Inc.), smoothed into curves in the same
+  // 520 x 400 box as "hi" and "bye".
+  static final Path _sorryPath = Path()
+      ..moveTo(40.0, 226.4)
+      ..cubicTo(42.0, 225.4, 47.8, 223.4, 51.7, 220.5)
+      ..cubicTo(55.6, 217.6, 58.6, 214.7, 63.5, 208.8)
+      ..cubicTo(68.4, 202.9, 76.2, 192.2, 81.1, 185.3)
+      ..cubicTo(86.0, 178.5, 88.9, 174.5, 92.8, 167.7)
+      ..cubicTo(96.7, 160.9, 101.6, 151.1, 104.5, 144.3)
+      ..cubicTo(107.4, 137.5, 109.4, 132.6, 110.4, 126.7)
+      ..cubicTo(111.4, 120.8, 111.4, 113.0, 110.4, 109.1)
+      ..cubicTo(109.4, 105.2, 106.5, 104.2, 104.5, 103.2)
+      ..cubicTo(102.5, 102.2, 100.7, 102.2, 98.7, 103.2)
+      ..cubicTo(96.8, 104.2, 94.8, 106.2, 92.8, 109.1)
+      ..cubicTo(90.8, 112.0, 87.9, 116.9, 86.9, 120.8)
+      ..cubicTo(85.9, 124.7, 85.9, 128.6, 86.9, 132.5)
+      ..cubicTo(87.9, 136.4, 89.9, 140.4, 92.8, 144.3)
+      ..cubicTo(95.7, 148.2, 99.6, 152.1, 104.5, 156.0)
+      ..cubicTo(109.4, 159.9, 117.2, 163.8, 122.1, 167.7)
+      ..cubicTo(127.0, 171.6, 131.0, 175.6, 133.9, 179.5)
+      ..cubicTo(136.8, 183.4, 138.7, 187.3, 139.7, 191.2)
+      ..cubicTo(140.7, 195.1, 140.7, 199.0, 139.7, 202.9)
+      ..cubicTo(138.7, 206.8, 135.8, 211.8, 133.9, 214.7)
+      ..cubicTo(132.0, 217.6, 131.9, 218.6, 128.0, 220.5)
+      ..cubicTo(124.1, 222.4, 117.2, 225.4, 110.4, 226.4)
+      ..cubicTo(103.6, 227.4, 93.8, 227.4, 86.9, 226.4)
+      ..cubicTo(80.1, 225.4, 74.2, 223.4, 69.3, 220.5)
+      ..cubicTo(64.4, 217.6, 60.5, 212.7, 57.6, 208.8)
+      ..cubicTo(54.7, 204.9, 52.7, 201.0, 51.7, 197.1)
+      ..cubicTo(50.7, 193.2, 51.7, 187.3, 51.7, 185.3)
+      ..moveTo(192.5, 173.6)
+      ..cubicTo(190.6, 173.6, 184.7, 172.6, 180.8, 173.6)
+      ..cubicTo(176.9, 174.6, 172.0, 177.6, 169.1, 179.5)
+      ..cubicTo(166.2, 181.4, 165.2, 182.4, 163.2, 185.3)
+      ..cubicTo(161.2, 188.2, 158.3, 193.2, 157.3, 197.1)
+      ..cubicTo(156.3, 201.0, 156.3, 204.9, 157.3, 208.8)
+      ..cubicTo(158.3, 212.7, 160.3, 217.6, 163.2, 220.5)
+      ..cubicTo(166.1, 223.4, 171.0, 225.4, 174.9, 226.4)
+      ..cubicTo(178.8, 227.4, 182.8, 227.4, 186.7, 226.4)
+      ..cubicTo(190.6, 225.4, 195.5, 222.4, 198.4, 220.5)
+      ..cubicTo(201.3, 218.6, 202.4, 217.6, 204.3, 214.7)
+      ..cubicTo(206.2, 211.8, 209.1, 206.8, 210.1, 202.9)
+      ..cubicTo(211.1, 199.0, 211.1, 195.1, 210.1, 191.2)
+      ..cubicTo(209.1, 187.3, 207.2, 182.4, 204.3, 179.5)
+      ..cubicTo(201.4, 176.6, 195.4, 173.6, 192.5, 173.6)
+      ..cubicTo(189.6, 173.6, 187.7, 176.6, 186.7, 179.5)
+      ..cubicTo(185.7, 182.4, 185.7, 187.3, 186.7, 191.2)
+      ..cubicTo(187.7, 195.1, 189.6, 200.0, 192.5, 202.9)
+      ..cubicTo(195.4, 205.8, 199.4, 207.8, 204.3, 208.8)
+      ..cubicTo(209.2, 209.8, 217.0, 209.8, 221.9, 208.8)
+      ..cubicTo(226.8, 207.8, 230.7, 204.9, 233.6, 202.9)
+      ..cubicTo(236.5, 200.9, 238.5, 198.1, 239.5, 197.1)
+      ..moveTo(239.5, 197.1)
+      ..cubicTo(241.4, 194.2, 248.3, 184.4, 251.2, 179.5)
+      ..cubicTo(254.1, 174.6, 256.1, 167.7, 257.1, 167.7)
+      ..cubicTo(258.1, 167.7, 254.2, 177.5, 257.1, 179.5)
+      ..cubicTo(260.0, 181.5, 270.8, 178.5, 274.7, 179.5)
+      ..cubicTo(278.6, 180.5, 279.5, 182.4, 280.5, 185.3)
+      ..cubicTo(281.5, 188.2, 281.5, 192.2, 280.5, 197.1)
+      ..cubicTo(279.5, 202.0, 275.7, 210.8, 274.7, 214.7)
+      ..cubicTo(273.7, 218.6, 273.7, 218.6, 274.7, 220.5)
+      ..cubicTo(275.7, 222.4, 278.6, 225.4, 280.5, 226.4)
+      ..cubicTo(282.4, 227.4, 283.5, 227.4, 286.4, 226.4)
+      ..cubicTo(289.3, 225.4, 295.2, 222.4, 298.1, 220.5)
+      ..cubicTo(301.0, 218.6, 301.1, 218.6, 304.0, 214.7)
+      ..cubicTo(306.9, 210.8, 313.8, 200.0, 315.7, 197.1)
+      ..moveTo(315.7, 197.1)
+      ..cubicTo(317.7, 194.2, 324.6, 184.4, 327.5, 179.5)
+      ..cubicTo(330.4, 174.6, 332.3, 167.7, 333.3, 167.7)
+      ..cubicTo(334.3, 167.7, 330.4, 177.5, 333.3, 179.5)
+      ..cubicTo(336.2, 181.5, 347.0, 178.5, 350.9, 179.5)
+      ..cubicTo(354.8, 180.5, 355.8, 182.4, 356.8, 185.3)
+      ..cubicTo(357.8, 188.2, 357.8, 192.2, 356.8, 197.1)
+      ..cubicTo(355.8, 202.0, 351.9, 210.8, 350.9, 214.7)
+      ..cubicTo(349.9, 218.6, 349.9, 218.6, 350.9, 220.5)
+      ..cubicTo(351.9, 222.4, 354.8, 225.4, 356.8, 226.4)
+      ..cubicTo(358.8, 227.4, 359.8, 227.4, 362.7, 226.4)
+      ..cubicTo(365.6, 225.4, 371.5, 222.4, 374.4, 220.5)
+      ..cubicTo(377.3, 218.6, 377.4, 218.6, 380.3, 214.7)
+      ..cubicTo(383.2, 210.8, 390.1, 200.0, 392.0, 197.1)
+      ..moveTo(392.0, 197.1)
+      ..cubicTo(393.9, 193.2, 403.7, 171.6, 403.7, 173.6)
+      ..cubicTo(403.7, 175.6, 393.9, 201.0, 392.0, 208.8)
+      ..cubicTo(390.1, 216.6, 391.0, 217.6, 392.0, 220.5)
+      ..cubicTo(393.0, 223.4, 395.0, 225.4, 397.9, 226.4)
+      ..cubicTo(400.8, 227.4, 405.7, 227.4, 409.6, 226.4)
+      ..cubicTo(413.5, 225.4, 417.4, 223.4, 421.3, 220.5)
+      ..cubicTo(425.2, 217.6, 429.2, 213.7, 433.1, 208.8)
+      ..cubicTo(437.0, 203.9, 442.9, 194.1, 444.8, 191.2)
+      ..moveTo(450.7, 173.6)
+      ..cubicTo(444.8, 191.2, 422.4, 259.6, 415.5, 279.2)
+      ..cubicTo(408.6, 298.8, 412.5, 288.0, 409.6, 290.9)
+      ..cubicTo(406.7, 293.8, 400.8, 296.8, 397.9, 296.8)
+      ..cubicTo(395.0, 296.8, 393.0, 293.8, 392.0, 290.9)
+      ..cubicTo(391.0, 288.0, 391.0, 284.1, 392.0, 279.2)
+      ..cubicTo(393.0, 274.3, 394.0, 267.5, 397.9, 261.6)
+      ..cubicTo(401.8, 255.7, 409.6, 248.9, 415.5, 244.0)
+      ..cubicTo(421.4, 239.1, 428.2, 235.2, 433.1, 232.3)
+      ..cubicTo(438.0, 229.4, 439.9, 229.3, 444.8, 226.4)
+      ..cubicTo(449.7, 223.5, 456.5, 219.6, 462.4, 214.7)
+      ..cubicTo(468.3, 209.8, 477.1, 200.0, 480.0, 197.1);
+
+  /// Sorry: the word writes itself in soft blue and lilac with the same glow
+  /// and pen tip as hi and bye, then sinks a little and fades.
   void _sorry(Canvas c, double t, math.Random r, double w, double h) {
-    final center = Offset(w / 2, h * 0.36);
-    final inAt = _smooth(_seg(t, 0, 0.2));
-    final away = _seg(t, 0.5, 0.7);
-    final cp = Offset(center.dx - (1 - inAt) * w * 0.7 + away * w * 0.8, center.dy);
-    final ca = 1 - away;
-    if (ca > 0) {
-      final p = _fill(_a(const Color(0xFF90A4AE), ca));
-      c.drawCircle(cp.translate(-34, 6), 36, p);
-      c.drawCircle(cp.translate(0, -8), 48, p);
-      c.drawCircle(cp.translate(38, 8), 34, p);
-      c.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(cp.dx - 70, cp.dy, 140, 40), const Radius.circular(20)), p);
+    final scale = math.min(w * 0.78, 460.0) / 520;
+    final sink = 18 * _smooth(_seg(t, 0.72, 1));
+    final origin = Offset(w / 2 - 260 * scale, h * 0.42 - 200 * scale + sink);
+    final m = Matrix4.diagonal3Values(scale, scale, 1)
+      ..setTranslationRaw(origin.dx, origin.dy, 0);
+    final path = _sorryPath.transform(m.storage);
+    final metrics = path.computeMetrics().toList();
+    final total = metrics.fold<double>(0, (sum, x) => sum + x.length);
+    final write = Curves.easeInOutCubic.transform(_seg(t, 0.06, 0.62));
+    final fade = 1 - _seg(t, 0.78, 1);
+    final bounds = path.getBounds();
+    const colors = [Color(0xFF8FB3D9), Color(0xFF8C96F6), Color(0xFFB39DDB)];
+    // a soft colour bloom behind the word
+    final bloom = _fadeInOut(t, 0.2, 0.75);
+    if (bg && bloom > 0) {
+      final cc = bounds.center;
+      c.drawCircle(cc, bounds.width * 0.9, Paint()
+        ..shader = RadialGradient(colors: [_a(colors[1], 0.22 * bloom), Colors.transparent])
+            .createShader(Rect.fromCircle(center: cc, radius: bounds.width * 0.9)));
     }
-    for (var i = 0; i < 22; i++) {
-      final dx = (r.nextDouble() - 0.5) * 120;
-      final st = 0.15 + r.nextDouble() * 0.35;
-      final u = _seg(t, st, st + 0.18);
-      if (u <= 0 || u >= 1) continue;
-      final x = cp.dx + dx, y = cp.dy + 40 + u * h * 0.35;
-      c.drawLine(Offset(x, y), Offset(x - 3, y + 14), _stroke(_a(const Color(0xFF64B5F6), 0.8 * (1 - u) * ca), 3));
+    if (write <= 0 || fade <= 0) return;
+    // what's written so far, letter after letter
+    final part = Path();
+    var left = total * write;
+    Offset? tip;
+    for (final x in metrics) {
+      if (left <= 0) break;
+      final take = math.min(left, x.length);
+      part.addPath(x.extractPath(0, take), Offset.zero);
+      if (take < x.length) tip = x.getTangentForOffset(take)?.position;
+      left -= take;
     }
-    final bow = _smooth(_seg(t, 0.55, 0.85));
-    final ba = 1 - _seg(t, 0.85, 1);
-    if (bow > 0) {
-      const colors = [Color(0xFFFF5252), Color(0xFFFFAB40), Color(0xFFFFEB3B), Color(0xFF69F0AE), Color(0xFF40C4FF), Color(0xFF7C4DFF)];
-      final base = Offset(w / 2, h * 0.55);
-      for (var k = 0; k < colors.length; k++) {
-        final rr = 150.0 - k * 12;
-        c.drawArc(Rect.fromCircle(center: base, radius: rr), math.pi, math.pi * bow, false, _stroke(_a(colors[k], 0.85 * ba), 12));
-      }
-      _glyph(c, '🙏', 48, base.translate(0, -30), alpha: ba, scale: _backOut(_seg(t, 0.62, 0.8)));
+    final shader = LinearGradient(colors: colors).createShader(bounds.inflate(20));
+    final width = 11 * scale;
+    // glow, then the ink
+    c.drawPath(part, Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..strokeWidth = width * 2.6
+      ..shader = shader
+      ..color = Colors.white.withValues(alpha: 0.35 * fade)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10));
+    c.drawPath(part, Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..strokeWidth = width
+      ..shader = shader
+      ..color = Colors.white.withValues(alpha: fade));
+    // the pen tip while writing
+    if (write < 1 && tip != null) {
+      c.drawCircle(tip, width * 1.6, Paint()
+        ..color = Colors.white.withValues(alpha: 0.6 * fade)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6));
+      c.drawCircle(tip, width * 0.55, _fill(Colors.white.withValues(alpha: fade)));
     }
   }
 
