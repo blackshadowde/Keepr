@@ -10,9 +10,13 @@
 - Keepr's own chat wallpapers: Doodles, Flow, Shapes, Waves and Dots, all painted from your theme's colours, so they match every theme, light and dark
 - A Pattern slider sets how strongly the drawings show
 - Your own photo is softened to fit: a little blur, tinted with your theme, with a Dim slider for how far it fades back
-- Music: the cover of the song you're playing (from your Last.fm or ListenBrainz connection) fills the chat's background, soft and calm, and changes with the song
+- Music: the cover of the song you're playing (from your Last.fm or ListenBrainz connection) fills the chat's background, soft and calm, and changes with the song. Streamed songs get their cover too, and with nothing playing your photo shows (or the plain background)
 - The wallpaper now reaches the bottom edge, behind the navigation bar, and stays still when the keyboard opens
 - All in Customisation > Chat wallpaper
+
+**Sounds**
+- Sound packs: Glass, Wood, Air and Classic, in Notifications > Sounds, each with a play button. A pack covers calls, notifications and two new message sounds
+- A short sound as your message goes, and one when a message comes into the chat you have open (not in muted chats). Each has its own switch, and they play along with your music instead of pausing it
 
 **Finding people**
 - Type just a name, like rahul, to find someone on Keepr's server; a full @name:server works as before
@@ -38,6 +42,8 @@
 - For checking smoothness: tap the version in About five times for a frame timing graph and Smooth touch
 
 **And more**
+- Block screenshots, in Security & sign-in (Android): screenshots and screen recordings of Keepr come out blank, and so does its preview in recent apps
+- Photos no longer show twice when one had to be sent again after a busy server or a dropped connection
 - "Sorry" writes itself across the screen in one soft, glowing handwritten stroke
 - Nothing shows behind Bujji's row above the text box any more
 - The iPhone share sheet says Keepr

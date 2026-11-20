@@ -275,20 +275,29 @@ Last updated: 2026-11-20.
 - On `vibe-next` after 3.1.166 (in 3.1.168):
   - Music wallpaper (`'music'` in `AppSettings.vibeWallpaper`,
     `VibeWallpaper.music`, `VibeMusicWallpaper` in `vibe_wallpaper.dart`):
-    the cover from `VibeConnections.playing`, a 64 px copy blurred 18 and
-    covered with the surface colour (40% light, 55% dark), cross-fading per
-    song; Flow while nothing plays. Needs a connection with sharing on (the
-    poller only runs then). The Wallpaper page's Music tile and `_musicNote`
-    (connect buttons, sharing hint, what's playing).
+    the cover from `VibeConnections.playing`, baked once by `_SoftCover`
+    (96 px decode, blurred into a 72x160 picture, drawn with `RawImage`)
+    under the surface colour (40% light, 55% dark), cross-fading per song;
+    with nothing playing, `fallback` (your photo, or nothing). Needs a
+    connection with sharing on (the poller only runs then). Covers missing
+    from the service (often for streamed songs) come from Last.fm's
+    track.getinfo album image, then the ListenBrainz metadata lookup plus the
+    Cover Art Archive (`_archiveCover`, checked with `_ifThere`); Last.fm's
+    grey star counts as none (`_image`). `poke` needs two quiet checks in a
+    row (`_quiet`) before the song is gone. The Wallpaper page's Music tile
+    and `_musicNote` (connect buttons, sharing hint, what's playing).
   - Chat list room for Bujji: `inputRowTopNotifier` (chat.dart, set in
     `updateInputBarHeight`) is the part of the bar above the text box; the
     list's outer `AnimatedPadding` ends at the text box and the newest item
     (i == 0 in `chat_event_list.dart`) carries a spacer of that height, so
     messages pass behind Bujji's row. Bujji's row is in a `RepaintBoundary`.
   - Chat wallpaper: screen-tall `Positioned` (behind the navigation bar,
-    still when the keyboard opens) in a `SnapshotWidget` (`_wallSnapshot`),
-    so it's one picture per frame. Wallpapers must not hold their own
-    `RepaintBoundary` (the snapshot wouldn't see changes).
+    still when the keyboard opens). Only the painted styles sit in a
+    `SnapshotWidget` (`_wallSnapshot`), one picture per frame; they must not
+    hold their own `RepaintBoundary`. Music and photo are in a plain
+    `RepaintBoundary`: a snapshot doesn't see changes under a fade (a
+    `FadeTransition` is its own layer), which is why the music cover only
+    showed after a restart.
   - Voice recorder: `_LiveWave` / `_WavePainter` in `recording_input_row.dart`
     (ticker, bars glide); the view model rebuilds only when the second
     changes. `vibePageSpring` stiffness 380 (was 460). MainActivity also sets
@@ -318,6 +327,30 @@ Last updated: 2026-11-20.
     and Smooth touch (`GestureBinding.resamplingEnabled`, offset -20 ms),
     settings `vibeFrameGraph` / `vibeSmoothTouch`, shown in About after
     five taps on the version.
+- Also on `vibe-next` after 3.1.168 (not built yet):
+  - Sound packs (`lib/vibe/vibe_sounds.dart`, `VibeSoundPack`): Glass, Wood,
+    Air, Classic in `assets/sounds/<pack>/` (join, leave, wait, attention,
+    notification, sent, received; made with `scratchpad` synth scripts, the
+    Classic call and notification files are the earlier ones). Setting
+    `vibeSoundPack` ('glass'), `vibeSentSound`, `vibeReceivedSound`. Calls
+    use `VibeSoundPack.asset` (`call_view_model.dart`), web notifications
+    too (`local_notifications_extension.dart`). Message sounds come from
+    `ChatController._insert` via `VibeSoundPack.onNewEvent` (own: status
+    sending; others: not muted; app in front; 0.8 s apart); one just_audio
+    player without audio focus, notification-event attributes (direct
+    `audio_session` dependency). Not on iPhone (it would stop other apps'
+    music). Android notification sounds `keepr_glass/wood/air` in res/raw;
+    picking a pack moves a Keepr notification sound to it. The Sounds group
+    is in `vibe_notifications_page.dart`.
+  - Photos twice: `send_file_dialog.dart` (rate-limit retry) and
+    `vibe_pending_files.dart` (dropped-connection retry) called
+    `sendFileEvent` again with a new transaction id, so the failed copy
+    stayed beside the new one (and stacks showed both). Both reuse one
+    `txid` now; `VibePhotoStack.fits` leaves out failed photos.
+  - Block screenshots (`vibeBlockScreenshots`, Security & sign-in, Android):
+    `MainActivity.blockScreenshots` (FLAG_SECURE), read from
+    FlutterSharedPreferences in `onPostCreate` and set live through
+    `vibe/system` `blockScreenshots`.
 - Branch `independent` (from `vibe-next`, 2026-11-20): for cutting the cord
   from FluffyChat, small and safe first, then bigger, then risky (the ordered
   list is in `docs/INDEPENDENCE.md` on that branch). Done there so far: dead
