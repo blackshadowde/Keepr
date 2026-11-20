@@ -181,10 +181,14 @@ class SendFileDialogState extends State<SendFileDialog> {
         }
 
         final label = _labelTextController.text.trim();
+        // the same id for the second try, so it replaces the photo that
+        // failed instead of showing it twice
+        final txid = widget.room.client.generateUniqueTransactionId();
 
         try {
           await widget.room.sendFileEvent(
             file,
+            txid: txid,
             thumbnail: thumbnail,
             shrinkImageMaxDimension: compress
                 ? VibeLowData.sendMaxDimension
@@ -209,6 +213,7 @@ class SendFileDialogState extends State<SendFileDialog> {
 
           await widget.room.sendFileEvent(
             file,
+            txid: txid,
             thumbnail: thumbnail,
             shrinkImageMaxDimension: compress
                 ? VibeLowData.sendMaxDimension
@@ -217,6 +222,8 @@ class SendFileDialogState extends State<SendFileDialog> {
               if (label.isNotEmpty) 'body': label,
               if (viewOnce) VibeViewOnce.key: true,
             },
+            threadRootEventId: widget.threadRootEventId,
+            threadLastEventId: widget.threadLastEventId,
           );
         }
       }

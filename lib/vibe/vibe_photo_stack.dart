@@ -40,6 +40,8 @@ class VibePhotoStack extends StatefulWidget {
       e.type == EventTypes.Message &&
       e.messageType == MessageTypes.Image &&
       !e.redacted &&
+      // a photo that couldn't be sent stays on its own, with Send again
+      !e.status.isError &&
       e.inReplyToEventId(includingFallback: false) == null;
 
   @override

@@ -86,8 +86,12 @@ abstract class VibePendingFiles {
           );
           continue;
         }
+        // the same id for the second try, so it replaces the file that
+        // failed instead of showing it twice
+        final txid = room.client.generateUniqueTransactionId();
         Future<void> upload() => room.sendFileEvent(
           file,
+          txid: txid,
           inReplyTo: inReplyTo,
           thumbnail: thumbnail,
           shrinkImageMaxDimension: VibeLowData.sendMaxDimension,
