@@ -4,6 +4,8 @@ Vibe's changes are listed on each release:
 https://github.com/blackshadowde/Vibe-flutter/releases
 
 ## 2026-11-20
+- Photo slideshow: the photo itself, blurred and dimmed, fills the screen behind it, and short photos sit in the middle instead of at the top ([226a31609](https://github.com/blackshadowde/keepr/commit/226a31609dcf6856e7addbfed0882820ce342d73))
+- Bujji hops to a message to dance less often while music plays (when music starts, then about every 90 seconds) ([226a31609](https://github.com/blackshadowde/keepr/commit/226a31609dcf6856e7addbfed0882820ce342d73))
 
 - Status, local time and what you're listening to are now end-to-end encrypted: they go as encrypted device messages to the people in your direct chats (each as your status privacy allows) and to your other devices, so the servers can no longer read them, nothing piles up in the chats and no phone is woken for them. Your group tag goes the same way to the people in your encrypted groups. The readable copies older versions kept (status in each direct chat, tag in your member event in each group) are cleared; people still on an older version are still shown from those copies. A phone that just signed in asks for the statuses it doesn't have, and opening a group asks for missing tags. Older Keepr versions no longer see your status or tag ([b0d1de5bd](https://github.com/blackshadowde/keepr/commit/b0d1de5bd))
 - Customisation's text size preview looks like the chat today: their message in their own colour with the picture in the card's curve, the reply showing your message as a small card above it, and yours in the theme's colour with the time and Delivered inside; the old reply line is gone ([e592805c3](https://github.com/blackshadowde/keepr/commit/e592805c3))
