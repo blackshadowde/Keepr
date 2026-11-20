@@ -279,6 +279,21 @@ Last updated: 2026-11-20.
     song; Flow while nothing plays. Needs a connection with sharing on (the
     poller only runs then). The Wallpaper page's Music tile and `_musicNote`
     (connect buttons, sharing hint, what's playing).
+  - Chat list room for Bujji: `inputRowTopNotifier` (chat.dart, set in
+    `updateInputBarHeight`) is the part of the bar above the text box; the
+    list's outer `AnimatedPadding` ends at the text box and the newest item
+    (i == 0 in `chat_event_list.dart`) carries a spacer of that height, so
+    messages pass behind Bujji's row. Bujji's row is in a `RepaintBoundary`.
+  - Chat wallpaper: screen-tall `Positioned` (behind the navigation bar,
+    still when the keyboard opens) in a `SnapshotWidget` (`_wallSnapshot`),
+    so it's one picture per frame. Wallpapers must not hold their own
+    `RepaintBoundary` (the snapshot wouldn't see changes).
+  - Voice recorder: `_LiveWave` / `_WavePainter` in `recording_input_row.dart`
+    (ticker, bars glide); the view model rebuilds only when the second
+    changes. `vibePageSpring` stiffness 380 (was 460). MainActivity also sets
+    `preferredRefreshRate`.
+  - Not done (on purpose): edge-to-edge for Android 10 to 14 (main() also
+    runs headless for pushes, where SystemChrome calls can fail).
 - Waiting for the owner:
   - Pane extras from the study (dim follows the pull, the page behind steps
     back): they reach into Flutter's own pane code, so try them with a test
