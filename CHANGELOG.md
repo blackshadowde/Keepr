@@ -4,6 +4,7 @@ Vibe's changes are listed on each release:
 https://github.com/blackshadowde/Vibe-flutter/releases
 
 ## 2026-11-20
+- Dropping photos into a chat no longer also opens the chat picker on phones that hand dropped files over as a share ([6d3b3dca8](https://github.com/blackshadowde/keepr/commit/6d3b3dca8cb6540d2e73fc0ccf54861a9f279537))
 - Drop to send: dragging photos or files over a chat raises a tray from the text box where Bujji holds up a basket, with the chat's name, what it takes and that a caption can be added; it rises and fades in calmly ([838b823f6](https://github.com/blackshadowde/keepr/commit/838b823f6abeace4804c413dec37d0dc4b51bece))
 - Photo slideshow: the photo itself, blurred and dimmed, fills the screen behind it, and short photos sit in the middle instead of at the top ([226a31609](https://github.com/blackshadowde/keepr/commit/226a31609dcf6856e7addbfed0882820ce342d73))
 - Bujji hops to a message to dance less often while music plays (when music starts, then about every 90 seconds) ([226a31609](https://github.com/blackshadowde/keepr/commit/226a31609dcf6856e7addbfed0882820ce342d73))
