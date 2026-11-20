@@ -294,6 +294,20 @@ Last updated: 2026-11-20.
     `preferredRefreshRate`.
   - Not done (on purpose): edge-to-edge for Android 10 to 14 (main() also
     runs headless for pushes, where SystemChrome calls can fail).
+  - Short handles (`lib/vibe/vibe_handle.dart`): `normalizeHandle` (plain
+    name -> @name:`AppConfig.defaultServerName`, which is `unredacted.org`;
+    the sign-in address stays `AppSettings.defaultHomeserver`),
+    `keeprShortLinkId`, `formatDisplayHandle` (strips :unredacted.org).
+    Used in Add contact, New chat search, the invite box, `UrlLauncher`, and
+    where IDs show. `AppConfig.shareLink` gives
+    `get-keepr.github.io/u/name` for people on that server. The website's
+    `404.html` turns /u/name into `chat.html#@name:unredacted.org`;
+    `chat.html` opens Keepr with `scheme=keepr` (it said vibe before, so
+    Open in Keepr always went to the download).
+  - Sliders are wrapped in `VibeNoBackSwipe` so dragging them doesn't swipe
+    the page back.
+  - The owner decided against contacts discovery (3PID) and the simpler
+    sign-in for now (2026-11-20).
 - Waiting for the owner:
   - Pane extras from the study (dim follows the pull, the page behind steps
     back): they reach into Flutter's own pane code, so try them with a test
