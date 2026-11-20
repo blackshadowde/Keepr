@@ -76,6 +76,7 @@ import 'package:vibe/utils/account_bundles.dart';
 import 'package:vibe/utils/localized_exception_extension.dart';
 import 'package:vibe/vibe/buddy/bujji_life.dart';
 import 'package:vibe/vibe/vibe_sounds.dart';
+import 'package:vibe/vibe/vibe_member_tags.dart';
 import 'send_file_dialog.dart';
 import 'send_location_dialog.dart';
 
@@ -594,6 +595,8 @@ class ChatController extends State<ChatPageWithRoom>
     VibeTypingStyle.shareIn(widget.room);
     // this device's post-quantum key, for direct chats
     VibePq.publishIn(widget.room);
+    // groups: ask for the group tags this phone hasn't got yet
+    unawaited(VibeMemberTags.askIn(widget.room));
     // they have a typing indicator and you don't: offer yours
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) VibeTypingStyle.offer(context, widget.room);

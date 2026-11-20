@@ -96,6 +96,8 @@ class _VibeActivityHostState extends State<VibeActivityHost> {
     VibePeek.instance.attach(c);
     // Keep my time zone + status present in every direct chat.
     VibeStatus.watch(c);
+    // group tags that come encrypted, and asks for mine
+    VibeMemberTags.watch(c);
     // my group tag in groups joined since it was picked
     Future.delayed(const Duration(seconds: 30), () {
       if (c.isLogged()) VibeMemberTags.sync(c);

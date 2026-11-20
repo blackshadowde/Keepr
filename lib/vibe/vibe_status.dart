@@ -7,14 +7,18 @@ import 'dart:convert';
 import 'package:vibe/config/setting_keys.dart';
 import 'package:vibe/vibe/vibe_haptics.dart';
 import 'package:vibe/vibe/vibe_set_status.dart';
+import 'package:vibe/vibe/vibe_quiet_mail.dart';
 import 'package:flutter/material.dart';
 import 'package:matrix/matrix.dart';
 
 /// Custom status ("⚓ On watch · until 4:00 PM") + the person's time zone
 /// ("2:14 AM for Ashish").
 ///
-/// Stored as a `chat.keepr.status` state event (state key = your user id) in
-/// each of your direct chats, so only people you chat with can see it.
+/// Sent encrypted to the devices of the people you have direct chats with
+/// (and to your own other devices) through [VibeQuietMail], so the servers
+/// can't read it. Older versions kept it readable as a `chat.keepr.status`
+/// state event in each direct chat; that copy is still read for people on
+/// those versions, and yours is cleared.
 class VibeStatus {
   static const type = 'chat.keepr.status';
 
@@ -90,9 +94,9 @@ class VibeStatus {
   /// Status of [userId] as seen in [room], or null.
   static VibeStatus? of(Room room, String? userId) {
     if (userId == null) return null;
-    final c = (room.getState(type, userId) ??
-            room.getState(legacyType, userId))
-        ?.content;
+    final c = VibeQuietMail.get(_kind, userId) ??
+        (room.getState(type, userId) ?? room.getState(legacyType, userId))
+            ?.content;
     if (c == null) return null;
     return VibeStatus.fromContent(c);
   }
@@ -111,10 +115,15 @@ class VibeStatus {
   /// devices), or null.
   static VibeStatus? _newestInChats(Client client) {
     VibeStatus? best;
+    final sent = VibeQuietMail.get(_kind, client.userID!);
+    if (sent != null && sent['hidden'] != true) {
+      best = VibeStatus.fromContent(sent);
+    }
     for (final r in client.rooms) {
       if (!r.isDirectChat || r.membership != Membership.join) continue;
       final c = r.getState(type, client.userID!)?.content;
-      if (c == null || c['hidden'] == true) continue;
+      // empty: a copy cleared since statuses go encrypted
+      if (c == null || c.isEmpty || c['hidden'] == true) continue;
       final s = VibeStatus.fromContent(c);
       if (best == null || s.updatedMs > best.updatedMs) best = s;
     }
@@ -166,26 +175,120 @@ class VibeStatus {
     );
   }
 
-  /// Writes my status (or the hidden placeholder) into one chat.
-  static Future<bool> _write(
+  static const _kind = 'status';
+
+  /// Sends my status to the people in my direct chats (each as my privacy
+  /// setting allows) and to my other devices. Only who hasn't had this one
+  /// yet gets it, unless [force]. Returns how many people it went to.
+  static Future<int> _send(
     Client client,
-    Room r,
-    Map<String, Object?> content,
-  ) async {
+    Map<String, Object?> content, {
+    bool force = false,
+  }) async {
+    final me = client.userID!;
+    final shown = <String>{me}, hidden = <String>{};
+    for (final r in client.rooms) {
+      if (!r.isDirectChat || r.membership != Membership.join) continue;
+      final other = r.directChatMatrixID;
+      if (other == null || other == me) continue;
+      (visibleIn(r) ? shown : hidden).add(other);
+    }
+    final sent = Map<String, Object?>.from(
+      VibeQuietMail.get('sent', _kind) ?? const {},
+    );
+    final sig = jsonEncode(content);
+    final toShow = [for (final u in shown) if (force || sent[u] != sig) u];
+    final toHide = [
+      for (final u in hidden) if (force || sent[u] != 'hidden') u,
+    ];
+    var people = 0;
     try {
-      await client.setRoomStateWithKey(
-        r.id,
-        type,
-        client.userID!,
-        visibleIn(r) ? content : _hiddenContent,
-      );
-      _failed.remove(r.id);
-      return true;
+      if (toShow.isNotEmpty) {
+        await VibeQuietMail.send(client, toShow, type, content);
+        for (final u in toShow) {
+          sent[u] = sig;
+        }
+        people += toShow.where((u) => u != me).length;
+      }
+      if (toHide.isNotEmpty) {
+        await VibeQuietMail.send(client, toHide, type, _hiddenContent);
+        for (final u in toHide) {
+          sent[u] = 'hidden';
+        }
+        people += toHide.length;
+      }
+      if (toShow.isNotEmpty || toHide.isNotEmpty) {
+        await VibeQuietMail.put('sent', _kind, sent);
+      }
     } catch (e) {
-      // Usually: not allowed to change this chat's settings.
-      _failed.add(r.id);
-      Logs().d('Keepr status: could not set in ${r.id}', e);
-      return false;
+      Logs().d('Keepr status: could not send', e);
+    }
+    unawaited(_clearOld(client));
+    return people;
+  }
+
+  /// Empties the readable copy older versions kept in each direct chat.
+  static Future<void> _clearOld(Client client) async {
+    final me = client.userID!;
+    final jobs = <Future<bool> Function()>[];
+    for (final r in client.rooms.toList()) {
+      if (!r.isDirectChat || r.membership != Membership.join) continue;
+      if (_failed.contains(r.id)) continue;
+      for (final t in const [type, legacyType]) {
+        final had = r.getState(t, me)?.content;
+        if (had == null || had.isEmpty) continue;
+        jobs.add(() async {
+          try {
+            await client.setRoomStateWithKey(r.id, t, me, {});
+            return true;
+          } catch (e) {
+            // Usually: not allowed to change this chat's settings.
+            _failed.add(r.id);
+            Logs().d('Keepr status: could not clear in ${r.id}', e);
+            return false;
+          }
+        });
+      }
+    }
+    await _inBatches(jobs);
+  }
+
+  /// A status that came encrypted: from someone I have a direct chat with,
+  /// or from my own other device.
+  static Future<void> _got(Client client, ToDeviceEvent e) async {
+    final from = e.sender;
+    if (from != client.userID && client.getDirectChatFromUserId(from) == null) {
+      return;
+    }
+    final c = Map<String, Object?>.from(e.content);
+    final had = VibeQuietMail.get(_kind, from);
+    // an older one arriving late doesn't replace a newer one
+    if (had != null && had['hidden'] != true && c['hidden'] != true) {
+      if (VibeStatus.fromContent(c).updatedMs <
+          VibeStatus.fromContent(had).updatedMs) {
+        return;
+      }
+    }
+    await VibeQuietMail.put(_kind, from, c);
+  }
+
+  /// Someone (or my new device) asks for my status.
+  static Future<void> _answer(Client client, ToDeviceEvent e) async {
+    if (e.content['what'] != _kind) return;
+    final from = e.sender, me = client.userID!;
+    final current = _withMyZone(mine(client) ?? const VibeStatus()).toContent();
+    Map<String, Object?> content = current;
+    if (from != me) {
+      final id = client.getDirectChatFromUserId(from);
+      final r = id == null ? null : client.getRoomById(id);
+      if (r == null) return;
+      if (!visibleIn(r)) content = _hiddenContent;
+    }
+    if (!VibeQuietMail.mayAnswer(_kind, from)) return;
+    try {
+      await VibeQuietMail.send(client, [from], type, content);
+    } catch (e) {
+      Logs().d('Keepr status: could not answer', e);
     }
   }
 
@@ -218,13 +321,11 @@ class VibeStatus {
     await AppSettings.vibeMyStatus.setItem(jsonEncode(stamped.toContent()));
     final content = _withMyZone(stamped).toContent();
     _failed.clear();
-    final rooms = client.rooms
-        .where((r) => r.isDirectChat && r.membership == Membership.join)
-        .toList();
-    return _inBatches([for (final r in rooms) () => _write(client, r, content)]);
+    return _send(client, content);
   }
 
   static StreamSubscription? _watchSub;
+  static StreamSubscription? _mailSub, _askSub;
   static Timer? _watchTimer;
   static Timer? _debounce;
   static Client? _watched;
@@ -245,7 +346,14 @@ class VibeStatus {
     if (identical(_watched, client)) return;
     _watchSub?.cancel();
     _watchTimer?.cancel();
+    _mailSub?.cancel();
+    _askSub?.cancel();
     _watched = client;
+    _mailSub = VibeQuietMail.on(client, type).listen((e) => _got(client, e));
+    _askSub = VibeQuietMail.on(
+      client,
+      VibeQuietMail.ask,
+    ).listen((e) => _answer(client, e));
     _knownDms = {};
     _knownZone = DateTime.now().timeZoneOffset.inMinutes;
     _schedule(client, const Duration(seconds: 20));
@@ -277,6 +385,14 @@ class VibeStatus {
         await refresh(client);
         _knownDms = _dms(client);
         _knownZone = DateTime.now().timeZoneOffset.inMinutes;
+        // a phone that just signed in asks for the statuses it hasn't got
+        final me = client.userID!;
+        await VibeQuietMail.askMissing(client, _kind, [
+          for (final r in client.rooms)
+            if (r.isDirectChat && r.membership == Membership.join)
+              ?r.directChatMatrixID,
+          if (_saved() == null) me,
+        ]);
       } catch (e) {
         Logs().d('Keepr status refresh failed', e);
       } finally {
@@ -307,26 +423,12 @@ class VibeStatus {
       );
     }
     final current = mine(client) ?? const VibeStatus();
-    final zone = DateTime.now().timeZoneOffset.inMinutes;
     final content = _withMyZone(current).toContent();
     if (DateTime.now().difference(_failedSince).inHours >= 6) {
       _failed.clear();
       _failedSince = DateTime.now();
     }
-    final jobs = <Future<bool> Function()>[];
-    for (final r in client.rooms.toList()) {
-      if (!r.isDirectChat || r.membership != Membership.join) continue;
-      if (_failed.contains(r.id)) continue;
-      final had = r.getState(type, client.userID!)?.content;
-      if (!visibleIn(r)) {
-        if (had != null && had['hidden'] == true) continue;
-      } else if (had != null && had['hidden'] != true) {
-        final s = VibeStatus.fromContent(had);
-        if (s.tzOffsetMin == zone && s.sameAs(current)) continue;
-      }
-      jobs.add(() => _write(client, r, content));
-    }
-    await _inBatches(jobs);
+    await _send(client, content);
   }
 }
 
@@ -391,12 +493,19 @@ class _VibeStatusLineState extends State<VibeStatusLine> {
         .listen((_) {
           if (mounted) setState(() {});
         });
+    // a status sent encrypted arrives outside the chat's own updates
+    VibeQuietMail.changes.addListener(_redraw);
+  }
+
+  void _redraw() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
     _tick?.cancel();
     _sub?.cancel();
+    VibeQuietMail.changes.removeListener(_redraw);
     super.dispose();
   }
 
@@ -556,12 +665,19 @@ class _VibeStatusBubbleState extends State<VibeStatusBubble> {
         .listen((_) {
           if (mounted) setState(() {});
         });
+    // a status sent encrypted arrives outside the chat's own updates
+    VibeQuietMail.changes.addListener(_redraw);
+  }
+
+  void _redraw() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
     _tick?.cancel();
     _sub?.cancel();
+    VibeQuietMail.changes.removeListener(_redraw);
     super.dispose();
   }
 

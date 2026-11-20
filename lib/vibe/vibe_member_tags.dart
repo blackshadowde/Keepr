@@ -1,17 +1,24 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:matrix/matrix.dart';
 import 'package:vibe/config/setting_keys.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
 import 'package:vibe/widgets/avatar.dart';
+import 'package:vibe/vibe/vibe_quiet_mail.dart';
 
 /// Discord-style tags next to names in groups: the person's role in this
 /// group (Owner, Admin, Mod) and the group tag they picked (a short name of
 /// one of their groups, with its picture).
 ///
-/// The group tag travels in your own member event (`chat.keepr.tag`) in each
-/// group you're in, which every member is allowed to change.
+/// The group tag goes encrypted to the devices of the people in your
+/// encrypted groups (and your own other devices) through [VibeQuietMail], so
+/// the servers can't see which other group you're in. Older versions put it
+/// readable in your member event (`chat.keepr.tag`) in each group: that is
+/// still read for people on those versions, and yours is taken out.
 abstract class VibeMemberTags {
   static const key = 'chat.keepr.tag';
 
@@ -36,14 +43,61 @@ abstract class VibeMemberTags {
     };
   }
 
+  static const _kind = 'tag';
+
   static Map<String, Object?>? tagOf(Room room, String userId) {
-    final member = room.getState(EventTypes.RoomMember, userId)?.content;
-    // also the old key (set before the rename, or by the old version)
-    final t = member?[key] ?? member?['chat.vibe.tag'];
+    final Object? t;
+    if (VibeQuietMail.has(_kind, userId)) {
+      t = VibeQuietMail.get(_kind, userId)?['tag'];
+    } else {
+      final member = room.getState(EventTypes.RoomMember, userId)?.content;
+      // also the old key (set before the rename, or by the old version)
+      t = member?[key] ?? member?['chat.vibe.tag'];
+    }
     if (t is! Map || t['tag'] is! String || (t['tag'] as String).isEmpty) {
       return null;
     }
     return Map<String, Object?>.from(t);
+  }
+
+  static const _type = 'chat.keepr.tag';
+  static StreamSubscription? _gotSub, _askSub;
+
+  /// Takes tags that come encrypted, and answers when someone asks for mine.
+  static void watch(Client client) {
+    _gotSub?.cancel();
+    _askSub?.cancel();
+    _gotSub = VibeQuietMail.on(client, _type).listen((e) async {
+      final from = e.sender;
+      if (from != client.userID && !_sharesGroup(client, from)) return;
+      await VibeQuietMail.put(_kind, from, {'tag': e.content['tag']});
+    });
+    _askSub = VibeQuietMail.on(client, VibeQuietMail.ask).listen((e) async {
+      if (e.content['what'] != _kind) return;
+      final from = e.sender;
+      if (from != client.userID && !_sharesGroup(client, from)) return;
+      if (!VibeQuietMail.mayAnswer(_kind, from)) return;
+      try {
+        await VibeQuietMail.send(client, [from], _type, {
+          'tag': _content(client),
+        });
+      } catch (e) {
+        Logs().d('Keepr tag: could not answer', e);
+      }
+    });
+  }
+
+  static bool _sharesGroup(Client client, String userId) => _groups(client)
+      .any((r) => r.getParticipants([Membership.join]).any((u) => u.id == userId));
+
+  /// Opening a group: ask the people whose tag this phone hasn't got yet.
+  static Future<void> askIn(Room room) async {
+    if (room.isDirectChat || !room.encrypted) return;
+    final me = room.client.userID;
+    await VibeQuietMail.askMissing(room.client, _kind, [
+      for (final u in room.getParticipants([Membership.join]).take(50))
+        if (u.id != me) u.id,
+    ]);
   }
 
   static List<Room> _groups(Client client) => client.rooms
@@ -64,31 +118,55 @@ abstract class VibeMemberTags {
     };
   }
 
-  static bool _same(Object? a, Map<String, Object?>? b) {
-    if (a is! Map) return b == null;
-    if (b == null) return false;
-    return a['tag'] == b['tag'] &&
-        a['room'] == b['room'] &&
-        a['avatar'] == b['avatar'];
-  }
+  /// The people in my encrypted groups (most 200 a group), not me.
+  static Set<String> _people(Client client) => {
+    for (final r in _groups(client))
+      if (r.encrypted)
+        ...r
+            .getParticipants([Membership.join])
+            .take(200)
+            .map((u) => u.id)
+            .where((id) => id != client.userID),
+  };
 
-  /// Puts my picked tag (or removes it) in every group I'm in. Groups that
-  /// already have it are skipped, so this is cheap to run again.
+  /// Sends my picked tag (or that I have none) to the people in my
+  /// encrypted groups and my other devices, and takes the readable copy
+  /// out of my member event in every group. Who already has it is skipped,
+  /// so this is cheap to run again.
   static Future<void> sync(Client client) async {
     final me = client.userID;
     if (me == null) return;
     final tag = _content(client);
+    final content = <String, Object?>{'tag': tag};
+    final sig = jsonEncode(content);
+    final sent = Map<String, Object?>.from(
+      VibeQuietMail.get('sent', _kind) ?? const {},
+    );
+    final to = [
+      for (final u in {..._people(client), me})
+        if (sent[u] != sig) u,
+    ];
+    if (to.isNotEmpty) {
+      try {
+        await VibeQuietMail.send(client, to, _type, content);
+        for (final u in to) {
+          sent[u] = sig;
+        }
+        await VibeQuietMail.put('sent', _kind, sent);
+      } catch (e) {
+        Logs().d('Keepr tag: could not send', e);
+      }
+    }
     final jobs = <Future<void> Function()>[];
     for (final r in _groups(client)) {
       final current = r.getState(EventTypes.RoomMember, me)?.content;
       if (current == null || current['membership'] != 'join') continue;
-      if (_same(current[key], tag)) continue;
-      final next = Map<String, Object?>.from(current);
-      if (tag == null) {
-        next.remove(key);
-      } else {
-        next[key] = tag;
+      if (!current.containsKey(key) && !current.containsKey('chat.vibe.tag')) {
+        continue;
       }
+      final next = Map<String, Object?>.from(current)
+        ..remove(key)
+        ..remove('chat.vibe.tag');
       jobs.add(() async {
         try {
           await client.setRoomStateWithKey(
