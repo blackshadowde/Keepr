@@ -12,6 +12,7 @@ import 'package:vibe/vibe/vibe_communities.dart';
 import 'package:vibe/vibe/vibe_public_rooms.dart';
 import 'package:vibe/vibe/vibe_haptics.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
+import 'package:vibe/vibe/vibe_photo_crop.dart';
 import 'package:vibe/vibe/vibe_settings_style.dart';
 import 'package:vibe/vibe/vibe_user_sheet.dart';
 import 'package:vibe/widgets/avatar.dart';
@@ -486,6 +487,11 @@ abstract class VibeGroupEdit {
           name: picked.first.name,
         );
       }
+      // square crop first: the picture shows round everywhere
+      if (!context.mounted) return;
+      final square = await VibePhotoCrop.square(context, file.bytes, file.name);
+      if (square == null) return;
+      file = MatrixImageFile(bytes: square.$1, name: square.$2);
       if (context.mounted) VibeGroups._snack(context, 'Uploading picture…');
       await room.setAvatar(file);
       VibeHaptics.light();

@@ -18,6 +18,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:matrix/matrix.dart';
 import 'package:vibe/vibe/vibe_dialog.dart';
+import 'package:vibe/vibe/vibe_photo_crop.dart';
 import 'package:vibe/config/app_config.dart';
 import 'package:vibe/vibe/screens/chat_details/participant_list_item.dart';
 import 'package:vibe/utils/verified_room_extension.dart';
@@ -171,6 +172,10 @@ class _ChatDetailsState extends State<ChatDetails> {
       );
     }
     if (!mounted) return;
+    // square crop first: the picture shows round everywhere
+    final square = await VibePhotoCrop.square(context, file.bytes, file.name);
+    if (square == null || !mounted) return;
+    file = MatrixFile(bytes: square.$1, name: square.$2);
     await showFutureLoadingDialog(
       context: context,
       future: () => room!.setAvatar(file),

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import 'package:vibe/vibe/vibe_motion.dart';
+import 'package:vibe/vibe/vibe_photo_crop.dart';
 import 'package:vibe/vibe/vibe_set_status.dart';
 import 'package:vibe/widgets/future_loading_dialog.dart';
 import 'package:flutter/material.dart';
@@ -75,11 +76,12 @@ abstract class VibeOwnProfile {
       picked = (await selectFiles(context, type: FileType.image)).firstOrNull;
     }
     if (picked == null || !context.mounted) return false;
-    final file = MatrixFile(
-      bytes: await picked.readAsBytes(),
-      name: picked.name,
-    );
+    final bytes = await picked.readAsBytes();
     if (!context.mounted) return false;
+    // square crop first: your picture shows round everywhere
+    final square = await VibePhotoCrop.square(context, bytes, picked.name);
+    if (square == null || !context.mounted) return false;
+    final file = MatrixFile(bytes: square.$1, name: square.$2);
     final r = await showFutureLoadingDialog(
       context: context,
       future: () => client.setAvatar(file),
