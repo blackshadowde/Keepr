@@ -240,7 +240,21 @@ Last updated: 2026-11-20.
     the box, tired phew. Bujji off (or pace off): a bubble above send, over
     the jump button when it shows. Scrolling to the message or the reaction
     being removed clears it.
+  - Select text (`vibe_quote.dart`, the old Quote part sheet: Copy and
+    Quote, numbers as chips; the orbit's Quote is now Select) and tappable
+    numbers in messages (`vibe_numbers.dart`, used by `VibeLinks.span`:
+    5+ digit codes copy, phone numbers get Call / Copy).
+  - Own profile page plays an animated picture (`animated: true`).
+  - The bar's background is painted by `_InputBack` in `chat_view.dart`
+    from the text box down (`controller.inputRowKey`), not as a fraction of
+    the whole bar.
+  - Old name Vibe replaced by Keepr in the iPhone share extension's display
+    name and desktop window titles.
 - Waiting for the owner:
+  - Wallpaper mockups on the design canvas ("Chat wallpapers: Keepr's own,
+    in your theme's colours"; generator `gen/wall.py` in the scratchpad):
+    Doodles, Flow, Shapes, Waves, Dots, all from the theme's colours, and
+    photos softened (blur, dim, tint) with Pattern and Dim sliders.
   - Pane extras from the study (dim follows the pull, the page behind steps
     back): they reach into Flutter's own pane code, so try them with a test
     APK. Questions in Keepr already open as panes (`showVibeDialog`), so the
@@ -265,6 +279,22 @@ Last updated: 2026-11-20.
     offline; the two-day waiting change above is the fix (not released).
   - Nearby (offline chat over Bluetooth): plan in `docs/nearby.md`, decisions
     still to make before building.
+  - FluffyChat leftovers (audit 2026-11-20 against FluffyChat 2.11.6):
+    app, launcher, notification, splash and web icons are Keepr's. Left:
+    icons inside the app are mixed (about 370 outlined and 320 plain, which
+    is FluffyChat's style, against 270 rounded in Keepr's own screens);
+    screens still mostly FluffyChat's layout: chat search, call page,
+    stickers and emotes settings, encryption and access settings, backup
+    setup (bootstrap), lock screen, event info, the adaptive dialogs and
+    the photo editor in `send_file_dialog.dart`; the four call sounds in
+    `assets/sounds/call_*.mp3` are FluffyChat's files; the iPhone share
+    extension is still the "FluffyChat Share" target and
+    `ios/Runner/GoogleService-Info.plist` is FluffyChat's Firebase project;
+    `assets/logo/mini/logo_font_mini.png` says Vibe (unused); macOS
+    PRODUCT_NAME is Vibe. Keep: the AGPL credit (About page, SPDX lines)
+    and the `im.fluffychat.*` / `chat.fluffy.*` storage and account data
+    keys and the `fluffychat_push` channel id (renaming them would lose
+    people's settings and data).
   - Post-quantum: steps 1 to 3 are in the code (`packages/keepr_pq`,
     `lib/vibe/vibe_pq.dart`) even though the boxes in `docs/post-quantum.md`
     aren't ticked; step 4 (settings and wording) is next.
