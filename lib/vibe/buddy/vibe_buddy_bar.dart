@@ -14,6 +14,7 @@ import 'package:vibe/config/setting_keys.dart';
 import 'package:vibe/l10n/l10n.dart';
 import 'package:vibe/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:vibe/vibe/buddy/bujji.dart';
+import 'package:vibe/vibe/buddy/bujji_gifts.dart';
 import 'package:vibe/vibe/buddy/bujji_life.dart';
 import 'package:vibe/vibe/buddy/vibe_buddy.dart';
 import 'package:vibe/vibe/screens/chat/chat.dart';
@@ -51,9 +52,12 @@ class _Hint {
 class _Trip {
   final String spot;
   final String why;
+
+  /// The emoji it brings (gift).
+  final String? held;
   bool back = false;
   Rect? last;
-  _Trip(this.spot, this.why);
+  _Trip(this.spot, this.why, [this.held]);
 }
 
 class _VibeBuddyBarState extends State<VibeBuddyBar>
@@ -136,6 +140,13 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
 
   static final _shownUnverified = <String>{};
 
+  // ---- reactions it brings you ----
+  /// Lots at once: it carries them in a basket, then tips them out above
+  /// the text box.
+  bool _carrying = false, _tipped = false;
+  Timer? _giftTimer, _giftHop;
+  bool get _still => MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+
   String get _them => room.getLocalizedDisplayname(
     MatrixLocals(L10n.of(context)),
   );
@@ -154,6 +165,8 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
     _events = room.client.onTimelineEvent.stream
         .where((e) => e.room.id == room.id)
         .listen(_onEvent);
+    BujjiGifts.clear();
+    BujjiGifts.list.addListener(_onGifts);
     _lifeTimer = Timer.periodic(const Duration(seconds: 25), (_) => _idleLife());
     _lastEventId = room.lastEvent?.eventId;
     _activity();
@@ -211,6 +224,11 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
       t?.cancel();
     }
     _voice?.removeListener(_onVoice);
+    BujjiGifts.list.removeListener(_onGifts);
+    _giftTimer?.cancel();
+    _giftHop?.cancel();
+    // after this frame: the float above send is going away too
+    scheduleMicrotask(BujjiGifts.clear);
     VibeConnections.playing.removeListener(_onMusic);
     _danceTimer?.cancel();
     c.sendController.removeListener(_onText);
@@ -276,6 +294,9 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
 
   void _onScroll() {
     _moved.value++;
+    for (final g in BujjiGifts.list.value) {
+      if (_inView(g.target)) BujjiGifts.drop(target: g.target);
+    }
     final now = DateTime.now().millisecondsSinceEpoch;
     if (now - _lastScroll < 2000) return;
     _lastScroll = now;
@@ -631,7 +652,9 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
 
   /// Something new in this chat: what it calls for.
   void _onEvent(Event raw) {
-    if (!mounted || !VibeBuddy.on || !_alive) return;
+    if (!mounted) return;
+    unawaited(_giftFrom(raw));
+    if (!VibeBuddy.on || !_alive) return;
     // only what just happened, not history catching up
     if (DateTime.now().difference(raw.originServerTs).inSeconds.abs() > 90) {
       return;
@@ -699,6 +722,211 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
     }
   }
 
+  // ---- reactions you'd miss ----
+
+  /// Someone reacted to a message of yours you can't see: it's brought to
+  /// you (by Bujji, or floating above send when Bujji is off).
+  Future<void> _giftFrom(Event raw) async {
+    if (raw.type == EventTypes.Redaction) {
+      final id = raw.redacts ?? raw.content.tryGet<String>('redacts');
+      if (id != null) BujjiGifts.drop(reaction: id);
+      return;
+    }
+    if (raw.type != EventTypes.Reaction ||
+        raw.senderId == room.client.userID ||
+        DateTime.now().difference(raw.originServerTs).inSeconds.abs() > 90) {
+      return;
+    }
+    final rel = VibePq.open(raw).content.tryGetMap<String, Object?>(
+      'm.relates_to',
+    );
+    final target = rel?.tryGet<String>('event_id');
+    final key = rel?.tryGet<String>('key');
+    // emoji only (not long words or custom pictures)
+    if (target == null ||
+        key == null ||
+        key.isEmpty ||
+        key.characters.length > 2 ||
+        key.startsWith('mxc://')) {
+      return;
+    }
+    if (_inView(target)) return;
+    final msg =
+        c.timeline?.events.firstWhereOrNull((e) => e.eventId == target) ??
+        await room.getEventById(target);
+    if (!mounted || msg?.senderId != room.client.userID) return;
+    if (_inView(target)) return;
+    BujjiGifts.add(BujjiGift(target, key, raw.eventId));
+  }
+
+  /// The bottom of the message (where reactions show) is on screen, between
+  /// the top bar and the text box.
+  bool _inView(String id) {
+    final r = BujjiLife.rectOf(id);
+    if (r == null) return false;
+    final me = context.findRenderObject();
+    final box = _homeRect()?.top ??
+        (me is RenderBox && me.attached && me.hasSize
+            ? me.localToGlobal(Offset.zero).dy
+            : MediaQuery.sizeOf(context).height - 140);
+    return r.bottom > 120 && r.bottom < box;
+  }
+
+  void _onGifts() {
+    if (!mounted) return;
+    final n = BujjiGifts.list.value.length;
+    if (n == 0 || !BujjiGifts.byBujji) {
+      _giftTimer?.cancel();
+      _giftHop?.cancel();
+      _giftHop = null;
+      setState(() {
+        if (n == 0) _carrying = _tipped = false;
+      });
+      return;
+    }
+    _activity(pet: true);
+    // out visiting a message: it comes back to bring them
+    final trip = _trip;
+    if (trip != null && trip.why != 'gift' && trip.why != 'hide') _comeBack();
+    if (_tipped) {
+      // one more lands on the pile
+      setState(() => _hop++);
+      return;
+    }
+    if (n >= BujjiGifts.basket) {
+      if (_carrying) {
+        setState(() {});
+        return;
+      }
+      // lots: it brings them in a basket, then tips them out above the box
+      _giftHop?.cancel();
+      _giftHop = null;
+      setState(() {
+        _carrying = true;
+        _wiggle++;
+      });
+      _giftTimer?.cancel();
+      _giftTimer = Timer(const Duration(milliseconds: 2600), () {
+        if (!mounted) return;
+        VibeHaptics.medium();
+        setState(() {
+          _carrying = false;
+          _tipped = BujjiGifts.list.value.isNotEmpty;
+          _squish++;
+        });
+        // and it's worn out: phew
+        if (_tipped) _show(BuddyMood.tired, BuddyProp.phew, 4200);
+      });
+      return;
+    }
+    // one or a few: held up, a slow hop now and then till you tap it
+    _giftHop ??= Timer.periodic(const Duration(milliseconds: 2400), (_) {
+      if (mounted && !_still && _trip == null) setState(() => _hop++);
+    });
+    setState(() => _hop++);
+  }
+
+  /// Takes you to the message they reacted to; Bujji hops onto it with the
+  /// emoji.
+  Future<void> _deliver(BujjiGift g) async {
+    VibeHaptics.light();
+    BujjiGifts.drop(target: g.target);
+    await c.scrollToEventId(g.target);
+    if (!mounted || !BujjiGifts.byBujji) return;
+    // once the list has settled
+    await Future<void>.delayed(const Duration(milliseconds: 450));
+    if (!mounted) return;
+    _wander(
+      g.target,
+      'gift',
+      const Duration(milliseconds: 2400),
+      force: true,
+      held: g.key,
+    );
+  }
+
+  /// What it tipped out of its basket, lying above the text box: tap one to
+  /// go to its message, or put them all away.
+  Widget _pile(List<BujjiGift> gifts, ColorScheme cs) {
+    const most = 6;
+    final shown = gifts.take(most).toList();
+    Widget chip(BujjiGift g, int i) {
+      // lying where they fell: a little tilted, a little up or down
+      final tilt = [-0.12, 0.08, -0.04, 0.14, -0.09, 0.05][i % 6];
+      final drop = [0.0, -3.0, 1.0, -2.0, 2.0, -1.0][i % 6];
+      return TweenAnimationBuilder<double>(
+        key: ValueKey(g.reaction),
+        tween: Tween(begin: 0, end: 1),
+        duration: Duration(milliseconds: 520 + 70 * i),
+        curve: Curves.easeOutBack,
+        builder: (context, v, child) => Transform.translate(
+          offset: Offset(0, drop - 30 * (1 - v)),
+          child: Opacity(opacity: v.clamp(0.0, 1.0), child: child),
+        ),
+        child: Transform.rotate(
+          angle: tilt,
+          child: Semantics(
+            label: 'Reaction ${g.key}. Go to the message',
+            button: true,
+            child: Material(
+              color: cs.surfaceContainerHigh,
+              shape: const CircleBorder(),
+              elevation: 1.5,
+              shadowColor: Colors.black26,
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: () => _deliver(g),
+                child: SizedBox.square(
+                  dimension: 34,
+                  child: Center(
+                    child: Text(
+                      g.key,
+                      style: const TextStyle(fontSize: 18, height: 1),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final (i, g) in shown.indexed)
+          Padding(
+            padding: const EdgeInsets.only(right: 2),
+            child: chip(g, i),
+          ),
+        if (gifts.length > most)
+          Padding(
+            padding: const EdgeInsets.only(left: 2),
+            child: Text(
+              '+${gifts.length - most}',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: cs.onSurfaceVariant,
+              ),
+            ),
+          ),
+        IconButton(
+          tooltip: 'Put them away',
+          visualDensity: VisualDensity.compact,
+          iconSize: 18,
+          color: cs.onSurfaceVariant,
+          icon: const Icon(Icons.close_rounded),
+          onPressed: () {
+            VibeHaptics.light();
+            BujjiGifts.clear();
+          },
+        ),
+      ],
+    );
+  }
+
   /// Every little while, if nothing's going on, it does something: peeks
   /// from behind a message, plays catch, reads, has its coffee.
   void _idleLife() {
@@ -753,7 +981,13 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
 
   /// Hops over to [spot] for [stay]. Only when lively, the phone allows
   /// motion, you're not typing and it's on screen.
-  bool _wander(String spot, String why, Duration stay, {bool force = false}) {
+  bool _wander(
+    String spot,
+    String why,
+    Duration stay, {
+    bool force = false,
+    String? held,
+  }) {
     if (!mounted || _trip != null || _cross || !VibeBuddy.on) return false;
     if (BujjiLife.pace != BujjiPace.lively ||
         (MediaQuery.maybeDisableAnimationsOf(context) ?? false)) {
@@ -763,7 +997,7 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
     final to = BujjiLife.rectOf(spot), home = _homeRect();
     if (to == null || home == null || !_onScreen(to, home)) return false;
     _lastWander = _now;
-    setState(() => _trip = _Trip(spot, why));
+    setState(() => _trip = _Trip(spot, why, held));
     _portal.show();
     VibeHaptics.light();
     _hopper.forward(from: 0).whenComplete(() {
@@ -845,6 +1079,8 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
         'sleep' => (BuddyMood.sleepy, BuddyProp.bed),
         'hammer' => (BuddyMood.happy, there ? BuddyProp.hammer : BuddyProp.none),
         'dance' => (BuddyMood.happy, BuddyProp.headphones),
+        // it brings the reaction and sets it down on the message
+        'gift' => (BuddyMood.happy, there ? BuddyProp.none : BuddyProp.gift),
         // hiding, upset; softening as you pet it
         'hide' => (_pets < 2 ? BuddyMood.angry : BuddyMood.shy, BuddyProp.none),
         _ => (BuddyMood.curious, BuddyProp.none),
@@ -869,6 +1105,7 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
           // hiding: its back to you until the first pet
           away: trip.why == 'hide' && _pets == 0,
           groove: trip.why == 'dance' ? 1 : 0,
+          held: trip.held == null ? const [] : [trip.held!],
           gaze: trip.why == 'typing' ? -1 : trip.why == 'peek' ? 1 : 0,
           look: trip.why == 'sleep' ? 0 : 1,
           floating: !there,
@@ -1025,6 +1262,8 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
   void _poke() {
     setState(() => _squish++);
     if (!_alive || _cross) return;
+    // tapping to get your reactions isn't poking
+    if (BujjiGifts.byBujji && BujjiGifts.list.value.isNotEmpty) return;
     final now = _now;
     _pokes = now - _pokeAt < 1500 ? _pokes + 1 : 1;
     _pokeAt = now;
@@ -1126,6 +1365,11 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
 
   void _tap() {
     if (_cross) return;
+    final gifts = BujjiGifts.list.value;
+    if (BujjiGifts.byBujji && gifts.isNotEmpty && !_carrying) {
+      unawaited(_deliver(gifts.first));
+      return;
+    }
     VibeHaptics.light();
     final wasAsleep = _sleepy;
     _activity(pet: true);
@@ -1328,10 +1572,26 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
     final awake = VibeBuddy.bedtime && _typingMood == BuddyMood.idle
         ? BuddyMood.tired
         : _typingMood;
+    // reactions it's bringing you: one held up, or a basketful
+    final gifts = BujjiGifts.byBujji
+        ? BujjiGifts.list.value
+        : const <BujjiGift>[];
+    final giftProp = gifts.isEmpty || _tipped
+        ? null
+        : _carrying
+        ? BuddyProp.basket
+        : BuddyProp.gift;
+    final held = giftProp == BuddyProp.basket
+        ? [for (final g in gifts.reversed.take(3)) g.key]
+        : giftProp == BuddyProp.gift
+        ? [gifts.first.key]
+        : const <String>[];
     final mood = _cross
         ? BuddyMood.angry
         : _flash ??
-              (_sleepy
+              (giftProp != null
+                  ? BuddyMood.happy
+                  : _sleepy
                   ? BuddyMood.sleepy
                   : _hold == BuddyProp.headphones
                   ? (_music?.sad == true && _voice?.value == null
@@ -1341,6 +1601,7 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
     final bed = _sleepy && _alive && (VibeBuddy.night || VibeBuddy.bedtime);
     final prop =
         _flashProp ??
+        giftProp ??
         _busy ??
         _hold ??
         (bed
@@ -1442,7 +1703,26 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
                 return Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    if (hint != null)
+                    // what it tipped out of its basket, beside it
+                    if (_tipped && gifts.isNotEmpty)
+                      Positioned(
+                        left: onLeft ? x + box - 4 : 8,
+                        right: onLeft ? 8 : w - x - 4,
+                        bottom: 4,
+                        child: Align(
+                          alignment: onLeft
+                              ? Alignment.bottomLeft
+                              : Alignment.bottomRight,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: onLeft
+                                ? Alignment.bottomLeft
+                                : Alignment.bottomRight,
+                            child: _pile(gifts, cs),
+                          ),
+                        ),
+                      )
+                    else if (hint != null)
                       Positioned(
                         left: onLeft ? x + box - 4 : 12,
                         right: onLeft ? 12 : w - x - 4,
@@ -1495,6 +1775,7 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
                               prop: prop,
                               away: _away,
                               outfit: VibeBuddy.outfit,
+                              held: held,
                               // while pulled it looks the way it's pulled
                               gaze: _pull == Offset.zero
                                   ? _gaze

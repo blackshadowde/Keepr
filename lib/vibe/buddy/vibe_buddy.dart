@@ -64,6 +64,10 @@ enum BuddyProp {
   ball,
   bed,
   catchHeart,
+  // reactions it brings you: one held up, a basketful, then a tired phew
+  gift,
+  basket,
+  phew,
 }
 
 class BuddyOutfit {
@@ -295,6 +299,9 @@ class VibeBuddyFace extends StatefulWidget {
   /// Moving to music: 0 still, 1 a smooth sway and bob, in between a slow
   /// sway (a sad song).
   final double groove;
+
+  /// Emoji it holds up (gift) or carries in its basket.
+  final List<String> held;
   const VibeBuddyFace({
     required this.color,
     this.size = 40,
@@ -309,6 +316,7 @@ class VibeBuddyFace extends StatefulWidget {
     this.squish = 0,
     this.away = false,
     this.groove = 0,
+    this.held = const [],
     super.key,
   });
 
@@ -430,6 +438,7 @@ class _VibeBuddyFaceState extends State<VibeBuddyFace>
                     away: widget.away,
                     mood: widget.mood,
                     prop: widget.prop,
+                    held: widget.held,
                     outfit: widget.outfit,
                     gaze: widget.gaze,
                     look: widget.look,
@@ -483,11 +492,13 @@ class _BuddyPainter extends CustomPainter {
   final double gaze, look, blink, wave;
   final bool shadow;
   final bool away;
+  final List<String> held;
   const _BuddyPainter({
     required this.color,
     this.away = false,
     required this.mood,
     required this.prop,
+    this.held = const [],
     required this.outfit,
     required this.gaze,
     required this.blink,
@@ -1344,9 +1355,87 @@ class _BuddyPainter extends CustomPainter {
         canvas.drawPath(_star(p(22, -40), 6 * u), fill(0xFFFFD54F));
         canvas.drawPath(_star(p(80, -46), 5 * u), fill(0xFFFFD54F));
         hands([(10, 26), (90, 26)]);
+      case BuddyProp.gift:
+        // a reaction held up high, rocking a little
+        if (held.isNotEmpty) {
+          turn(50, 2, 0.08 * beat, () => _emoji(canvas, held.first, p(50, -20), 30 * u));
+        }
+        hands([(30, 0), (70, 0)]);
+      case BuddyProp.basket:
+        // a basketful, a few peeking over the rim
+        const rim = 54.0;
+        canvas.drawArc(
+          Rect.fromLTRB(28 * u, 26 * u, 72 * u, 82 * u),
+          math.pi,
+          math.pi,
+          false,
+          pen(0xFF9C6B3C, 5),
+        );
+        for (final (i, (x, y)) in [(32.0, rim - 5), (50.0, rim - 9), (68.0, rim - 5)].indexed) {
+          if (i >= held.length) break;
+          _emoji(canvas, held[i], p(x, y + 1.5 * math.sin(t * math.pi * 2 + i)), 24 * u);
+        }
+        canvas.drawPath(
+          Path()
+            ..moveTo(14 * u, rim * u)
+            ..lineTo(86 * u, rim * u)
+            ..lineTo(77 * u, 92 * u)
+            ..quadraticBezierTo(50 * u, 96 * u, 23 * u, 92 * u)
+            ..close(),
+          fill(0xFFC98B4E),
+        );
+        final weave = pen(0xFFA87240, 2.5);
+        canvas.drawLine(p(18, rim + 13), p(82, rim + 13), weave);
+        canvas.drawLine(p(21, rim + 26), p(79, rim + 26), weave);
+        for (final x in [32.0, 50.0, 68.0]) {
+          canvas.drawLine(p(x, rim + 6), p(x + (x - 50) * 0.08, 90), weave);
+        }
+        canvas.drawRRect(box(11, rim - 4, 78, 9, 4.5), fill(0xFFB07843));
+        hands([(12, rim + 6), (88, rim + 6)]);
+      case BuddyProp.phew:
+        // worn out: a drop of sweat and a puff of breath
+        final d = (t * 1.2) % 1;
+        final drop = Paint()
+          ..color = const Color(0xFF8EC5FF).withValues(alpha: 1 - d * 0.7);
+        final c = p(88, 12 + 16 * d);
+        canvas.drawCircle(c, 4.2 * u, drop);
+        canvas.drawPath(
+          Path()
+            ..moveTo(c.dx - 3.8 * u, c.dy - 1.2 * u)
+            ..lineTo(c.dx, c.dy - 9 * u)
+            ..lineTo(c.dx + 3.8 * u, c.dy - 1.2 * u)
+            ..close(),
+          drop,
+        );
+        for (var i = 0; i < 3; i++) {
+          final k = (t * 1.5 + i / 3) % 1;
+          final at = p(16 - 28 * k, 66 - 12 * k);
+          final r = (4 + 5 * k) * u;
+          canvas.drawCircle(at, r, Paint()..color = Colors.white.withValues(alpha: 0.85 * (1 - k)));
+          canvas.drawCircle(
+            at,
+            r,
+            Paint()
+              ..color = const Color(0xFFD9D6E2).withValues(alpha: 1 - k)
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 1.6 * u,
+          );
+        }
       default:
         break;
     }
+  }
+
+  /// An emoji drawn at [c], [size] tall (laid out once and kept).
+  static final _glyphs = <String, TextPainter>{};
+  void _emoji(Canvas canvas, String e, Offset c, double size) {
+    final k = '$e@${size.round()}';
+    final tp = _glyphs[k] ??= (TextPainter(
+      text: TextSpan(text: e, style: TextStyle(fontSize: size, height: 1)),
+      textDirection: TextDirection.ltr,
+    )..layout());
+    if (_glyphs.length > 48) _glyphs.remove(_glyphs.keys.first)?.dispose();
+    tp.paint(canvas, c - Offset(tp.width / 2, tp.height / 2));
   }
 
   /// The little extras round it: steam when cross, stars when dizzy,

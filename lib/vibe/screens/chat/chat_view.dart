@@ -5,6 +5,7 @@
 
 import 'package:vibe/vibe/buddy/vibe_buddy.dart';
 import 'package:vibe/vibe/buddy/vibe_buddy_bar.dart';
+import 'package:vibe/vibe/buddy/bujji_gift_float.dart';
 import 'package:vibe/vibe/vibe_glass.dart';
 import 'package:vibe/vibe/vibe_stale_keyboard.dart';
 import 'package:vibe/vibe/vibe_palette.dart';
@@ -691,6 +692,8 @@ class ChatView extends StatelessWidget {
                             );
                           },
                         ),
+                        // a reaction you'd miss, with Bujji off
+                        BujjiGiftFloat(controller),
                         if (controller.dragging)
                           Container(
                             color: theme.scaffoldBackgroundColor.withAlpha(230),
