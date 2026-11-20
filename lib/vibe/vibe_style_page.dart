@@ -15,6 +15,7 @@ import 'package:vibe/vibe/vibe_motion.dart';
 import 'package:vibe/vibe/vibe_settings_style.dart';
 import 'package:vibe/vibe/vibe_theme_picker.dart';
 import 'package:vibe/vibe/vibe_theme_reveal.dart';
+import 'package:vibe/vibe/vibe_wallpaper.dart';
 import 'package:vibe/config/themes.dart';
 import 'package:vibe/widgets/settings_switch_list_tile.dart';
 import 'package:vibe/vibe/vibe_text_size_preview.dart';
@@ -288,8 +289,9 @@ class _VibeStylePageState extends State<VibeStylePage> {
                 false,
           ),
           builder: (context, snapshot) {
-            final hasWallpaper =
-                client.applicationAccountConfig.wallpaperUrl != null;
+            final wallpaper = VibeWallpaper.label(
+              client.applicationAccountConfig,
+            );
             return VibeCard(
               margin: const EdgeInsets.symmetric(horizontal: 16),
               children: [
@@ -299,13 +301,16 @@ class _VibeStylePageState extends State<VibeStylePage> {
                   subtitle: _theirLabel(AppSettings.vibeTheirColour.value),
                   onTap: pickTheirColour,
                 ),
-                // a plain picture behind your chats, on all your devices
+                // Keepr's own wallpapers, or your photo
                 VibeSettingsRow(
                   icon: Icons.image_outlined,
                   title: 'Chat wallpaper',
-                  subtitle: 'A picture behind your chats',
-                  value: hasWallpaper ? 'On' : 'None',
-                  onTap: hasWallpaper ? wallpaperSheet : setWallpaper,
+                  subtitle: "Keepr's own, or your photo",
+                  value: wallpaper,
+                  onTap: () async {
+                    await VibeWallpaperPage.open(context);
+                    if (mounted) setState(() {});
+                  },
                 ),
               ],
             );

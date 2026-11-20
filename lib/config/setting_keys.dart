@@ -107,6 +107,9 @@ enum AppSettings<T> {
   // Their messages: 'own' (each person's own colour), 'theme' (the theme's
   // second colour) or 'plain'
   vibeTheirColour<String>('chat.keepr.their_colour', 'own'),
+  // chat wallpaper: 'photo' (yours, when set), 'none', or one of Keepr's own
+  vibeWallpaper<String>('chat.keepr.wallpaper', 'photo'),
+  vibeWallpaperPattern<double>('chat.keepr.wallpaper_pattern', 0.55),
   // Glass look: palette ('wallbash' = from the wallpaper), the processed
   // (blurred) wallpaper file and the colour picked from it
   vibeGlassPalette<String>('chat.keepr.glass_palette', 'wallbash'),

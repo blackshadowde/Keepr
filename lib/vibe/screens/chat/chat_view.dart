@@ -6,6 +6,7 @@
 import 'package:vibe/vibe/buddy/vibe_buddy.dart';
 import 'package:vibe/vibe/buddy/vibe_buddy_bar.dart';
 import 'package:vibe/vibe/buddy/bujji_gift_float.dart';
+import 'package:vibe/vibe/vibe_wallpaper.dart';
 import 'package:vibe/vibe/vibe_glass.dart';
 import 'package:vibe/vibe/vibe_stale_keyboard.dart';
 import 'package:vibe/vibe/vibe_palette.dart';
@@ -120,7 +121,7 @@ class ChatView extends StatelessWidget {
                 backgroundColor: _pill(controller)
                     ? Colors.transparent
                     : controller.selectedEvents.isEmpty
-                    ? accountConfig.wallpaperUrl != null
+                    ? VibeWallpaper.on(accountConfig)
                           ? Colors.transparent
                           : theme.colorScheme.surface
                     : theme.colorScheme.tertiaryContainer,
@@ -413,25 +414,48 @@ class ChatView extends StatelessWidget {
                     top: false,
                     child: Stack(
                       children: <Widget>[
-                        if (accountConfig.wallpaperUrl != null)
-                          Opacity(
-                            opacity: accountConfig.wallpaperOpacity ?? 0.5,
-                            child: ImageFiltered(
-                              imageFilter: ui.ImageFilter.blur(
-                                sigmaX: accountConfig.wallpaperBlur ?? 0.0,
-                                sigmaY: accountConfig.wallpaperBlur ?? 0.0,
-                              ),
-                              child: MxcImage(
-                                cacheKey: accountConfig.wallpaperUrl.toString(),
-                                uri: accountConfig.wallpaperUrl,
-                                fit: BoxFit.cover,
-                                height: MediaQuery.sizeOf(context).height,
-                                width: MediaQuery.sizeOf(context).width,
-                                isThumbnail: false,
-                                placeholder: (_) => Container(),
-                              ),
-                            ),
+                        // the wallpaper: Keepr's own, from the theme's
+                        // colours, or your photo softened to fit (a little
+                        // blur, dimmed, tinted with the theme)
+                        ValueListenableBuilder<int>(
+                          valueListenable: VibeWallpaper.version,
+                          builder: (context, _, _) => Positioned.fill(
+                            child: VibeWallpaper.painted
+                                ? const VibeWallpaperPaint()
+                                : !VibeWallpaper.photo(accountConfig)
+                                ? const SizedBox.shrink()
+                                : Opacity(
+                                    opacity: accountConfig.wallpaperOpacity ?? 0.5,
+                                    child: Stack(
+                                      fit: StackFit.expand,
+                                      children: [
+                                        ImageFiltered(
+                                          imageFilter: ui.ImageFilter.blur(
+                                            sigmaX: accountConfig.wallpaperBlur ?? 3.0,
+                                            sigmaY: accountConfig.wallpaperBlur ?? 3.0,
+                                          ),
+                                          child: MxcImage(
+                                            cacheKey: accountConfig.wallpaperUrl.toString(),
+                                            uri: accountConfig.wallpaperUrl,
+                                            fit: BoxFit.cover,
+                                            height: MediaQuery.sizeOf(context).height,
+                                            width: MediaQuery.sizeOf(context).width,
+                                            isThumbnail: false,
+                                            placeholder: (_) => Container(),
+                                          ),
+                                        ),
+                                        DecoratedBox(
+                                          decoration: BoxDecoration(
+                                            color: theme.colorScheme.primary
+                                                .withValues(alpha: 0.14),
+                                            backgroundBlendMode: BlendMode.color,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                           ),
+                        ),
                         // a thread slides in from the right and back out
                         AnimatedSlide(
                           offset: controller.threadClosing
@@ -498,7 +522,7 @@ class ChatView extends StatelessWidget {
                             // tall the bar gets
                             child: CustomPaint(
                               painter: composer &&
-                                      accountConfig.wallpaperUrl == null
+                                      !VibeWallpaper.on(accountConfig)
                                   ? _InputBack(
                                       bar: controller.inputBarKey,
                                       row: controller.inputRowKey,
@@ -509,7 +533,7 @@ class ChatView extends StatelessWidget {
                               key: controller.inputBarKey,
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
-                                  colors: accountConfig.wallpaperUrl != null ||
+                                  colors: VibeWallpaper.on(accountConfig) ||
                                           composer
                                       ? const [
                                           Colors.transparent,
@@ -521,7 +545,7 @@ class ChatView extends StatelessWidget {
                                           theme.colorScheme.surface,
                                           theme.colorScheme.surface,
                                         ],
-                                  stops: accountConfig.wallpaperUrl != null ||
+                                  stops: VibeWallpaper.on(accountConfig) ||
                                           composer
                                       ? null
                                       : const [0, 0.55, 0.8, 1],

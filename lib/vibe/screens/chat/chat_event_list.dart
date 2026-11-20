@@ -28,6 +28,7 @@ import 'package:matrix/matrix_api_lite/model/event_types.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 
 import 'package:vibe/utils/date_time_extension.dart';
+import 'package:vibe/vibe/vibe_wallpaper.dart';
 
 class ChatEventList extends StatelessWidget {
   final ChatController controller;
@@ -144,8 +145,9 @@ class ChatEventList extends StatelessWidget {
       thisEventsKeyMap[controller.stableId(events[i])] = i;
     }
 
-    final hasWallpaper =
-        controller.room.client.applicationAccountConfig.wallpaperUrl != null;
+    final hasWallpaper = VibeWallpaper.on(
+      controller.room.client.applicationAccountConfig,
+    );
 
     return Stack(
       children: [
