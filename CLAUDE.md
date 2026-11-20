@@ -353,6 +353,10 @@ Last updated: 2026-11-20.
     `sendFileEvent` again with a new transaction id, so the failed copy
     stayed beside the new one (and stacks showed both). Both reuse one
     `txid` now; `VibePhotoStack.fits` leaves out failed photos.
+  - Text size preview (`vibe_text_size_preview.dart`) redrawn with the chat's
+    own pieces (`VibeBubblePainter`, `VibeTimeFlow`, `VibeCardColours`, an
+    Echo-style reply). The Start-up animation switch stays: it still drives
+    the home rows sliding in (`VibeStagger`, `VibeLaunch`, `VibeBootIntro`).
   - Block screenshots (`vibeBlockScreenshots`, Security & sign-in, Android):
     `MainActivity.blockScreenshots` (FLAG_SECURE), read from
     FlutterSharedPreferences in `onPostCreate` and set live through
