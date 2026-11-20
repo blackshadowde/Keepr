@@ -4,6 +4,30 @@ Keepr started from FluffyChat's code. This checklist makes it a Matrix client of
 its own. FluffyChat's copyright notices and the AGPL licence stay, as the
 licence requires; everything else becomes Keepr's.
 
+## Level 0: Catch up first (checked 2026-11-20)
+
+FluffyChat's newest is 2.11.6 (2026-11-15). Keepr has its fixes through 2.11.5
+and the one code fix in 2.11.6 (removing a reaction), and is already on Matrix
+SDK 16.0.4 (FluffyChat ships 16.0.1). What's left, one commit each, with
+Keepr check and a test APK after each:
+
+- [ ] Matrix SDK 17.0.0 (2026-11-18, FluffyChat hasn't moved yet): fixes a
+      recovery key check (a key with no check values counted as matching any
+      key). Its breaking change makes `Room.states` read-only; Keepr only
+      reads it (3 places), so this should be small. Test: sign in, recovery
+      key, verifying a device, emotes, calls.
+- [ ] `pubspec.lock` is stale (says matrix 10.0.1); builds pick versions
+      fresh. Refresh it from a workflow run so every build gets the same ones.
+- [ ] flutter_local_notifications 22 → 23 (a major version: read its changelog).
+- [ ] Android build tools: Gradle plugin 8.11.1 → 9.1.0, Gradle 8.14.1 → 9.3.1,
+      and `proguard-android-optimize.txt` (test the release APK: the optimizer
+      can break code that needs keep rules).
+- Not needed: fcm_shared_isolate, light_compressor_v2, cupertino_ui (Keepr
+  doesn't use them).
+
+After Level 2 is done, FluffyChat's changes no longer apply as merges; from then
+on a fix of theirs is read and written again in Keepr's code where it applies.
+
 ## Level 1: Keepr's own identity
 
 - [x] Code package `fluffychat` → `vibe` (all `package:` imports)
@@ -38,3 +62,39 @@ Each FluffyChat screen is rewritten in `lib/vibe/`, then the old file is deleted
 - [ ] Encryption setup and verification
 - [ ] Notifications (push helper)
 - [ ] Remaining FluffyChat widgets and utils
+- [ ] FluffyChat leftovers from the 2026-11-20 audit (in CLAUDE.md): in-app
+      icon styles, the call sounds, the iPhone share target and Firebase file
+
+## Level 3: On our own, staying current
+
+Once FluffyChat's code is gone, Keepr still stands on four things that keep
+changing: the Matrix Dart SDK, vodozemac (the encryption), Flutter and the
+Matrix spec. These are what to follow:
+
+| What | Where | Why |
+|---|---|---|
+| Matrix Dart SDK | github.com/famedly/matrix-dart-sdk releases, pub.dev/packages/matrix/changelog | Keepr's Matrix engine: fixes, security, breaking changes |
+| vodozemac | github.com/matrix-org/vodozemac and famedly/dart-vodozemac releases, their security advisories | the encryption itself |
+| Matrix spec | spec.matrix.org changelog, matrix.org/category/spec (a release every few months; v1.19 in July 2026) | new features clients are expected to support |
+| This Week in Matrix | matrix.org/blog (weekly) | what's coming, and deadlines servers and clients follow |
+| Matrix security | matrix.org/category/security, GitHub advisories on matrix-org repos | fixes to bring in quickly |
+| Element X and Element Web | their GitHub releases | usually first to ship new Matrix features; servers follow them |
+| Synapse | github.com/element-hq/synapse releases | server changes clients must keep up with |
+| FluffyChat | github.com/krille-chan/fluffychat releases | the same SDK in Flutter: many of its fixes apply to Keepr too |
+| Flutter | flutter.dev stable releases | the toolkit |
+
+How: on GitHub, Watch → Custom → Releases for those repos; and a weekly
+scheduled task (alongside the daily security watch) that lists new releases
+and what each means for Keepr in `docs/upstream-watch.md`.
+
+There is no single official Matrix client: the Matrix.org Foundation publishes
+the spec, and matrix.org lists featured clients (Element Web and Desktop,
+Element X, FluffyChat, Cinny, Nheko). Element X, by Element (the company
+started by Matrix's creators), is the one to watch for what's coming.
+
+Spec features Keepr could take up next (check the SDK supports them first):
+OAuth 2.0 sign-in (MSC3861, used by matrix.org), room history for people who
+join encrypted rooms later (MSC4268, v1.19), shared custom emoji and sticker
+packs (MSC2545, v1.19), one switch to block invites (MSC4380, v1.18), recent
+emoji synced across devices (`m.recent_emoji`, v1.18), time zone in profiles
+(MSC4175, v1.16), and not sending keys to unverified devices (MSC4153).
