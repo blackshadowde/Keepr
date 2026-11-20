@@ -6,6 +6,7 @@
 import 'package:vibe/vibe/buddy/vibe_buddy.dart';
 import 'package:vibe/vibe/buddy/vibe_buddy_bar.dart';
 import 'package:vibe/vibe/buddy/bujji_gift_float.dart';
+import 'package:vibe/vibe/vibe_drop_tray.dart';
 import 'package:vibe/vibe/vibe_wallpaper.dart';
 import 'package:vibe/vibe/vibe_glass.dart';
 import 'package:vibe/vibe/vibe_stale_keyboard.dart';
@@ -782,25 +783,13 @@ class ChatView extends StatelessWidget {
                         ),
                         // a reaction you'd miss, with Bujji off
                         BujjiGiftFloat(controller),
-                        if (controller.dragging)
-                          Container(
-                            color: theme.scaffoldBackgroundColor.withAlpha(230),
-                            alignment: Alignment.center,
-                            child: const Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.upload_outlined, size: 100),
-                                SizedBox(height: 12),
-                                Text(
-                                  'Drop to send',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                            ),
+                        // photos or files dragged over the chat
+                        Positioned.fill(
+                          child: VibeDropTray(
+                            show: controller.dragging,
+                            name: controller.room.getLocalizedDisplayname(),
                           ),
+                        ),
                       ],
                     ),
                   ),
