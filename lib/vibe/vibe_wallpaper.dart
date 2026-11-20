@@ -87,16 +87,16 @@ class VibeWallpaperPaint extends StatelessWidget {
       final s = style ?? VibeWallpaper.style;
       if (!VibeWallpaper.styles.contains(s)) return const SizedBox.expand();
       final theme = Theme.of(context);
-      // painted once and kept while the messages scroll over it
-      return RepaintBoundary(
-        child: CustomPaint(
-          size: Size.infinite,
-          painter: _WallPainter(
-            s,
-            theme.colorScheme,
-            theme.brightness == Brightness.dark,
-            VibeWallpaper.pattern,
-          ),
+      // the chat keeps it as one picture (a snapshot) while messages
+      // scroll over it, so no layer of its own here: the snapshot must see
+      // when it changes
+      return CustomPaint(
+        size: Size.infinite,
+        painter: _WallPainter(
+          s,
+          theme.colorScheme,
+          theme.brightness == Brightness.dark,
+          VibeWallpaper.pattern,
         ),
       );
     },
@@ -121,7 +121,7 @@ class VibeMusicWallpaper extends StatelessWidget {
         duration: const Duration(milliseconds: 900),
         child: cover == null || !cover.startsWith('https://')
             ? const KeyedSubtree(key: ValueKey('flow'), child: flow)
-            : RepaintBoundary(
+            : KeyedSubtree(
                 key: ValueKey(cover),
                 child: Stack(
                   fit: StackFit.expand,

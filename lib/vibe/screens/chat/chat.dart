@@ -929,6 +929,7 @@ class ChatController extends State<ChatPageWithRoom>
     inputFocus.dispose();
     VibeChatDock.docked.removeListener(_onDockChanged);
     inputBarHeightNotifier.dispose();
+    inputRowTopNotifier.dispose();
     _displayChatDetailsColumn.dispose();
     web.window.removeEventListener('paste', _handleClipboardFilePasteWeb);
     if (currentlyTyping) room.setTyping(false);
@@ -1922,6 +1923,11 @@ class ChatController extends State<ChatPageWithRoom>
   /// resizing input bar only re-lays out the message list, instead of
   /// rebuilding the whole chat screen on every animation frame.
   final ValueNotifier<double?> inputBarHeightNotifier = ValueNotifier(null);
+
+  /// How much of the bar sits above the text box (Bujji's row, stickers):
+  /// the list keeps that as room under the newest message, so messages
+  /// scroll on behind Bujji instead of stopping above it.
+  final ValueNotifier<double> inputRowTopNotifier = ValueNotifier(0);
   double? get inputBarHeight => inputBarHeightNotifier.value;
 
   void _onDockChanged() {
@@ -1938,6 +1944,11 @@ class ChatController extends State<ChatPageWithRoom>
     }
 
     final height = renderBox?.size.height ?? 72.0;
+    final row = inputRowKey.currentContext?.findRenderObject();
+    inputRowTopNotifier.value =
+        renderBox != null && renderBox.attached && row is RenderBox && row.attached
+        ? row.localToGlobal(Offset.zero, ancestor: renderBox).dy.clamp(0.0, height)
+        : 0.0;
     if (height != inputBarHeightNotifier.value) {
       inputBarHeightNotifier.value = height;
     }

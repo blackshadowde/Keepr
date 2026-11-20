@@ -157,15 +157,25 @@ class ChatEventList extends StatelessWidget {
           // and times keep their size (no scaling of the whole chat).
           textScaler: TextScaler.noScaling,
         ),
-        child: ValueListenableBuilder<double?>(
-          valueListenable: controller.inputBarHeightNotifier,
+        child: ListenableBuilder(
+          listenable: Listenable.merge([
+            controller.inputBarHeightNotifier,
+            controller.inputRowTopNotifier,
+          ]),
           // Only the space under the list changes; the messages themselves
-          // are not rebuilt while the input bar resizes.
-          builder: (context, barHeight, list) => Padding(
+          // are not rebuilt while the input bar resizes. The list ends at
+          // the text box and glides when the bar grows or shrinks (voice
+          // recorder, more lines); Bujji's row above is room inside it.
+          builder: (context, list) => AnimatedPadding(
+            duration: controller.routeSettled
+                ? const Duration(milliseconds: 240)
+                : Duration.zero,
+            curve: Curves.easeOutCubic,
             padding: EdgeInsets.only(
-              bottom:
-                  barHeight ??
-                  (72 + (VibeThemes.isColumnMode(context) ? 16 : 0)),
+              bottom: controller.inputBarHeight == null
+                  ? 72 + (VibeThemes.isColumnMode(context) ? 16 : 0)
+                  : controller.inputBarHeight! -
+                        controller.inputRowTopNotifier.value,
             ),
             child: list,
           ),
@@ -189,17 +199,33 @@ class ChatEventList extends StatelessWidget {
             (BuildContext context, int i) {
               // Footer to display typing indicator and read receipts:
               if (i == 0) {
+                // room for Bujji's row: the newest message rests above it
+                final room = ValueListenableBuilder<double>(
+                  valueListenable: controller.inputRowTopNotifier,
+                  builder: (context, h, _) => TweenAnimationBuilder<double>(
+                    tween: Tween(end: h),
+                    duration: const Duration(milliseconds: 240),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, v, _) => SizedBox(height: v),
+                  ),
+                );
                 if (timeline.canRequestFuture) {
-                  return Center(
-                    child: TextButton.icon(
-                      onPressed: timeline.isRequestingFuture
-                          ? null
-                          : controller.requestFuture,
-                      icon: timeline.isRequestingFuture
-                          ? CircularProgressIndicator.adaptive(strokeWidth: 2)
-                          : const Icon(Icons.arrow_downward_outlined),
-                      label: Text(L10n.of(context).loadMore),
-                    ),
+                  return Column(
+                    mainAxisSize: .min,
+                    children: [
+                      Center(
+                        child: TextButton.icon(
+                          onPressed: timeline.isRequestingFuture
+                              ? null
+                              : controller.requestFuture,
+                          icon: timeline.isRequestingFuture
+                              ? CircularProgressIndicator.adaptive(strokeWidth: 2)
+                              : const Icon(Icons.arrow_downward_outlined),
+                          label: Text(L10n.of(context).loadMore),
+                        ),
+                      ),
+                      room,
+                    ],
                   );
                 }
                 return Column(
@@ -211,6 +237,7 @@ class ChatEventList extends StatelessWidget {
                     if (events.isNotEmpty)
                       SeenByRow(event: events.first, timeline: timeline),
                     EncryptionInfo(room: controller.room),
+                    room,
                   ],
                 );
               }

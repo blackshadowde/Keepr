@@ -60,6 +60,9 @@ class ChatView extends StatelessWidget {
     final scrollUpBannerEventId = controller.scrollUpBannerEventId;
 
     final accountConfig = Matrix.of(context).client.applicationAccountConfig;
+    // the wallpaper is as tall as the screen: it goes on behind the
+    // navigation bar and stays still when the keyboard opens
+    final screenHeight = MediaQuery.sizeOf(context).height;
 
     return PopScope(
       canPop:
@@ -413,14 +416,25 @@ class ChatView extends StatelessWidget {
                   child: SafeArea(
                     top: false,
                     child: Stack(
+                      clipBehavior: Clip.none,
                       children: <Widget>[
                         // the wallpaper: Keepr's own, from the theme's
                         // colours, or your photo softened to fit (a little
                         // blur, dimmed, tinted with the theme)
                         ValueListenableBuilder<int>(
                           valueListenable: VibeWallpaper.version,
-                          builder: (context, _, _) => Positioned.fill(
-                            child: VibeWallpaper.painted
+                          builder: (context, _, _) => Positioned(
+                            left: 0,
+                            top: 0,
+                            right: 0,
+                            height: screenHeight,
+                            // kept as one picture: scrolling (and Bujji
+                            // moving) doesn't redraw its blur and drawings
+                            // on every frame
+                            child: SnapshotWidget(
+                              controller: _wallSnapshot,
+                              autoresize: true,
+                              child: VibeWallpaper.painted
                                 ? const VibeWallpaperPaint()
                                 : VibeWallpaper.music
                                 ? const VibeMusicWallpaper()
@@ -456,6 +470,7 @@ class ChatView extends StatelessWidget {
                                       ],
                                     ),
                                   ),
+                            ),
                           ),
                         ),
                         // a thread slides in from the right and back out
@@ -675,7 +690,14 @@ class ChatView extends StatelessWidget {
                                                   // Hike-style text stickers
                                                   VibeTextStickerBar(controller),
                                                   // the typing buddy
-                                                  VibeBuddyBar(controller),
+                                                  // its own layer: Bujji
+                                                  // moving doesn't repaint
+                                                  // the rest of the chat
+                                                  RepaintBoundary(
+                                                    child: VibeBuddyBar(
+                                                      controller,
+                                                    ),
+                                                  ),
                                                   KeyedSubtree(
                                                     key: controller.inputRowKey,
                                                     child: ChatInputRow(
@@ -877,6 +899,9 @@ class _ThreadTitle extends StatelessWidget {
     );
   }
 }
+
+/// The wallpaper is drawn once and reused while messages move over it.
+final _wallSnapshot = SnapshotController(allowSnapshotting: true);
 
 /// The page colour behind the text box and below it, fading in over its
 /// first few pixels. It's measured from the text box itself, so Bujji's row
