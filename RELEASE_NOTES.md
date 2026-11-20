@@ -14,6 +14,11 @@
 - The wallpaper now reaches the bottom edge, behind the navigation bar, and stays still when the keyboard opens
 - All in Customisation > Chat wallpaper
 
+**Privacy**
+- Your status, your local time and what you're listening to are now end-to-end encrypted, sent only to the people you chat with (as your status privacy allows). The servers can no longer read them
+- Your group tag is encrypted the same way, for the people in your encrypted groups
+- People need this version to see your status and tag
+
 **Sounds**
 - Sound packs: Glass, Wood, Air and Classic, in Notifications > Sounds, each with a play button. A pack covers calls, notifications and two new message sounds
 - A short sound as your message goes, and one when a message comes into the chat you have open (not in muted chats). Each has its own switch, and they play along with your music instead of pausing it

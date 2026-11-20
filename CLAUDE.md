@@ -357,6 +357,22 @@ Last updated: 2026-11-20.
     own pieces (`VibeBubblePainter`, `VibeTimeFlow`, `VibeCardColours`, an
     Echo-style reply). The Start-up animation switch stays: it still drives
     the home rows sliding in (`VibeStagger`, `VibeLaunch`, `VibeBootIntro`).
+  - Encrypted status and group tags (`lib/vibe/vibe_quiet_mail.dart`):
+    `VibeQuietMail.send` = Olm to-device (`sendToDeviceEncryptedChunked`,
+    unknown users' devices looked up first), `on` = decrypted to-device of a
+    type (only ones with `encryptedContent`), a vault per kind kept in
+    `AppSettings.store` (`chat.keepr.quiet.status` / `.tag` / `.sent`),
+    `askMissing` (`chat.keepr.ask`, once per person per run) and
+    `mayAnswer` (once a minute). `VibeStatus`: `_send` (only to whom the
+    signature changed; hidden placeholder per privacy; own devices too),
+    `_got` (DM partners and self; older `updatedMs` ignored), `_answer`,
+    `_clearOld` (empties the old state copies); `of` reads the vault, then
+    the old state. `VibeMemberTags`: `sync` sends `{'tag': …}` to members
+    of encrypted groups (200 a group) and strips the tag from member events;
+    `watch`, `askIn` (on opening a group, 50 people). Readers on older
+    versions still see the old copies of people who haven't updated.
+    Reactions stay readable (the SDK keeps `m.relates_to`, which holds the
+    emoji, in the clear); room names, pictures and members are state.
   - Block screenshots (`vibeBlockScreenshots`, Security & sign-in, Android):
     `MainActivity.blockScreenshots` (FLAG_SECURE), read from
     FlutterSharedPreferences in `onPostCreate` and set live through
