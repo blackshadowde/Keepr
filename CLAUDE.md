@@ -250,21 +250,25 @@ Last updated: 2026-11-20.
     the whole bar.
   - Old name Vibe replaced by Keepr in the iPhone share extension's display
     name and desktop window titles.
+  - Replies as Echo (the owner's pick from the canvas): `replyStrip` in
+    `vibe_message.dart` draws the answered message as a smaller card in its
+    person's colour peeking out above the card (26 px show, the card covers
+    the rest; it reports its width to the card via `_ReportWidth` so the card
+    covers it). `_ReplyCurve` and `_ReplyRail` are gone.
+  - Wallpapers (the owner's pick): `vibe_wallpaper.dart` paints Doodles,
+    Flow, Shapes, Waves and Dots from the `ColorScheme`
+    (`VibeWallpaperPaint`, doodles from SVG path data); `VibeWallpaperPage`
+    (Customisation > Chat wallpaper) with tiles, Pattern
+    (`AppSettings.vibeWallpaperPattern`) and, for your photo, Dim (the
+    account's `wallpaperOpacity`) and Remove. The pick is
+    `AppSettings.vibeWallpaper` ('photo' by default, 'none', or a style).
+    Your photo gets blur 3 when none is set and a 14% theme tint.
+    `VibeWallpaper.on` replaces the old `wallpaperUrl != null` checks.
+  - Unpin in the hold menu: the pin with a slash (`_OffIcon`).
+  - Hot word "sorry" writes itself like hi and bye (`_sorryPath`, from the
+    Hershey script lettering, with its credit). The owner wants only sorry
+    changed; the other scenes stay.
 - Waiting for the owner:
-  - Wallpaper mockups on the design canvas ("Chat wallpapers: Keepr's own,
-    in your theme's colours"; generator `gen/wall.py` in the scratchpad):
-    Doodles, Flow, Shapes, Waves, Dots, all from the theme's colours, and
-    photos softened (blur, dim, tint) with Pattern and Dim sliders.
-  - Reply mockups on the canvas ("Replies: Keepr's own way to show what's
-    answered"; generator `gen/reply.py`) to replace the corner line
-    (`_ReplyCurve`) and the line down the card (`_ReplyRail`) in
-    `vibe_message.dart`: A Tab (grows out of the card's top, flush with its
-    outer edge, a pill inside in the answered person's colour), B Echo (the
-    answered message peeks out behind the card as a smaller card), C Dots (a
-    pill above, three dots into the card). The owner likes B and asked for
-    nicer dots: C2 (three beads falling from a soft pill, largest by the
-    pill) and C3 (five beads rising from the picture's column, turning into
-    a small pill) are on the canvas; waiting for his pick.
   - Pane extras from the study (dim follows the pull, the page behind steps
     back): they reach into Flutter's own pane code, so try them with a test
     APK. Questions in Keepr already open as panes (`showVibeDialog`), so the
