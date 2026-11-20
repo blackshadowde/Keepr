@@ -422,6 +422,8 @@ class ChatView extends StatelessWidget {
                           builder: (context, _, _) => Positioned.fill(
                             child: VibeWallpaper.painted
                                 ? const VibeWallpaperPaint()
+                                : VibeWallpaper.music
+                                ? const VibeMusicWallpaper()
                                 : !VibeWallpaper.photo(accountConfig)
                                 ? const SizedBox.shrink()
                                 : Opacity(

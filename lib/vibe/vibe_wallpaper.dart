@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:collection/collection.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:matrix/matrix.dart';
 
 import 'package:vibe/config/setting_keys.dart';
 import 'package:vibe/utils/account_config.dart';
 import 'package:vibe/utils/file_selector.dart';
+import 'package:vibe/vibe/vibe_connections.dart';
 import 'package:vibe/vibe/vibe_haptics.dart';
 import 'package:vibe/vibe/vibe_settings_style.dart';
 import 'package:vibe/widgets/future_loading_dialog.dart';
@@ -28,12 +31,13 @@ abstract class VibeWallpaper {
     'waves': 'Waves',
     'dots': 'Dots',
     'photo': 'Your photo',
+    'music': 'Music',
   };
 
   /// Bumped when the pick changes, so open chats repaint.
   static final version = ValueNotifier<int>(0);
 
-  /// 'photo' (yours, when you have one), 'none' or one of [styles].
+  /// 'photo' (yours, when you have one), 'music', 'none' or one of [styles].
   static String get style => AppSettings.vibeWallpaper.value;
 
   /// How strongly the drawings show, 0 to 1.
@@ -52,15 +56,18 @@ abstract class VibeWallpaper {
   /// One of Keepr's own is on.
   static bool get painted => styles.contains(style);
 
+  /// The cover of what you're playing.
+  static bool get music => style == 'music';
+
   /// Your photo shows.
   static bool photo(ApplicationAccountConfig c) =>
       style == 'photo' && c.wallpaperUrl != null;
 
   /// Something is behind the chats (the bars go see-through over it).
-  static bool on(ApplicationAccountConfig c) => painted || photo(c);
+  static bool on(ApplicationAccountConfig c) => painted || music || photo(c);
 
   /// What Customisation says is on.
-  static String label(ApplicationAccountConfig c) => painted
+  static String label(ApplicationAccountConfig c) => painted || music
       ? names[style]!
       : photo(c)
       ? 'Your photo'
@@ -91,6 +98,59 @@ class VibeWallpaperPaint extends StatelessWidget {
             VibeWallpaper.pattern,
           ),
         ),
+      );
+    },
+  );
+}
+
+/// Music: the cover of what you're playing, blown up soft behind the chats
+/// and calmed toward the page colour so messages read well. It changes with
+/// the song; with nothing playing, Flow shows.
+class VibeMusicWallpaper extends StatelessWidget {
+  const VibeMusicWallpaper({super.key});
+
+  @override
+  Widget build(BuildContext context) => ValueListenableBuilder<VibeTrack?>(
+    valueListenable: VibeConnections.playing,
+    builder: (context, t, _) {
+      final cover = t?.cover;
+      final theme = Theme.of(context);
+      final dark = theme.brightness == Brightness.dark;
+      const flow = VibeWallpaperPaint(style: 'flow');
+      return AnimatedSwitcher(
+        duration: const Duration(milliseconds: 900),
+        child: cover == null || !cover.startsWith('https://')
+            ? const KeyedSubtree(key: ValueKey('flow'), child: flow)
+            : RepaintBoundary(
+                key: ValueKey(cover),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    ColoredBox(color: theme.colorScheme.surface),
+                    // a small copy made big and soft: its colours, not
+                    // the picture
+                    ImageFiltered(
+                      imageFilter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                      child: Transform.scale(
+                        scale: 1.2,
+                        child: Image.network(
+                          cover,
+                          fit: BoxFit.cover,
+                          cacheWidth: 64,
+                          filterQuality: FilterQuality.medium,
+                          gaplessPlayback: true,
+                          errorBuilder: (_, _, _) => flow,
+                        ),
+                      ),
+                    ),
+                    ColoredBox(
+                      color: theme.colorScheme.surface.withValues(
+                        alpha: dark ? 0.55 : 0.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
       );
     },
   );
@@ -630,6 +690,62 @@ class _VibeWallpaperPageState extends State<VibeWallpaperPage> {
     if (r.isValue) await _pick('none');
   }
 
+  /// What Music needs and what it's showing.
+  Widget _musicNote(ColorScheme cs) {
+    final style = TextStyle(fontSize: 13.5, height: 1.4, color: cs.onSurfaceVariant);
+    final service = VibeConnections.service;
+    final t = VibeConnections.playing.value;
+    if (service == null) {
+      // not connected yet: connect one right here
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Music shows the cover of what you\'re playing. Connect '
+              'Last.fm or ListenBrainz so Keepr knows the song.',
+              style: style,
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final s in VibeService.values)
+                  if (VibeConnections.available(s))
+                    FilledButton.tonalIcon(
+                      onPressed: () => VibeConnectSheet.show(context, s),
+                      icon: Icon(s.icon, size: 18),
+                      label: Text(s.label),
+                    ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+    final text = !VibeConnections.sharing
+        ? 'Sharing what you play is off in Connections on your profile. '
+              'Turn it on so Keepr knows the song.'
+        : t == null
+        ? 'Nothing playing right now, so Flow shows until a song starts. '
+              'Keepr checks ${service.label} every 30 seconds.'
+        : 'Now: ${t.title}${t.artist.isEmpty ? '' : ' · ${t.artist}'}. '
+              'The cover changes with the song.';
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.music_note_rounded, size: 20, color: cs.primary),
+          const SizedBox(width: 10),
+          Expanded(child: Text(text, style: style)),
+        ],
+      ),
+    );
+  }
+
   Widget _slider(
     String title,
     String sub,
@@ -674,6 +790,16 @@ class _VibeWallpaperPageState extends State<VibeWallpaperPage> {
   @override
   Widget build(BuildContext context) {
     final client = Matrix.of(context).client;
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        VibeConnections.playing,
+        VibeConnections.changed,
+      ]),
+      builder: (context, _) => _page(context, client),
+    );
+  }
+
+  Widget _page(BuildContext context, Client client) {
     return StreamBuilder(
       stream: client.onSync.stream.where(
         (u) =>
@@ -730,8 +856,10 @@ class _VibeWallpaperPageState extends State<VibeWallpaperPage> {
               child: LayoutBuilder(
                 builder: (context, c) {
                   final w = ((c.maxWidth - 24) / 3).clamp(80.0, 150.0);
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  final cover = VibeConnections.playing.value?.cover;
+                  return Wrap(
+                    spacing: 12,
+                    runSpacing: 14,
                     children: [
                       _Tile(
                         width: w,
@@ -750,65 +878,77 @@ class _VibeWallpaperPageState extends State<VibeWallpaperPage> {
                                 placeholder: (_) => const SizedBox.shrink(),
                               ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: VibeCard(
-                          margin: EdgeInsets.zero,
-                          children: [
-                            if (VibeWallpaper.painted)
-                              _slider(
-                                'Pattern',
-                                'How strongly the drawings show',
-                                _pattern ?? VibeWallpaper.pattern,
-                                (v) => setState(() => _pattern = v),
-                                (v) => VibeWallpaper.setPattern(v),
-                              ),
-                            if (photoOn) ...[
-                              _slider(
-                                'Dim',
-                                'How far your photo fades back',
-                                _dim ?? (1 - (config.wallpaperOpacity ?? 0.5)),
-                                (v) => setState(() => _dim = v),
-                                (v) => client.updateApplicationAccountConfig(
-                                  ApplicationAccountConfig(
-                                    wallpaperOpacity: (1 - v).clamp(0.05, 1.0),
-                                  ),
-                                ),
-                              ),
-                              Align(
-                                alignment: Alignment.centerLeft,
-                                child: Padding(
-                                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
-                                  child: TextButton(
-                                    onPressed: _removePhoto,
-                                    style: TextButton.styleFrom(
-                                      foregroundColor: cs.error,
-                                    ),
-                                    child: const Text('Remove photo'),
-                                  ),
-                                ),
-                              ),
-                            ],
-                            if (!VibeWallpaper.painted && !photoOn)
-                              Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Text(
-                                  "Pick one of Keepr's wallpapers above, or "
-                                  'tap Your photo to use a picture of yours. '
-                                  'It stays on your account, softened to fit.',
-                                  style: TextStyle(
-                                    fontSize: 13.5,
-                                    height: 1.4,
-                                    color: cs.onSurfaceVariant,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
+                      // the cover of what you're playing
+                      _Tile(
+                        width: w,
+                        label: 'Music',
+                        picked: VibeWallpaper.music,
+                        onTap: () => _pick('music'),
+                        icon: Icons.music_note_rounded,
+                        child: cover == null
+                            ? null
+                            : const VibeMusicWallpaper(),
                       ),
                     ],
                   );
                 },
+              ),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: VibeCard(
+                margin: EdgeInsets.zero,
+                children: [
+                  if (VibeWallpaper.painted)
+                    _slider(
+                      'Pattern',
+                      'How strongly the drawings show',
+                      _pattern ?? VibeWallpaper.pattern,
+                      (v) => setState(() => _pattern = v),
+                      (v) => VibeWallpaper.setPattern(v),
+                    ),
+                  if (photoOn) ...[
+                    _slider(
+                      'Dim',
+                      'How far your photo fades back',
+                      _dim ?? (1 - (config.wallpaperOpacity ?? 0.5)),
+                      (v) => setState(() => _dim = v),
+                      (v) => client.updateApplicationAccountConfig(
+                        ApplicationAccountConfig(
+                          wallpaperOpacity: (1 - v).clamp(0.05, 1.0),
+                        ),
+                      ),
+                    ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
+                        child: TextButton(
+                          onPressed: _removePhoto,
+                          style: TextButton.styleFrom(foregroundColor: cs.error),
+                          child: const Text('Remove photo'),
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (VibeWallpaper.music) _musicNote(cs),
+                  if (!VibeWallpaper.painted && !photoOn && !VibeWallpaper.music)
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        "Pick one of Keepr's wallpapers above, tap Your photo "
+                        'to use a picture of yours (it stays on your account, '
+                        'softened to fit), or Music for the cover of what '
+                        "you're playing.",
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          height: 1.4,
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
             const SizedBox(height: 32),
