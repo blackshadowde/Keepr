@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'dart:ui' as ui;
+
 import 'package:vibe/vibe/vibe_sticker.dart';
 import 'package:vibe/vibe/vibe_dialog.dart';
 import 'package:vibe/vibe/vibe_haptics.dart';
@@ -126,8 +128,8 @@ class _VibeMediaViewerState extends State<VibeMediaViewer> {
     final event = widget.events[_index];
     final sender = event.senderFromMemoryOrFallback.calcDisplayname();
     final fade = (1 - _dragDown / 300).clamp(0.3, 1.0);
-    return Scaffold(
-      backgroundColor: Colors.black.withValues(alpha: fade),
+    final page = Scaffold(
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         child: Column(
           children: [
@@ -308,7 +310,45 @@ class _VibeMediaViewerState extends State<VibeMediaViewer> {
         ),
       ),
     );
+    // the photo itself, blurred and dimmed, fills the screen behind it
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Opacity(
+          opacity: fade,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 350),
+            child: _Backdrop(key: ValueKey(event.eventId), event: event),
+          ),
+        ),
+        page,
+      ],
+    );
   }
+}
+
+/// The photo on screen, blurred and dimmed, behind the slideshow.
+class _Backdrop extends StatelessWidget {
+  final Event event;
+  const _Backdrop({required this.event, super.key});
+
+  @override
+  Widget build(BuildContext context) => RepaintBoundary(
+    child: Stack(
+      fit: StackFit.expand,
+      children: [
+        ImageFiltered(
+          imageFilter: ui.ImageFilter.blur(
+            sigmaX: 40,
+            sigmaY: 40,
+            tileMode: ui.TileMode.clamp,
+          ),
+          child: _Slide.thumbOf(event, fit: BoxFit.cover),
+        ),
+        ColoredBox(color: Colors.black.withValues(alpha: 0.5)),
+      ],
+    ),
+  );
 }
 
 class _Slide extends StatelessWidget {
@@ -328,15 +368,21 @@ class _Slide extends StatelessWidget {
   }
 
   /// The chat's own thumbnail (already in memory), shown instantly.
-  Widget _thumb() => MxcImage(
-    key: ValueKey('chat_thumb_${VibeStableId.of(event)}'),
-    cacheName: event.room.id,
-    cacheKey: VibeStableId.of(event),
-    event: event,
-    fit: BoxFit.contain,
-    isThumbnail: true,
-    placeholder: (_) => const SizedBox.shrink(),
-  );
+  Widget _thumb() => thumbOf(event);
+
+  /// It fills the slide, so a short picture sits in the middle.
+  static Widget thumbOf(Event event, {BoxFit fit = BoxFit.contain}) =>
+      MxcImage(
+        key: ValueKey('chat_thumb_${VibeStableId.of(event)}'),
+        cacheName: event.room.id,
+        cacheKey: VibeStableId.of(event),
+        event: event,
+        fit: fit,
+        width: double.infinity,
+        height: double.infinity,
+        isThumbnail: true,
+        placeholder: (_) => const SizedBox.shrink(),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -366,6 +412,9 @@ class _Slide extends StatelessWidget {
               cacheKey: 'full_${event.eventId}',
               event: event,
               fit: BoxFit.contain,
+              // fills the slide, so a short picture sits in the middle
+              width: double.infinity,
+              height: double.infinity,
               isThumbnail: false,
               animated: true,
               placeholder: (_) => const SizedBox.shrink(),
@@ -374,7 +423,6 @@ class _Slide extends StatelessWidget {
         ],
       );
     }
-    content = ColoredBox(color: const Color(0xFF111214), child: content);
     if (hero) content = Hero(tag: event.eventId, child: content);
     return GestureDetector(
       onLongPress: () => _jump(context),

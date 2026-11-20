@@ -1209,9 +1209,12 @@ class _VibeBuddyBarState extends State<VibeBuddyBar>
       if (_trip?.why == 'dance') _comeBack();
       return;
     }
-    // now and then it hops over to a message and dances on it
-    _danceTimer = Timer.periodic(const Duration(seconds: 25), (_) => _danceHop());
-    Future<void>.delayed(const Duration(seconds: 4), _danceHop);
+    // once in a while it hops over to a message and dances on it
+    _danceTimer = Timer.periodic(const Duration(seconds: 90), (_) => _danceHop());
+    // the first hop when music starts, not on every new song
+    if (was == null) {
+      Future<void>.delayed(const Duration(seconds: 12), _danceHop);
+    }
   }
 
   void _danceHop() {
