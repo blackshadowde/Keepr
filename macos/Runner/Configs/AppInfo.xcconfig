@@ -11,4 +11,4 @@ PRODUCT_NAME = Vibe
 PRODUCT_BUNDLE_IDENTIFIER = app.keepr.chat
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 Vibe authors, based on FluffyChat. AGPL-3.0.
+PRODUCT_COPYRIGHT = Copyright © 2026 Keepr authors, based on FluffyChat. AGPL-3.0.
