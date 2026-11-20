@@ -423,24 +423,9 @@ class ChatView extends StatelessWidget {
                         // blur, dimmed, tinted with the theme)
                         ValueListenableBuilder<int>(
                           valueListenable: VibeWallpaper.version,
-                          builder: (context, _, _) => Positioned(
-                            left: 0,
-                            top: 0,
-                            right: 0,
-                            height: screenHeight,
-                            // kept as one picture: scrolling (and Bujji
-                            // moving) doesn't redraw its blur and drawings
-                            // on every frame
-                            child: SnapshotWidget(
-                              controller: _wallSnapshot,
-                              autoresize: true,
-                              child: VibeWallpaper.painted
-                                ? const VibeWallpaperPaint()
-                                : VibeWallpaper.music
-                                ? const VibeMusicWallpaper()
-                                : !VibeWallpaper.photo(accountConfig)
-                                ? const SizedBox.shrink()
-                                : Opacity(
+                          builder: (context, _, _) {
+                            // your photo
+                            Widget photo() => Opacity(
                                     opacity: accountConfig.wallpaperOpacity ?? 0.5,
                                     child: Stack(
                                       fit: StackFit.expand,
@@ -469,9 +454,40 @@ class ChatView extends StatelessWidget {
                                         ),
                                       ],
                                     ),
-                                  ),
-                            ),
-                          ),
+                                  );
+                            return Positioned(
+                              left: 0,
+                              top: 0,
+                              right: 0,
+                              height: screenHeight,
+                              child: VibeWallpaper.painted
+                                  // kept as one picture: scrolling (and Bujji
+                                  // moving) doesn't redraw its blur and
+                                  // drawings on every frame
+                                  ? SnapshotWidget(
+                                      controller: _wallSnapshot,
+                                      autoresize: true,
+                                      child: const VibeWallpaperPaint(),
+                                    )
+                                  // its own layer; no snapshot, since covers
+                                  // and photos arrive and fade in later
+                                  : RepaintBoundary(
+                                      child: VibeWallpaper.music
+                                          // with nothing playing: your photo,
+                                          // or the plain background
+                                          ? VibeMusicWallpaper(
+                                              fallback:
+                                                  accountConfig.wallpaperUrl !=
+                                                      null
+                                                  ? photo()
+                                                  : const SizedBox.shrink(),
+                                            )
+                                          : VibeWallpaper.photo(accountConfig)
+                                          ? photo()
+                                          : const SizedBox.shrink(),
+                                    ),
+                            );
+                          },
                         ),
                         // a thread slides in from the right and back out
                         AnimatedSlide(

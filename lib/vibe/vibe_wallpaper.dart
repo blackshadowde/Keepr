@@ -104,57 +104,125 @@ class VibeWallpaperPaint extends StatelessWidget {
   );
 }
 
-/// Music: the cover of what you're playing, blown up soft behind the chats
-/// and calmed toward the page colour so messages read well. It changes with
-/// the song; with nothing playing, Flow shows.
+/// Music: the cover of what you're playing, made soft and calm behind the
+/// chats. It changes with the song; with nothing playing, [fallback] shows
+/// (your photo, or the plain background).
 class VibeMusicWallpaper extends StatelessWidget {
-  const VibeMusicWallpaper({super.key});
+  final Widget fallback;
+  const VibeMusicWallpaper({
+    this.fallback = const SizedBox.shrink(),
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) => ValueListenableBuilder<VibeTrack?>(
     valueListenable: VibeConnections.playing,
     builder: (context, t, _) {
       final cover = t?.cover;
-      final theme = Theme.of(context);
-      final dark = theme.brightness == Brightness.dark;
-      const flow = VibeWallpaperPaint(style: 'flow');
       return AnimatedSwitcher(
         duration: const Duration(milliseconds: 900),
-        child: cover == null || !cover.startsWith('https://')
-            ? const KeyedSubtree(key: ValueKey('flow'), child: flow)
-            : KeyedSubtree(
-                key: ValueKey(cover),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    ColoredBox(color: theme.colorScheme.surface),
-                    // a small copy made big and soft: its colours, not
-                    // the picture
-                    ImageFiltered(
-                      imageFilter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-                      child: Transform.scale(
-                        scale: 1.2,
-                        child: Image.network(
-                          cover,
-                          fit: BoxFit.cover,
-                          cacheWidth: 64,
-                          filterQuality: FilterQuality.medium,
-                          gaplessPlayback: true,
-                          errorBuilder: (_, _, _) => flow,
-                        ),
-                      ),
-                    ),
-                    ColoredBox(
-                      color: theme.colorScheme.surface.withValues(
-                        alpha: dark ? 0.55 : 0.4,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+        layoutBuilder: (current, previous) => Stack(
+          fit: StackFit.expand,
+          children: [...previous, ?current],
+        ),
+        child: cover != null && cover.startsWith('https://')
+            ? _SoftCover(key: ValueKey(cover), url: cover, fallback: fallback)
+            : KeyedSubtree(key: const ValueKey('none'), child: fallback),
       );
     },
   );
+}
+
+/// One cover, loaded small and blurred once into a little picture, so the
+/// chat draws a single small image each frame. Until it's ready, or if it
+/// can't be loaded, the fallback shows.
+class _SoftCover extends StatefulWidget {
+  final String url;
+  final Widget fallback;
+  const _SoftCover({required this.url, required this.fallback, super.key});
+
+  @override
+  State<_SoftCover> createState() => _SoftCoverState();
+}
+
+class _SoftCoverState extends State<_SoftCover> {
+  ImageStream? _stream;
+  late final ImageStreamListener _listener = ImageStreamListener(
+    _got,
+    onError: (_, _) {
+      if (mounted) setState(() => _failed = true);
+    },
+  );
+  ui.Image? _image;
+  bool _failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _stream = ResizeImage(NetworkImage(widget.url), width: 96)
+        .resolve(ImageConfiguration.empty)
+      ..addListener(_listener);
+  }
+
+  Future<void> _got(ImageInfo info, bool _) async {
+    final src = info.image;
+    // a phone-shaped piece from the middle of the cover, blurred
+    const w = 72, h = 160;
+    final sw = src.width.toDouble(), sh = src.height.toDouble();
+    final cw = math.min(sw, sh * w / h), ch = cw * h / w;
+    final rec = ui.PictureRecorder();
+    Canvas(rec).drawImageRect(
+      src,
+      Rect.fromCenter(center: Offset(sw / 2, sh / 2), width: cw, height: ch),
+      const Rect.fromLTWH(-w * 0.1, -h * 0.1, w * 1.2, h * 1.2),
+      Paint()
+        ..filterQuality = FilterQuality.medium
+        ..imageFilter = ui.ImageFilter.blur(
+          sigmaX: 3.5,
+          sigmaY: 3.5,
+          tileMode: ui.TileMode.clamp,
+        ),
+    );
+    info.dispose();
+    final picture = rec.endRecording();
+    final image = await picture.toImage(w, h);
+    picture.dispose();
+    if (!mounted) {
+      image.dispose();
+      return;
+    }
+    setState(() => _image = image);
+  }
+
+  @override
+  void dispose() {
+    _stream?.removeListener(_listener);
+    _image?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final image = _image;
+    if (_failed || image == null) return widget.fallback;
+    final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        ColoredBox(color: theme.colorScheme.surface),
+        RawImage(
+          image: image,
+          fit: BoxFit.cover,
+          filterQuality: FilterQuality.medium,
+        ),
+        // calmed toward the page colour so messages read well
+        ColoredBox(
+          color: theme.colorScheme.surface.withValues(alpha: dark ? 0.55 : 0.4),
+        ),
+      ],
+    );
+  }
 }
 
 class _WallPainter extends CustomPainter {
@@ -692,7 +760,7 @@ class _VibeWallpaperPageState extends State<VibeWallpaperPage> {
   }
 
   /// What Music needs and what it's showing.
-  Widget _musicNote(ColorScheme cs) {
+  Widget _musicNote(ColorScheme cs, {required bool photo}) {
     final style = TextStyle(fontSize: 13.5, height: 1.4, color: cs.onSurfaceVariant);
     final service = VibeConnections.service;
     final t = VibeConnections.playing.value;
@@ -730,7 +798,9 @@ class _VibeWallpaperPageState extends State<VibeWallpaperPage> {
         ? 'Sharing what you play is off in Connections on your profile. '
               'Turn it on so Keepr knows the song.'
         : t == null
-        ? 'Nothing playing right now, so Flow shows until a song starts. '
+        ? 'Nothing playing right now, so '
+              '${photo ? 'your photo' : 'the plain background'} shows until a '
+              'song starts. '
               'Keepr checks ${service.label} every 30 seconds.'
         : 'Now: ${t.title}${t.artist.isEmpty ? '' : ' · ${t.artist}'}. '
               'The cover changes with the song.';
@@ -933,7 +1003,8 @@ class _VibeWallpaperPageState extends State<VibeWallpaperPage> {
                       ),
                     ),
                   ],
-                  if (VibeWallpaper.music) _musicNote(cs),
+                  if (VibeWallpaper.music)
+                    _musicNote(cs, photo: config.wallpaperUrl != null),
                   if (!VibeWallpaper.painted && !photoOn && !VibeWallpaper.music)
                     Padding(
                       padding: const EdgeInsets.all(16),

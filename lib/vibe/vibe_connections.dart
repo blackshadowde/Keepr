@@ -36,12 +36,18 @@ class VibeTrack {
 
   String get key => '$title|$artist';
 
-  VibeTrack copyWith({int? duration, int? start, bool? sad}) => VibeTrack(
+  /// [cover] replaces the cover (also with none) when given.
+  VibeTrack copyWith({
+    int? duration,
+    int? start,
+    bool? sad,
+    String? Function()? cover,
+  }) => VibeTrack(
     title: title,
     artist: artist,
     album: album,
     via: via,
-    cover: cover,
+    cover: cover != null ? cover() : this.cover,
     url: url,
     duration: duration ?? this.duration,
     start: start ?? this.start,
@@ -186,17 +192,7 @@ abstract class VibeConnections {
     final now = (t['@attr'] as Map?)?['nowplaying'] == 'true';
     if (!now) return (found: true, track: null);
     String text(Object? o) => o is Map ? '${o['#text'] ?? ''}' : '${o ?? ''}';
-    String? cover;
-    final images = t['image'];
-    if (images is List) {
-      for (final i in images.reversed) {
-        final u = i is Map ? '${i['#text'] ?? ''}' : '';
-        if (u.startsWith('https://')) {
-          cover = u;
-          break;
-        }
-      }
-    }
+    final cover = _image(t['image']);
     return (
       found: true,
       track: VibeTrack(
@@ -255,9 +251,56 @@ abstract class VibeConnections {
     caseSensitive: false,
   );
 
+  /// The biggest picture in a Last.fm image list, leaving out its grey star
+  /// (what Last.fm shows when it has no cover).
+  static String? _image(Object? images) {
+    if (images is! List) return null;
+    for (final i in images.reversed) {
+      final u = i is Map ? '${i['#text'] ?? ''}' : '';
+      if (u.startsWith('https://') &&
+          !u.contains('2a96cbd8b46e442fc41c2b86b821562f')) {
+        return u;
+      }
+    }
+    return null;
+  }
+
+  /// A cover from MusicBrainz and the Cover Art Archive, for songs the
+  /// service sent without one (often the case for streamed songs).
+  static Future<String?> _archiveCover(VibeTrack t) async {
+    if (t.artist.isEmpty || t.title.isEmpty) return null;
+    try {
+      final r = await http.get(Uri.https('api.listenbrainz.org', '/1/metadata/lookup/', {
+        'artist_name': t.artist,
+        'recording_name': t.title,
+        if (t.album.isNotEmpty) 'release_name': t.album,
+      })).timeout(const Duration(seconds: 12));
+      final j = jsonDecode(r.body);
+      final mbid = j is Map ? j['release_mbid'] : null;
+      if (mbid is! String || mbid.isEmpty) return null;
+      return await _ifThere('https://coverartarchive.org/release/$mbid/front-250');
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// [url] when the picture is really there.
+  static Future<String?> _ifThere(String url) async {
+    try {
+      final r = await http.head(Uri.parse(url)).timeout(const Duration(seconds: 12));
+      return r.statusCode < 400 ? url : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   static Future<VibeTrack> _more(VibeTrack t) async {
     var sad = _sadWords.hasMatch(t.title);
     var duration = t.duration;
+    var cover = t.cover;
+    if (cover != null && cover.startsWith('https://coverartarchive.org/')) {
+      cover = await _ifThere(cover);
+    }
     if (_lastfmKey.isNotEmpty) {
       try {
         final r = await http.get(Uri.https('ws.audioscrobbler.com', '/2.0/', {
@@ -273,6 +316,7 @@ abstract class VibeConnections {
         if (info is Map) {
           final d = int.tryParse('${info['duration'] ?? ''}') ?? 0;
           if (duration == 0 && d > 0) duration = d;
+          cover ??= _image((info['album'] as Map?)?['image']);
           final tags = (info['toptags'] as Map?)?['tag'];
           if (tags is List) {
             final names = tags
@@ -284,12 +328,14 @@ abstract class VibeConnections {
         }
       } catch (_) {}
     }
-    return t.copyWith(duration: duration, sad: sad);
+    cover ??= await _archiveCover(t);
+    return t.copyWith(duration: duration, sad: sad, cover: () => cover);
   }
 
   // ---- sharing it
 
   static VibeTrack? _last;
+  static int _quiet = 0;
 
   /// Ask now (also every 30 s).
   static Future<void> poke() async {
@@ -299,11 +345,15 @@ abstract class VibeConnections {
     try {
       final got = (await lookUp(s, user)).track;
       if (got == null) {
+        // a failed check or the short gap between two songs: only a second
+        // quiet check in a row means the music stopped (no flicker)
+        if (++_quiet < 2 && playing.value != null) return;
         _last = null;
         playing.value = null;
         await _restore();
         return;
       }
+      _quiet = 0;
       var t = got;
       final last = _last;
       if (last != null && last.key == t.key) {
