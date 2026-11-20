@@ -62,7 +62,7 @@ dependencies:
   local_auth: ^3.0.2
   managed_configurations: ^1.2.0
   maplibre: ^0.3.7+1
-  matrix: ^16.0.4
+  matrix: ^17.0.0
   mime: ^2.0.0
   photo_manager: ^3.0.0
   flutter_contacts: ^1.1.9
