@@ -9,6 +9,7 @@ import 'package:vibe/widgets/app_lock.dart';
 import 'package:vibe/widgets/future_loading_dialog.dart';
 import 'package:vibe/widgets/matrix.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:matrix/matrix.dart';
 import 'package:vibe/vibe/vibe_privacy.dart';
@@ -251,6 +252,17 @@ class _VibeSecurityPageState extends State<VibeSecurityPage> {
                           'For shared computers: closing the browser signs '
                           'you out and removes your chats from it.',
                       setting: AppSettings.vibeWebSessionOnly,
+                    ),
+                  if (PlatformInfos.isAndroid)
+                    SettingsSwitchListTile.adaptive(
+                      title: 'Block screenshots',
+                      subtitle:
+                          'No screenshots or screen recording of Keepr, and '
+                          'recent apps shows it blank.',
+                      setting: AppSettings.vibeBlockScreenshots,
+                      onChanged: (on) => const MethodChannel(
+                        'vibe/system',
+                      ).invokeMethod('blockScreenshots', {'on': on}),
                     ),
                   const VibePrivacyTiles(),
                   ListTile(

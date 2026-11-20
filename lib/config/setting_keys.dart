@@ -131,6 +131,8 @@ enum AppSettings<T> {
   // sound pack for calls, messages and web notifications, and the two
   // message sounds
   vibeSoundPack<String>('chat.keepr.sound_pack', 'glass'),
+  // Android: no screenshots or screen recording of Keepr (read natively too)
+  vibeBlockScreenshots<bool>('chat.keepr.block_screenshots', false),
   vibeSentSound<bool>('chat.keepr.sent_sound', true),
   vibeReceivedSound<bool>('chat.keepr.received_sound', true),
   // Hike-style text stickers above the text box while typing

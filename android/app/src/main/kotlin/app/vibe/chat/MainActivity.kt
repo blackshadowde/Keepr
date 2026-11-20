@@ -36,6 +36,17 @@ class MainActivity : FlutterFragmentActivity() {
         super.onPostCreate(savedInstanceState)
         // photos and videos dragged in from other apps
         VibeDropNative.attach(this)
+        // Block screenshots, set before the screen first shows
+        val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+        blockScreenshots(prefs.getBoolean("flutter.chat.keepr.block_screenshots", false))
+    }
+
+    /** Block screenshots (Settings > Security & sign-in): screenshots and
+     *  screen recordings of Keepr come out blank, and so does its preview
+     *  in recent apps. */
+    fun blockScreenshots(on: Boolean) {
+        val flag = android.view.WindowManager.LayoutParams.FLAG_SECURE
+        if (on) window.addFlags(flag) else window.clearFlags(flag)
     }
 
     override fun onResume() {

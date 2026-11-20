@@ -84,6 +84,26 @@ abstract class BujjiSettings {
       route: '$_s/notifications',
       toggle: AppSettings.vibeHideNotificationContent,
     ),
+    BujjiSetting(
+      'Sound pack',
+      _notif,
+      'sound pack sounds glass wood air classic call tone',
+      route: '$_s/notifications',
+    ),
+    BujjiSetting(
+      'Sent message sound',
+      _notif,
+      'sent message sound send swoosh',
+      route: '$_s/notifications',
+      toggle: AppSettings.vibeSentSound,
+    ),
+    BujjiSetting(
+      'Received message sound',
+      _notif,
+      'received message sound incoming ding',
+      route: '$_s/notifications',
+      toggle: AppSettings.vibeReceivedSound,
+    ),
     // customisation
     BujjiSetting(
       _style,
@@ -295,6 +315,12 @@ abstract class BujjiSettings {
       'Link previews in encrypted chats',
       _sec,
       'link previews encrypted',
+      route: '$_s/security',
+    ),
+    BujjiSetting(
+      'Block screenshots',
+      _sec,
+      'block screenshots screen recording capture secure private',
       route: '$_s/security',
     ),
     BujjiSetting(

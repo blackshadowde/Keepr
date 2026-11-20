@@ -92,6 +92,10 @@ object VibeSystemNative {
                         result.success(null)
                     }
                     "pip" -> result.success(MainActivity.current?.enterCallPip() ?: false)
+                    "blockScreenshots" -> {
+                        MainActivity.current?.blockScreenshots(call.argument<Boolean>("on") ?: false)
+                        result.success(null)
+                    }
                     "isSpeaker" -> result.success(isSpeaker(app))
                     "lastExit" -> result.success(lastExit(app))
                     // Hypr Launcher's theme (Dart: VibeGlass.followLauncher)
