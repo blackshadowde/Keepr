@@ -128,6 +128,11 @@ enum AppSettings<T> {
   // notification sound: keepr_chime, keepr_pop, keepr_bell, keepr_pluck,
   // system or silent
   vibeNotificationSound<String>('chat.keepr.notification_sound', 'keepr_chime'),
+  // sound pack for calls, messages and web notifications, and the two
+  // message sounds
+  vibeSoundPack<String>('chat.keepr.sound_pack', 'glass'),
+  vibeSentSound<bool>('chat.keepr.sent_sound', true),
+  vibeReceivedSound<bool>('chat.keepr.received_sound', true),
   // Hike-style text stickers above the text box while typing
   vibeTextStickers<bool>('chat.keepr.text_stickers', true),
   vibeLinkPreviews<bool>('chat.keepr.link_previews', true),

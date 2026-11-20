@@ -23,6 +23,7 @@ import 'package:vibe/utils/push_helper.dart';
 import 'package:vibe/vibe/vibe_push_mode_tiles.dart';
 import 'package:vibe/vibe/vibe_sound.dart';
 import 'package:vibe/widgets/avatar.dart';
+import 'package:vibe/vibe/vibe_sounds.dart';
 import 'package:flutter/foundation.dart';
 import 'package:unifiedpush/unifiedpush.dart';
 import 'package:unifiedpush_ui/unifiedpush_ui.dart';
@@ -368,6 +369,50 @@ class _VibeNotificationsPageState extends State<VibeNotificationsPage> {
                     if (mounted) setState(() {});
                   },
                 ),
+              ],
+            ),
+            VibeSettingsGroup(
+              title: 'Sounds',
+              rows: [
+                VibeSoundPackTile(
+                  onPicked: () async {
+                    // Android: a Keepr notification sound follows the pack
+                    final pack = VibeSoundPack.current;
+                    if (PlatformInfos.isAndroid &&
+                        pack != 'classic' &&
+                        VibeSound.current.startsWith('keepr_')) {
+                      await AppSettings.vibeNotificationSound.setItem(
+                        'keepr_$pack',
+                      );
+                    }
+                    if (mounted) setState(() {});
+                  },
+                ),
+                if (VibeSoundPack.messageSounds) ...[
+                  VibeSwitchRow(
+                    icon: Icons.send_rounded,
+                    title: 'Sent message sound',
+                    subtitle: 'A short sound as your message goes',
+                    value: AppSettings.vibeSentSound.value,
+                    onChanged: (v) async {
+                      await AppSettings.vibeSentSound.setItem(v);
+                      if (mounted) setState(() {});
+                      if (v) await VibeSoundPack.play('sent');
+                    },
+                  ),
+                  VibeSwitchRow(
+                    icon: Icons.mark_chat_unread_rounded,
+                    title: 'Received message sound',
+                    subtitle:
+                        'When a message comes into the chat you have open',
+                    value: AppSettings.vibeReceivedSound.value,
+                    onChanged: (v) async {
+                      await AppSettings.vibeReceivedSound.setItem(v);
+                      if (mounted) setState(() {});
+                      if (v) await VibeSoundPack.play('received');
+                    },
+                  ),
+                ],
               ],
             ),
             if (pushRules != null &&

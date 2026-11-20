@@ -15,6 +15,9 @@ abstract class VibeSound {
     'keepr_pop': 'Pop',
     'keepr_bell': 'Bell',
     'keepr_pluck': 'Pluck',
+    'keepr_glass': 'Glass',
+    'keepr_wood': 'Wood',
+    'keepr_air': 'Air',
     'system': 'Phone default',
     'silent': 'Silent',
   };

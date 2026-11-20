@@ -18,6 +18,7 @@ import 'package:vibe/utils/platform_infos.dart';
 import 'package:vibe/utils/position_from_build_context.dart';
 import 'package:vibe/widgets/future_loading_dialog.dart';
 import 'package:vibe/widgets/matrix.dart';
+import 'package:vibe/vibe/vibe_sounds.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
@@ -500,12 +501,11 @@ class CallViewModel extends ValueNotifier<CallViewModelState> {
     }
   }
 
-  final _joinSource = AudioSource.asset('assets/sounds/call_join.mp3');
-  final _leaveSource = AudioSource.asset('assets/sounds/call_leave.mp3');
-  final _raiseHandSource = AudioSource.asset(
-    'assets/sounds/call_attention.mp3',
-  );
-  final _waitSource = AudioSource.asset('assets/sounds/call_wait.mp3');
+  // from the sound pack picked in Settings > Notifications
+  final _joinSource = AudioSource.asset(VibeSoundPack.asset('join'));
+  final _leaveSource = AudioSource.asset(VibeSoundPack.asset('leave'));
+  final _raiseHandSource = AudioSource.asset(VibeSoundPack.asset('attention'));
+  final _waitSource = AudioSource.asset(VibeSoundPack.asset('wait'));
 
   Future<void> _playJoinSound() => _playSoundIndex(_joinSource);
 

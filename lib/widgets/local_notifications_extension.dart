@@ -14,6 +14,7 @@ import 'package:vibe/widgets/matrix.dart';
 import 'package:vibe/widgets/incoming_call_dialog.dart';
 import 'package:vibe/widgets/vibe_app.dart';
 import 'package:vibe/vibe/vibe_call.dart';
+import 'package:vibe/vibe/vibe_sounds.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -21,9 +22,7 @@ import 'package:matrix/matrix.dart';
 import 'package:universal_html/html.dart' as html;
 
 extension LocalNotificationsExtension on MatrixState {
-  static final html.AudioElement _audioPlayer = html.AudioElement()
-    ..src = 'assets/assets/sounds/notification.ogg'
-    ..load();
+  static final html.AudioElement _audioPlayer = html.AudioElement();
 
   Future<void> showLocalNotification(Event event) async {
     // a native call ringing you while Keepr is open
@@ -98,7 +97,12 @@ extension LocalNotificationsExtension on MatrixState {
         method: thumbnailMethod,
       );
 
-      if (AppSettings.webNotificationSound.value) _audioPlayer.play();
+      if (AppSettings.webNotificationSound.value) {
+        // the picked sound pack's notification
+        _audioPlayer
+          ..src = 'assets/${VibeSoundPack.asset('notification')}'
+          ..play();
+      }
 
       html.Notification(
         title,

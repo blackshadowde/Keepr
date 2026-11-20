@@ -57,6 +57,7 @@ dependencies:
   image_picker_platform_interface: ^2.11.1
   intl: any
   just_audio: ^0.10.6
+  audio_session: ^0.2.4
   livekit_client: ^2.13.2
   latlong2: ^0.10.1
   local_auth: ^3.0.2
@@ -119,6 +120,10 @@ flutter:
     - assets/logo/mini/
     - assets/start/
     - assets/sounds/
+    - assets/sounds/glass/
+    - assets/sounds/wood/
+    - assets/sounds/air/
+    - assets/sounds/classic/
     - assets/vodozemac/
     - assets/fonts/stickers/
     - assets/fonts/Figtree-OFL.txt

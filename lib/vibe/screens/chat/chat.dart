@@ -75,6 +75,7 @@ import 'package:universal_html/universal_html.dart' as web;
 import 'package:vibe/utils/account_bundles.dart';
 import 'package:vibe/utils/localized_exception_extension.dart';
 import 'package:vibe/vibe/buddy/bujji_life.dart';
+import 'package:vibe/vibe/vibe_sounds.dart';
 import 'send_file_dialog.dart';
 import 'send_location_dialog.dart';
 
@@ -758,6 +759,8 @@ class ChatController extends State<ChatPageWithRoom>
     if (firstEvent == null) return;
     final eventId = stableId(firstEvent);
     if (!_animated.add(eventId)) return;
+    // the sent or received sound for a new message here
+    VibeSoundPack.onNewEvent(firstEvent);
     animateInEventId = eventId;
     await Future.delayed(VibeThemes.animationDuration);
     if (animateInEventId == eventId) animateInEventId = null;
