@@ -94,7 +94,7 @@ BEGIN
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "Keepr" "\0"
             VALUE "LegalCopyright", "Keepr authors, based on FluffyChat. AGPL-3.0." "\0"
-            VALUE "OriginalFilename", "vibe.exe" "\0"
+            VALUE "OriginalFilename", "keepr.exe" "\0"
             VALUE "ProductName", "Keepr" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
