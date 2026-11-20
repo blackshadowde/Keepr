@@ -216,8 +216,30 @@ Last updated: 2026-11-20.
     Chat wallpaper is the account wallpaper (plain). Their messages: each
     person's own colour by default (`VibeCardColours`,
     `AppSettings.vibeTheirColour`: own / theme / plain).
-- On `vibe-next`, not released yet: nothing (vibe-next and Vibe are the
-  same).
+- On `vibe-next`, not released yet (2026-11-20, "Keepr check" passes):
+  - Status clear-time chips side by side again (`vibe_set_status.dart`:
+    the chip's `Container` had `alignment`, which made it full width).
+  - Square crop for your picture, a chat's and a group's
+    (`vibe_photo_crop.dart` on `crop_image`, aspect 1, round guide; GIF and
+    animated WebP skip it). Called from `VibeOwnProfile.changePhoto`,
+    `VibeGroups` and `chat_details.dart`.
+  - Waiting messages: `AppSettings.sendTimelineEventTimeout` is 2 days
+    (was 15 s), so the SDK keeps retrying network failures and still fails
+    server refusals at once. `VibePatientHttp` (`vibe_send_retry.dart`,
+    wraps the client's HTTP in `client_manager.dart`) backs off send-type
+    requests while offline (2 s up to 60 s) and lets them go on the first
+    success; `VibeSendRetry.watch` resends what was still "sending" in the
+    database after the first sync. The UI already says "Waiting for
+    connection".
+  - Bujji brings reactions you'd miss (`bujji_gifts.dart`,
+    `bujji_gift_float.dart`, `_giftFrom` / `_onGifts` / `_deliver` /
+    `_pile` in `vibe_buddy_bar.dart`; props `gift`, `basket`, `phew` and
+    `VibeBuddyFace.held` in `vibe_buddy.dart`): others' reactions on your
+    messages that aren't on screen. 1 to 3: held up, slow hop, tap goes to
+    the message (Bujji hops onto it). 4+: basket, tipped out as a pile above
+    the box, tired phew. Bujji off (or pace off): a bubble above send, over
+    the jump button when it shows. Scrolling to the message or the reaction
+    being removed clears it.
 - Waiting for the owner:
   - Pane extras from the study (dim follows the pull, the page behind steps
     back): they reach into Flutter's own pane code, so try them with a test
@@ -239,7 +261,8 @@ Last updated: 2026-11-20.
     (`canUseFullScreenIntent`), so without approval calls show as a floating
     notification on Android 14+. Play bundles come from "Keepr for Google
     Play" (`vibe-play.yml`).
-  - A "Could not be sent" problem the owner raised: ask the owner for details.
+  - "Could not be sent": the owner's report was messages failing quickly
+    offline; the two-day waiting change above is the fix (not released).
   - Nearby (offline chat over Bluetooth): plan in `docs/nearby.md`, decisions
     still to make before building.
   - Post-quantum: steps 1 to 3 are in the code (`packages/keepr_pq`,
