@@ -1,24 +1,26 @@
-**Home**
-- A big Chats title with filters under it: All, Unread with its count, Groups, Direct and Spaces
-- Three dots open your profile; search and a filled + for a new chat sit beside them
-- Scroll and the title folds up into the bar while the filters stay; chats fade softly under them
-
-**Themes**
-- Light, Dark or Auto, then a row of theme cards to swipe through, each a small chat in that theme's colours
-- Material You, Keepr and 31 named themes, among them Catppuccin, Nord, Rosé Pine, Tokyo Night, Gruvbox, Kanagawa, Dracula, Lavender, Mocha and Monochrome, each with a light and a dark set
-- A new theme grows out of where you tapped in a soft circle
-- Pure black for dark mode
-- Your own theme: pick one colour, see it light and dark, name it and keep it
-- The frosted glass look is gone; a chat wallpaper can still sit behind your chats as a plain picture
-
 **Messages**
-- Each person's messages are a soft tone of their own colour, so theirs and yours never look alike (Customisation can switch to the theme's colour or plain grey)
-- The message you're replying to gets a soft wash in your theme colour
-- Voice notes: stop recording to listen back first, then delete, record again or send
+- Replies: the message you're answering peeks out from behind the top of your reply, as a smaller card in that person's own colour, with their picture (or the photo itself), their name and the first words. Tap it to go to the message
+- Select text: hold a message and pick Select to choose just some words, then Copy them (line breaks and all) or Quote them in a reply. The message's numbers are listed underneath, one tap to copy
+- Codes and phone numbers in messages are faintly underlined: tap a code to copy it, tap a phone number to call it or copy it
+- Messages written without a connection wait and send themselves once you're back online, for up to two days, instead of failing after a few seconds. Messages still waiting when Keepr was closed are sent when it's online again
+- Once a message is pinned, its button in the hold menu shows the pin with a line through it, for Unpin
 
-**Settings**
-- A calmer look: a big title, your card on top, Search settings to find anything by name, and rows grouped in rounded cards with plain one-colour icons
-- Notifications in plain words: what notifies you, and the chats and people with a setting of their own, by name
+**Wallpapers**
+- Keepr's own chat wallpapers: Doodles, Flow, Shapes, Waves and Dots, all painted from your theme's colours, so they match every theme, light and dark
+- A Pattern slider sets how strongly the drawings show
+- Your own photo is softened to fit: a little blur, tinted with your theme, with a Dim slider for how far it fades back
+- All in Customisation > Chat wallpaper
 
 **Bujji**
-- Understands more ways to say when: "after 2 mins", "2 minutes later", "half an hour from now", or just "2 mins" when it asks
+- When someone reacts to a message of yours that's scrolled away, Bujji holds the emoji up and hops now and then; tap Bujji to go to the message. Lots at once come in a small basket, tipped out above the text box, and Bujji is worn out for a moment
+- With Bujji off, the reaction floats just above the send button instead
+
+**Profile and pictures**
+- A square crop opens after you take or choose a profile picture, or a chat's or group's picture: move and resize the square, turn it, then Done. Moving pictures stay moving
+- Your animated profile picture plays on your own profile page
+- The clear-time choices under your status sit side by side again
+
+**And more**
+- "Sorry" writes itself across the screen in one soft, glowing handwritten stroke
+- Nothing shows behind Bujji's row above the text box any more
+- The iPhone share sheet says Keepr
