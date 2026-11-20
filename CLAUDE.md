@@ -216,9 +216,10 @@ Last updated: 2026-11-20.
     Chat wallpaper is the account wallpaper (plain). Their messages: each
     person's own colour by default (`VibeCardColours`,
     `AppSettings.vibeTheirColour`: own / theme / plain).
-- Built, not published: Keepr 3.1.166 (release run 166 from `Vibe`, Android
-  only, publish off; `Vibe` and `vibe-next` are the same at that point).
-  RELEASE_NOTES.md is written for it. It holds everything below:
+- Built, not published: Keepr 3.1.168 (release run 168 from `Vibe` at
+  9afc2f16a, Android only, publish off; artifact `keepr-3.1.168`, kept until
+  2027-02-18). 3.1.166 was built earlier the same way and is replaced by it.
+  RELEASE_NOTES.md is written for 3.1.168. It holds everything below:
 - On `vibe-next`, in 3.1.166 (built, not published; "Keepr check" passes):
   - Status clear-time chips side by side again (`vibe_set_status.dart`:
     the chip's `Container` had `alignment`, which made it full width).
@@ -271,7 +272,7 @@ Last updated: 2026-11-20.
   - Hot word "sorry" writes itself like hi and bye (`_sorryPath`, from the
     Hershey script lettering, with its credit). The owner wants only sorry
     changed; the other scenes stay.
-- On `vibe-next` after 3.1.166 (not built yet):
+- On `vibe-next` after 3.1.166 (in 3.1.168):
   - Music wallpaper (`'music'` in `AppSettings.vibeWallpaper`,
     `VibeWallpaper.music`, `VibeMusicWallpaper` in `vibe_wallpaper.dart`):
     the cover from `VibeConnections.playing`, a 64 px copy blurred 18 and
@@ -317,6 +318,16 @@ Last updated: 2026-11-20.
     and Smooth touch (`GestureBinding.resamplingEnabled`, offset -20 ms),
     settings `vibeFrameGraph` / `vibeSmoothTouch`, shown in About after
     five taps on the version.
+- Branch `independent` (from `vibe-next`, 2026-11-20): the road to standing
+  on our own, small and safe first (plan in `docs/INDEPENDENCE.md`). Done
+  there so far: Keepr check prints and keeps `pubspec.lock` (the artifact
+  can't be downloaded from here; the log can), `pubspec.lock` pinned to what
+  builds resolve, the unused Vibe logo removed, Matrix SDK 17. Next:
+  flutter_local_notifications 23, then the Android build tools (Gradle
+  plugin 9.1, Gradle 9.3.1), then Level 2 screens. Merge `vibe-next` into it
+  now and then; it goes back into `vibe-next` when the owner says. The
+  weekly "Keepr upstream watch" scheduled task (Mondays) writes
+  `docs/upstream-watch.md` on `vibe-next`.
 - Waiting for the owner:
   - Pane extras from the study (dim follows the pull, the page behind steps
     back): they reach into Flutter's own pane code, so try them with a test
