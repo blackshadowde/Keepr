@@ -216,7 +216,10 @@ Last updated: 2026-11-20.
     Chat wallpaper is the account wallpaper (plain). Their messages: each
     person's own colour by default (`VibeCardColours`,
     `AppSettings.vibeTheirColour`: own / theme / plain).
-- On `vibe-next`, not released yet (2026-11-20, "Keepr check" passes):
+- Built, not published: Keepr 3.1.166 (release run 166 from `Vibe`, Android
+  only, publish off; `Vibe` and `vibe-next` are the same at that point).
+  RELEASE_NOTES.md is written for it. It holds everything below:
+- On `vibe-next`, in 3.1.166 (built, not published; "Keepr check" passes):
   - Status clear-time chips side by side again (`vibe_set_status.dart`:
     the chip's `Container` had `alignment`, which made it full width).
   - Square crop for your picture, a chat's and a group's
