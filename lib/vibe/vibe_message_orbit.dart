@@ -81,7 +81,85 @@ class _Action {
   final String label;
   final VoidCallback run;
   final bool danger;
-  const _Action(this.icon, this.label, this.run, {this.danger = false});
+
+  /// Struck through (Unpin): the same icon with a line across it.
+  final bool off;
+  const _Action(
+    this.icon,
+    this.label,
+    this.run, {
+    this.danger = false,
+    this.off = false,
+  });
+}
+
+/// An icon with a slash across it and a thin gap either side of the slash,
+/// so taking something back (Unpin) looks different from doing it.
+class _OffIcon extends StatelessWidget {
+  final IconData icon;
+  final double size;
+  final Color color;
+  const _OffIcon(this.icon, {required this.size, required this.color});
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: SizedBox.square(
+      dimension: size,
+      child: Stack(
+        children: [
+          ClipPath(
+            clipper: const _SlashGap(),
+            child: Icon(icon, size: size, color: color),
+          ),
+          CustomPaint(size: Size.square(size), painter: _SlashLine(color)),
+        ],
+      ),
+    ),
+  );
+}
+
+class _SlashGap extends CustomClipper<Path> {
+  const _SlashGap();
+
+  @override
+  Path getClip(Size size) {
+    final s = size.width, h = s * 0.11 / math.sqrt2;
+    final band = Path()
+      ..moveTo(s * 0.1 + h, s * 0.1 - h)
+      ..lineTo(s * 0.9 + h, s * 0.9 - h)
+      ..lineTo(s * 0.9 - h, s * 0.9 + h)
+      ..lineTo(s * 0.1 - h, s * 0.1 + h)
+      ..close();
+    return Path.combine(
+      PathOperation.difference,
+      Path()..addRect(Offset.zero & size),
+      band,
+    );
+  }
+
+  @override
+  bool shouldReclip(_SlashGap old) => false;
+}
+
+class _SlashLine extends CustomPainter {
+  final Color color;
+  const _SlashLine(this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final s = size.width;
+    canvas.drawLine(
+      Offset(s * 0.14, s * 0.14),
+      Offset(s * 0.86, s * 0.86),
+      Paint()
+        ..color = color
+        ..strokeWidth = s * 0.085
+        ..strokeCap = StrokeCap.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_SlashLine old) => old.color != color;
 }
 
 const _reactions = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
@@ -359,9 +437,10 @@ class _OrbitState extends State<_Orbit> with SingleTickerProviderStateMixin {
         ),
       if (canPin)
         _Action(
-          pinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
+          Icons.push_pin_outlined,
           pinned ? 'Unpin' : 'Pin',
           () => _withSelection(c.pinEvent),
+          off: pinned,
         ),
       if (!own)
         _Action(
@@ -699,11 +778,17 @@ class _OrbitState extends State<_Orbit> with SingleTickerProviderStateMixin {
                 ),
         ],
       ),
-      child: Icon(
-        a.icon,
-        size: on ? 25 : 21,
-        color: on ? cs.onPrimary : ink,
-      ),
+      child: a.off
+          ? _OffIcon(
+              a.icon,
+              size: on ? 25 : 21,
+              color: on ? cs.onPrimary : ink,
+            )
+          : Icon(
+              a.icon,
+              size: on ? 25 : 21,
+              color: on ? cs.onPrimary : ink,
+            ),
     );
     return Stack(
       children: [
