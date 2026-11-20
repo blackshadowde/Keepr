@@ -649,7 +649,7 @@ class _VibeStatusBubbleState extends State<VibeStatusBubble> {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
       duration: const Duration(milliseconds: 380),
-      curve: Curves.easeOutBack,
+      curve: Curves.easeOutCubic,
       builder: (context, v, child) => Opacity(
         opacity: v.clamp(0.0, 1.0),
         child: Transform.scale(

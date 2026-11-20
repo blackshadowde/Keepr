@@ -735,7 +735,7 @@ class ChatView extends StatelessWidget {
                                 child: AnimatedScale(
                                   scale: show ? 1 : 0.6,
                                   duration: const Duration(milliseconds: 180),
-                                  curve: Curves.easeOutBack,
+                                  curve: Curves.easeOutCubic,
                                   child: AnimatedOpacity(
                                     opacity: show ? 1 : 0,
                                     duration: const Duration(milliseconds: 160),

@@ -651,7 +651,7 @@ class VibeConnectionsCard extends StatelessWidget {
                       AnimatedScale(
                         scale: mine ? 1.08 : 1,
                         duration: const Duration(milliseconds: 260),
-                        curve: Curves.easeOutBack,
+                        curve: Curves.easeOutCubic,
                         child: VibeServiceTile(s),
                       ),
                       const SizedBox(width: 14),
@@ -875,7 +875,7 @@ class _VibeConnectSheetState extends State<VibeConnectSheet> {
                     AnimatedScale(
                       scale: ok ? 1.1 : 1,
                       duration: const Duration(milliseconds: 320),
-                      curve: Curves.easeOutBack,
+                      curve: Curves.easeOutCubic,
                       child: VibeServiceTile(s, size: 52),
                     ),
                     const SizedBox(width: 14),

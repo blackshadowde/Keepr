@@ -156,7 +156,7 @@ class _VibeSwipeReplyState extends State<VibeSwipeReply>
                   child: AnimatedScale(
                     scale: _armed ? 1.15 : 0.55 + 0.45 * progress,
                     duration: const Duration(milliseconds: 140),
-                    curve: Curves.easeOutBack,
+                    curve: Curves.easeOutCubic,
                     // the theme's soft colour; a gentle ring once letting
                     // go would reply
                     child: AnimatedContainer(

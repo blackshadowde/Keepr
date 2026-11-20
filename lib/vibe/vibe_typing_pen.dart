@@ -104,7 +104,7 @@ class _VibeTypingOverlayState extends State<VibeTypingOverlay>
             child: AnimatedScale(
               scale: _typing ? 1 : 0,
               duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOutBack,
+              curve: Curves.easeOutCubic,
               child: Container(
                 width: s,
                 height: s,

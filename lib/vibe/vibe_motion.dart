@@ -118,15 +118,14 @@ class _VibeStaggerState extends State<VibeStagger>
     duration: const Duration(milliseconds: 620),
     value: _play ? 0 : 1,
   );
-  // fades in quickly, while it springs up a little past its place and
-  // settles back (a bounce, like a card dropping into place)
+  // fades in quickly while it rises and settles softly into place
   late final Animation<double> _curve = CurvedAnimation(
     parent: _c,
     curve: const Interval(0, 0.45, curve: Curves.easeOut),
   );
   late final Animation<double> _spring = CurvedAnimation(
     parent: _c,
-    curve: Curves.easeOutBack,
+    curve: Curves.easeOutCubic,
   );
   late final Animation<double> _scale = Tween<double>(
     begin: 0.9,

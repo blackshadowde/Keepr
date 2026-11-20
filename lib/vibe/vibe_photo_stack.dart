@@ -188,7 +188,7 @@ class _VibePhotoStackState extends State<VibePhotoStack> {
                         angle: _dx / w * 0.25,
                         child: AnimatedSwitcher(
                           duration: const Duration(milliseconds: 260),
-                          switchInCurve: Curves.easeOutBack,
+                          switchInCurve: Curves.easeOutCubic,
                           transitionBuilder: (child, a) => ScaleTransition(
                             scale: Tween(begin: 0.9, end: 1.0).animate(a),
                             child: FadeTransition(opacity: a, child: child),

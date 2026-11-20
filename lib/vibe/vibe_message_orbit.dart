@@ -664,7 +664,7 @@ class _OrbitState extends State<_Orbit> with SingleTickerProviderStateMixin {
                   Offset.lerp(
                     center,
                     at(_rIn, -70 + i * 140 / (_reactions.length - 1)),
-                    Curves.easeOutBack.transform(
+                    Curves.easeOutCubic.transform(
                       _stagger(route.value, i, _reactions.length),
                     ),
                   )!,
@@ -739,7 +739,7 @@ class _OrbitState extends State<_Orbit> with SingleTickerProviderStateMixin {
     final p = Offset.lerp(
       center,
       _spots[i],
-      Curves.easeOutBack.transform(_stagger(v, i, _actions.length)),
+      Curves.easeOutCubic.transform(_stagger(v, i, _actions.length)),
     )!;
     final d = on ? 56.0 : _btn;
     final ink = a.danger ? const Color(0xFFF87171) : iconInk;

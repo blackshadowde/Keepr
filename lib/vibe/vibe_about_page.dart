@@ -9,6 +9,9 @@ import 'package:vibe/vibe/vibe_app_info.dart';
 import 'package:vibe/vibe/vibe_updater.dart';
 import 'package:vibe/vibe/vibe_welcome.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
+import 'package:vibe/config/setting_keys.dart';
+import 'package:vibe/vibe/vibe_settings_style.dart';
+import 'package:vibe/vibe/vibe_smooth.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher_string.dart';
@@ -32,6 +35,11 @@ class _VibeAboutPageState extends State<VibeAboutPage> {
   String _version = VibeAppInfo.version;
   String _status = '';
   bool _checking = false;
+
+  // tap the version five times for the smoothness checks
+  int _taps = 0;
+  bool _tools =
+      AppSettings.vibeFrameGraph.value || AppSettings.vibeSmoothTouch.value;
 
   @override
   void initState() {
@@ -145,15 +153,20 @@ class _VibeAboutPageState extends State<VibeAboutPage> {
           ),
           const SizedBox(height: 12),
           Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-              decoration: BoxDecoration(
-                color: cs.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Text(
-                'Version $_version  ·  Matrix',
-                style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+            child: GestureDetector(
+              onTap: () {
+                if (++_taps >= 5 && !_tools) setState(() => _tools = true);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                decoration: BoxDecoration(
+                  color: cs.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Text(
+                  'Version $_version  ·  Matrix',
+                  style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+                ),
               ),
             ),
           ),
@@ -232,6 +245,39 @@ class _VibeAboutPageState extends State<VibeAboutPage> {
               ),
             ),
           ),
+          if (_tools) ...[
+            const SizedBox(height: 16),
+            VibeCard(
+              margin: EdgeInsets.zero,
+              children: [
+                VibeSwitchRow(
+                  icon: Icons.speed_rounded,
+                  title: 'Frame timing graph',
+                  subtitle:
+                      'How long each frame takes, at the top of every '
+                      'screen. Red marks are frames that came late',
+                  value: VibeSmooth.graph.value,
+                  onChanged: (v) async {
+                    await VibeSmooth.setGraph(v);
+                    if (mounted) setState(() {});
+                  },
+                ),
+                VibeSwitchRow(
+                  icon: Icons.touch_app_rounded,
+                  title: 'Smooth touch',
+                  subtitle:
+                      "Evens out your finger's path to the screen's frames. "
+                      'Try it if scrolling judders; it follows a few '
+                      'milliseconds behind',
+                  value: AppSettings.vibeSmoothTouch.value,
+                  onChanged: (v) async {
+                    await VibeSmooth.setTouch(v);
+                    if (mounted) setState(() {});
+                  },
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 16),
           Text(
             'Free software based on FluffyChat (GNU AGPL v3).\n'

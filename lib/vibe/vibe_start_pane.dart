@@ -476,7 +476,7 @@ class _KindCard extends StatelessWidget {
                       child: AnimatedScale(
                         scale: selected ? 1 : 0.9,
                         duration: const Duration(milliseconds: 260),
-                        curve: Curves.easeOutBack,
+                        curve: Curves.easeOutCubic,
                         child: Image.asset(kind.image, fit: BoxFit.contain),
                       ),
                     ),

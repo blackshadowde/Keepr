@@ -15,6 +15,7 @@ import 'package:vibe/utils/client_manager.dart';
 import 'package:vibe/utils/notification_background_handler.dart';
 import 'package:vibe/utils/platform_infos.dart';
 import 'package:vibe/utils/start_push_foreground_service.dart';
+import 'package:vibe/vibe/vibe_smooth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -64,6 +65,7 @@ void main(List<String> args) async {
   VibePhotoPicker.useSystem();
 
   final store = await AppSettings.init();
+  VibeSmooth.start();
   // Telegram-style caches: pictures in memory, media on the phone.
   VibeStorage.start();
   Logs().i('Welcome to ${AppSettings.applicationName.value} <3');

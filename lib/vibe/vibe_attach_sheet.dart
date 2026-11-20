@@ -433,7 +433,7 @@ class _Tile extends StatelessWidget {
       child: AnimatedScale(
         scale: picked ? 0.88 : 1,
         duration: quick,
-        curve: Curves.easeOutBack,
+        curve: Curves.easeOutCubic,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(picked ? 18 : 14),
           child: Stack(

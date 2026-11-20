@@ -555,7 +555,7 @@ class VibeSwitch extends StatelessWidget {
               alignment: value ? Alignment.centerRight : Alignment.centerLeft,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOutBack,
+                curve: Curves.easeOutCubic,
                 width: size,
                 height: size,
                 decoration: BoxDecoration(color: knob, shape: BoxShape.circle),

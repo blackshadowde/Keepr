@@ -204,7 +204,7 @@ class _VibeDockPullState extends State<VibeDockPull> {
       child: AnimatedSlide(
         offset: Offset(0, _dy / 160),
         duration: Duration(milliseconds: _dy == 0 ? 220 : 0),
-        curve: Curves.easeOutBack,
+        curve: Curves.easeOutCubic,
         child: Opacity(
           opacity: 1 - (_dy / 140) * 0.5,
           child: widget.child,

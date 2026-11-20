@@ -244,7 +244,7 @@ class _VibeActivityHostState extends State<VibeActivityHost> {
               child: AnimatedSlide(
                 offset: _visible ? Offset.zero : const Offset(0, -1.8),
                 duration: const Duration(milliseconds: 380),
-                curve: _visible ? Curves.easeOutBack : Curves.easeInCubic,
+                curve: _visible ? Curves.easeOutCubic : Curves.easeInCubic,
                 child: AnimatedOpacity(
                   opacity: _visible ? 1 : 0,
                   duration: const Duration(milliseconds: 220),

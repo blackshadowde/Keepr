@@ -110,6 +110,9 @@ enum AppSettings<T> {
   // chat wallpaper: 'photo' (yours, when set), 'none', or one of Keepr's own
   vibeWallpaper<String>('chat.keepr.wallpaper', 'photo'),
   vibeWallpaperPattern<double>('chat.keepr.wallpaper_pattern', 0.55),
+  // smoothness checks (About): frame timing graph, smooth touch
+  vibeFrameGraph<bool>('chat.keepr.frame_graph', false),
+  vibeSmoothTouch<bool>('chat.keepr.smooth_touch', false),
   // Glass look: palette ('wallbash' = from the wallpaper), the processed
   // (blurred) wallpaper file and the colour picked from it
   vibeGlassPalette<String>('chat.keepr.glass_palette', 'wallbash'),
