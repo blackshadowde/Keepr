@@ -11,14 +11,18 @@ and the one code fix in 2.11.6 (removing a reaction), and is already on Matrix
 SDK 16.0.4 (FluffyChat ships 16.0.1). What's left, one commit each, with
 Keepr check and a test APK after each:
 
-- [ ] Matrix SDK 17.0.0 (2026-11-18, FluffyChat hasn't moved yet): fixes a
+- [x] Matrix SDK 17.0.0 (2026-11-18, FluffyChat hasn't moved yet): fixes a
       recovery key check (a key with no check values counted as matching any
       key). Its breaking change makes `Room.states` read-only; Keepr only
       reads it (3 places), so this should be small. Test: sign in, recovery
       key, verifying a device, emotes, calls.
-- [ ] `pubspec.lock` is stale (says matrix 10.0.1); builds pick versions
+- [x] `pubspec.lock` is stale (says matrix 10.0.1); builds pick versions
       fresh. Refresh it from a workflow run so every build gets the same ones.
-- [ ] flutter_local_notifications 22 → 23 (a major version: read its changelog).
+      (Keepr check prints it in its log under "Package versions".)
+- [ ] flutter_local_notifications 22.3.0 → 22.3.3 first (iPhone permission
+      errors, repeating notifications across daylight saving). 23 needs
+      Android Gradle plugin 9.1.1 and compileSdk 37, so it goes with the
+      build tools below.
 - [ ] Android build tools: Gradle plugin 8.11.1 → 9.1.0, Gradle 8.14.1 → 9.3.1,
       and `proguard-android-optimize.txt` (test the release APK: the optimizer
       can break code that needs keep rules).
