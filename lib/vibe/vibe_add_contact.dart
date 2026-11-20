@@ -11,6 +11,7 @@ import 'package:vibe/vibe/vibe_motion.dart';
 import 'package:vibe/vibe/screens/new_private_chat/qr_scanner_modal.dart';
 import 'package:vibe/widgets/future_loading_dialog.dart';
 import 'package:vibe/widgets/matrix.dart';
+import 'package:vibe/vibe/vibe_handle.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -75,11 +76,22 @@ class _AddContactSheetState extends State<_AddContactSheet> {
         );
         found.addAll(r.results);
       } catch (_) {}
-      if (_valid && !found.any((p) => p.userId == term)) {
+      final id = _target;
+      if (id != null && !found.any((p) => p.userId == id)) {
         try {
-          final p = await client.getProfileFromUserId(term);
-          found.insert(0, p);
-        } catch (_) {}
+          final info = await client.getUserProfile(id);
+          found.insert(
+            0,
+            Profile(
+              userId: id,
+              displayName: info.displayname,
+              avatarUrl: info.avatarUrl,
+            ),
+          );
+        } catch (_) {
+          // a full ID may hide its profile; a plain name must exist
+          if (!_bare) found.insert(0, Profile(userId: id));
+        }
       }
       if (!mounted || _query != _value) return;
       setState(() => _found = found);
@@ -87,7 +99,16 @@ class _AddContactSheetState extends State<_AddContactSheet> {
   }
 
   String get _value => _id.text.trim();
-  bool get _valid => _value.isValidMatrixIdStrict() && _value.startsWith('@');
+
+  /// The person meant: "rahul" is @rahul on Keepr's server, links and full
+  /// IDs as they are.
+  String? get _target => normalizeHandle(_value);
+
+  /// Just a name, no server: it only counts once someone has it.
+  bool get _bare => !_value.contains(':');
+
+  bool get _valid =>
+      _target != null && (!_bare || _found.any((p) => p.userId == _target));
 
   Future<void> _paste() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
@@ -98,12 +119,8 @@ class _AddContactSheetState extends State<_AddContactSheet> {
   }
 
   static String _extractId(String raw) {
-    var text = raw;
-    try {
-      text = Uri.decodeFull(raw);
-    } catch (_) {}
-    final m = RegExp(r'@[^\s/?#:]+:[^\s/?#]+').firstMatch(text);
-    return m?.group(0) ?? raw;
+    final id = normalizeHandle(raw);
+    return id == null ? raw : formatDisplayHandle(id);
   }
 
   Future<void> _scan() async {
@@ -125,7 +142,7 @@ class _AddContactSheetState extends State<_AddContactSheet> {
     if (!_valid) return;
     final client = Matrix.of(context).client;
     final router = GoRouter.of(widget.parentContext);
-    final id = _value;
+    final id = _target!;
     final existing = VibeDmFinder.find(client, id)?.id;
     if (existing != null) {
       Navigator.of(context).pop();
@@ -175,7 +192,7 @@ class _AddContactSheetState extends State<_AddContactSheet> {
                           ),
                         ),
                         Text(
-                          'Scan QR, paste or type ID',
+                          'Type a username, paste a link or scan a code',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -251,7 +268,7 @@ class _AddContactSheetState extends State<_AddContactSheet> {
                 onSubmitted: (_) => _start(),
                 style: const TextStyle(fontSize: 16),
                 decoration: InputDecoration(
-                  hintText: '@username:matrix.org',
+                  hintText: 'username, or @name:server',
                   filled: true,
                   fillColor: cs.surfaceContainerLowest,
                   contentPadding: const EdgeInsets.symmetric(
@@ -294,7 +311,7 @@ class _AddContactSheetState extends State<_AddContactSheet> {
                           style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
                         subtitle: Text(
-                          p.userId,
+                          formatDisplayHandle(p.userId),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),

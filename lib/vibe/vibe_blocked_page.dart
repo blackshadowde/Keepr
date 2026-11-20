@@ -6,6 +6,7 @@ import 'package:vibe/widgets/avatar.dart';
 import 'package:vibe/widgets/future_loading_dialog.dart';
 import 'package:vibe/widgets/layouts/max_width_body.dart';
 import 'package:vibe/widgets/matrix.dart';
+import 'package:vibe/vibe/vibe_handle.dart';
 import 'package:flutter/material.dart';
 import 'package:matrix/matrix.dart';
 
@@ -152,7 +153,7 @@ class _BlockedRow extends StatelessWidget {
         return ListTile(
           leading: Avatar(mxContent: p?.avatarUrl, name: name, size: 40),
           title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
-          subtitle: Text(userId, maxLines: 1, overflow: TextOverflow.ellipsis),
+          subtitle: Text(formatDisplayHandle(userId), maxLines: 1, overflow: TextOverflow.ellipsis),
           trailing: TextButton(
             onPressed: onUnblock,
             child: const Text('Unblock'),

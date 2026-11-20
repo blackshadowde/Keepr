@@ -13,6 +13,7 @@ import 'package:vibe/vibe/vibe_public_rooms.dart';
 import 'package:vibe/widgets/avatar.dart';
 import 'package:vibe/widgets/matrix.dart';
 import 'package:vibe/widgets/mxc_image.dart';
+import 'package:vibe/vibe/vibe_handle.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:matrix/matrix.dart';
@@ -261,6 +262,11 @@ class _VibeStartPaneState extends State<VibeStartPane> {
     try {
       v = Uri.decodeFull(v);
     } catch (_) {}
+    // Keepr's own links: get-keepr.github.io/u/name and chat.html#@name:server
+    final short = keeprShortLinkId(v);
+    if (short != null) return short;
+    final c = v.indexOf('chat.html#');
+    if (c >= 0) v = v.substring(c + 'chat.html#'.length);
     final i = v.indexOf('#/');
     if (i >= 0) v = v.substring(i + 2);
     v = v.split('?').first.split('/').first;

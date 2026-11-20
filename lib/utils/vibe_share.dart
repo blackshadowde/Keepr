@@ -3,6 +3,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'package:vibe/config/app_config.dart';
 import 'package:vibe/l10n/l10n.dart';
 import 'package:vibe/utils/platform_infos.dart';
 import 'package:flutter/material.dart';
@@ -46,7 +47,7 @@ abstract class VibeShare {
     await VibeShare.share(
       l10n.inviteText(
         ownProfile.displayName ?? client.userID!,
-        'https://matrix.to/#/${client.userID}?client=app.keepr.chat',
+        AppConfig.shareLink(client.userID!),
       ),
       context,
     );

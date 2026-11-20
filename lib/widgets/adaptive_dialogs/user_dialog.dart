@@ -13,6 +13,7 @@ import 'package:vibe/widgets/adaptive_dialogs/show_text_input_dialog.dart';
 import 'package:vibe/vibe/vibe_dm_finder.dart';
 import 'package:vibe/widgets/avatar.dart';
 import 'package:vibe/widgets/presence_builder.dart';
+import 'package:vibe/vibe/vibe_handle.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_linkify/flutter_linkify.dart';
@@ -143,7 +144,7 @@ class UserDialog extends StatelessWidget {
                                           ),
                                         ),
                                       ),
-                                      TextSpan(text: profile.userId),
+                                      TextSpan(text: formatDisplayHandle(profile.userId)),
                                     ],
                                     style: theme.textTheme.bodyMedium?.copyWith(
                                       fontSize: 10,

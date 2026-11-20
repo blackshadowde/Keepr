@@ -12,6 +12,7 @@ import 'package:vibe/vibe/vibe_sheet_drag.dart';
 import 'package:vibe/widgets/adaptive_dialogs/show_ok_cancel_alert_dialog.dart';
 import 'package:vibe/widgets/future_loading_dialog.dart';
 import 'package:vibe/widgets/mxc_image.dart';
+import 'package:vibe/vibe/vibe_handle.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -297,7 +298,7 @@ class _SheetState extends State<_Sheet> {
                     children: [
                       Flexible(
                         child: Text(
-                          userId,
+                          formatDisplayHandle(userId),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(fontSize: 14.5, color: muted),

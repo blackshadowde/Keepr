@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:matrix/matrix.dart';
 
 import 'package:vibe/widgets/avatar.dart';
+import 'package:vibe/vibe/vibe_handle.dart';
 
 class ParticipantListItem extends StatelessWidget {
   final User user;
@@ -100,7 +101,7 @@ class ParticipantListItem extends StatelessWidget {
                 ),
         ],
       ),
-      subtitle: Text(user.id, maxLines: 1, overflow: TextOverflow.ellipsis),
+      subtitle: Text(formatDisplayHandle(user.id), maxLines: 1, overflow: TextOverflow.ellipsis),
       leading: Opacity(
         opacity: user.membership == Membership.join ? 1 : 0.5,
         child: Avatar(

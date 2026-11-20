@@ -18,7 +18,20 @@ abstract class AppConfig {
   static const String deepLinkPrefix = 'keepr://chat/';
   // Vibe's own share link: opens Vibe (or offers to get it) and starts a chat.
   static const String shareLinkPrefix = 'https://get-keepr.github.io/chat.html#';
-  static String shareLink(String id) => '$shareLinkPrefix$id';
+  // Keepr's default server as it shows in people's IDs (@rahul:unredacted.org).
+  // Its address for signing in is AppSettings.defaultHomeserver.
+  static const String defaultServerName = 'unredacted.org';
+  // Short link for people on that server: get-keepr.github.io/u/rahul
+  static const String shortLinkPrefix = 'https://get-keepr.github.io/u/';
+  static String shareLink(String id) {
+    final end = ':$defaultServerName';
+    final name = id.startsWith('@') && id.endsWith(end)
+        ? id.substring(1, id.length - end.length)
+        : '';
+    return RegExp(r'^[a-z0-9._=\-]+$').hasMatch(name)
+        ? '$shortLinkPrefix$name'
+        : '$shareLinkPrefix$id';
+  }
   static const String schemePrefix = 'matrix:';
   static const String pushNotificationsChannelId = 'fluffychat_push';
   static const String pushNotificationsAppId = 'app.keepr.chat';

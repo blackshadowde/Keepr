@@ -7,6 +7,7 @@ import 'package:vibe/vibe/vibe_dialog.dart';
 import 'package:collection/collection.dart' show IterableExtension;
 import 'package:vibe/config/app_config.dart';
 import 'package:vibe/l10n/l10n.dart';
+import 'package:vibe/vibe/vibe_handle.dart';
 import 'package:vibe/widgets/adaptive_dialogs/show_ok_cancel_alert_dialog.dart';
 import 'package:vibe/widgets/adaptive_dialogs/user_dialog.dart';
 import 'package:vibe/widgets/future_loading_dialog.dart';
@@ -37,6 +38,7 @@ class UrlLauncher {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
     if (url!.toLowerCase().startsWith(AppConfig.deepLinkPrefix) ||
         url!.startsWith(AppConfig.shareLinkPrefix) ||
+        keeprShortLinkId(url!) != null ||
         url!.toLowerCase().startsWith(AppConfig.inviteLinkPrefix) ||
         {'#', '@', '!', '+', '\$'}.contains(url![0]) ||
         url!.toLowerCase().startsWith(AppConfig.schemePrefix)) {
@@ -133,9 +135,13 @@ class UrlLauncher {
 
   Future<void> openMatrixToUrl() async {
     final matrix = Matrix.of(context);
-    final url = this.url!
-        .replaceFirst(AppConfig.deepLinkPrefix, AppConfig.inviteLinkPrefix)
-        .replaceFirst(AppConfig.shareLinkPrefix, AppConfig.inviteLinkPrefix);
+    // a short link (get-keepr.github.io/u/rahul) is that person
+    final short = keeprShortLinkId(this.url!);
+    final url = short != null
+        ? '${AppConfig.inviteLinkPrefix}$short'
+        : this.url!
+              .replaceFirst(AppConfig.deepLinkPrefix, AppConfig.inviteLinkPrefix)
+              .replaceFirst(AppConfig.shareLinkPrefix, AppConfig.inviteLinkPrefix);
 
     // The identifier might be a matrix.to url and needs escaping. Or, it might have multiple
     // identifiers (room id & event id), or it might also have a query part.

@@ -7,6 +7,7 @@ import 'dart:typed_data';
 import 'package:vibe/l10n/l10n.dart';
 import 'package:vibe/utils/matrix_sdk_extensions/matrix_locals.dart';
 import 'package:vibe/widgets/avatar.dart';
+import 'package:vibe/vibe/vibe_handle.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:matrix/matrix.dart' hide Contact;
@@ -160,7 +161,7 @@ class _VibeContactShareSheetState extends State<VibeContactShareSheet> {
             client: r.client,
           ),
           title: Text(name),
-          subtitle: Text(id),
+          subtitle: Text(formatDisplayHandle(id)),
           onTap: () async {
             if (!await _confirm(name, id)) return;
             if (!context.mounted) return;

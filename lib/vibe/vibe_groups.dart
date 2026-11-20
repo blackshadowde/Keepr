@@ -17,6 +17,7 @@ import 'package:vibe/vibe/vibe_settings_style.dart';
 import 'package:vibe/vibe/vibe_user_sheet.dart';
 import 'package:vibe/widgets/avatar.dart';
 import 'package:vibe/widgets/matrix.dart';
+import 'package:vibe/vibe/vibe_handle.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -1368,7 +1369,7 @@ class _VibeCreateGroupPageState extends State<VibeCreateGroupPage> {
                       value: true,
                       onChanged: (_) => setState(() => _picked.remove(id)),
                       secondary: Avatar(name: id.localpart ?? id, size: 40),
-                      title: Text(id, style: TextStyle(color: t1)),
+                      title: Text(formatDisplayHandle(id), style: TextStyle(color: t1)),
                     ),
                   for (final c in contacts)
                     CheckboxListTile(
@@ -1555,7 +1556,7 @@ class _MembersState extends State<_Members> {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: t1, fontWeight: FontWeight.w600),
                 ),
-                subtitle: Text(u.id, style: TextStyle(color: t2)),
+                subtitle: Text(formatDisplayHandle(u.id), style: TextStyle(color: t2)),
                 trailing: role == null
                     ? null
                     : Container(
@@ -1739,7 +1740,7 @@ class _InviteState extends State<_Invite> {
                 VibeGroups.nameOf(context, dm),
                 style: TextStyle(color: t1),
               ),
-              subtitle: Text(id, style: TextStyle(color: t2)),
+              subtitle: Text(formatDisplayHandle(id), style: TextStyle(color: t2)),
               trailing: FilledButton.tonal(
                 onPressed: sent ? null : () => _invite(id),
                 child: Text(sent ? 'Invited' : 'Invite'),

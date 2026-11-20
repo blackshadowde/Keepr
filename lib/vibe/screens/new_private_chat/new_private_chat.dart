@@ -24,6 +24,7 @@ import 'package:vibe/widgets/layouts/max_width_body.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 import 'package:vibe/widgets/qr_code_viewer.dart';
+import 'package:vibe/vibe/vibe_handle.dart';
 
 class NewPrivateChat extends StatefulWidget {
   final String? deeplink;
@@ -74,15 +75,27 @@ class _NewPrivateChatState extends State<NewPrivateChat> {
   }
 
   Future<List<Profile>> _searchUser(String searchTerm) async {
-    final result = await Matrix.of(
-      context,
-    ).client.searchUserDirectory(searchTerm);
+    final client = Matrix.of(context).client;
+    final result = await client.searchUserDirectory(searchTerm);
     final profiles = result.results;
 
-    if (searchTerm.isValidMatrixIdStrict() &&
-        searchTerm.sigil == '@' &&
-        !profiles.any((profile) => profile.userId == searchTerm)) {
-      profiles.add(Profile(userId: searchTerm));
+    // "rahul" is @rahul on Keepr's server; links and full IDs as they are
+    final id = normalizeHandle(searchTerm);
+    if (id != null && !profiles.any((profile) => profile.userId == id)) {
+      try {
+        final info = await client.getUserProfile(id);
+        profiles.insert(
+          0,
+          Profile(
+            userId: id,
+            displayName: info.displayname,
+            avatarUrl: info.avatarUrl,
+          ),
+        );
+      } catch (_) {
+        // a full ID may hide its profile; a plain name must exist
+        if (searchTerm.contains(':')) profiles.add(Profile(userId: id));
+      }
     }
 
     return profiles;
@@ -392,7 +405,9 @@ class _NewPrivateChatState extends State<NewPrivateChat> {
                                   presenceUserId: contact.userId,
                                 ),
                                 title: Text(displayname),
-                                subtitle: Text(contact.userId),
+                                subtitle: Text(
+                                  formatDisplayHandle(contact.userId),
+                                ),
                                 onTap: () => openUserModal(contact),
                               );
                             },

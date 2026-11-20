@@ -12,6 +12,7 @@ import 'package:vibe/vibe/vibe_connections.dart';
 import 'package:vibe/vibe/vibe_own_profile.dart';
 import 'package:vibe/config/app_config.dart';
 import 'package:vibe/widgets/qr_code_viewer.dart';
+import 'package:vibe/vibe/vibe_handle.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -733,7 +734,7 @@ class _VibeSetStatusPageState extends State<VibeSetStatusPage> {
                               children: [
                                 Flexible(
                                   child: Text(
-                                    userId,
+                                    formatDisplayHandle(userId),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: sub),
