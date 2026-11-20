@@ -328,6 +328,12 @@ Last updated: 2026-11-20.
     settings `vibeFrameGraph` / `vibeSmoothTouch`, shown in About after
     five taps on the version.
 - Also on `vibe-next` after 3.1.168 (not built yet):
+  - The music wallpaper fixes described above (3.1.168 has the first
+    version: no covers for streamed songs, shown only after a restart, Flow
+    when nothing played).
+  - The sound packs below also tick "Keepr's own sounds" off the
+    `independent` plan; merge `vibe-next` into `independent` before more
+    work there.
   - Sound packs (`lib/vibe/vibe_sounds.dart`, `VibeSoundPack`): Glass, Wood,
     Air, Classic in `assets/sounds/<pack>/` (join, leave, wait, attention,
     notification, sent, received; made with `scratchpad` synth scripts, the
