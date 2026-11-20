@@ -30,6 +30,13 @@ jobs:
           path: pubspec.lock
           retention-days: 7
 
+      # the same, in the log (readable where downloads aren't)
+      - name: Package versions
+        run: |
+          echo "::group::pubspec.lock"
+          cat pubspec.lock
+          echo "::endgroup::"
+
       - name: Check code
         run: |
           set -o pipefail
