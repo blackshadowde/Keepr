@@ -38,6 +38,7 @@ import 'package:vibe/vibe/vibe_disappearing.dart';
 import 'package:vibe/vibe/vibe_heart_burst.dart';
 import 'package:vibe/vibe/vibe_user_sheet.dart';
 import 'package:vibe/widgets/avatar.dart';
+import 'package:vibe/widgets/mxc_image.dart';
 import 'package:vibe/widgets/matrix.dart';
 import 'package:vibe/vibe/vibe_stable_id.dart';
 import 'package:vibe/vibe/vibe_slash.dart';
@@ -589,15 +590,6 @@ class VibeMessage extends StatelessWidget {
         : null;
     // how far a bubble reaches past its box towards the picture
     const reach = avatarSize / 2 + nestGap;
-    // a card that starts with a reply: the reply's line runs on down the
-    // card's edge to their picture beside the newest message
-    final cardKey = bubble && !threadView ? VibeCards.keyOf(event, timeline) : null;
-    final rail = cardKey != null &&
-        hasReply(
-          cardKey == event.eventId
-              ? event
-              : timeline.events.where((e) => e.eventId == cardKey).firstOrNull,
-        );
     // solid colours: yours in the theme's colour (Keepr's theme: the
     // phone's colours when it has them), theirs as picked in Customisation
     final dark = theme.brightness == Brightness.dark;
@@ -733,112 +725,156 @@ class VibeMessage extends StatelessWidget {
       );
     }
 
+    // the message answered peeks out from behind the top of the card: a
+    // smaller card in its person's colour, with their picture (or the photo)
+    // and first words; tap it to go there
     Widget replyStrip() {
       return FutureBuilder<Event?>(
         future: event.getReplyEvent(timeline),
         builder: (context, snapshot) {
           final replyEvent = snapshot.data;
-          final lineColor = cs.onSurfaceVariant.withValues(alpha: 0.45);
-          Widget content;
+          final small = VibeTextSize.message * 0.82;
+          var fill = cs.surfaceContainerHigh;
+          var nameColor = cs.onSurfaceVariant;
+          Widget lead = const SizedBox.shrink();
+          String? who;
+          String preview;
           if (replyEvent == null) {
-            content = Text(
-              snapshot.connectionState == ConnectionState.done
-                  ? 'Original message not available'
-                  : '…',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: VibeTextSize.message * 0.88,
-                fontStyle: FontStyle.italic,
-                color: cs.onSurfaceVariant,
-              ),
-            );
+            preview = snapshot.connectionState == ConnectionState.done
+                ? 'Original message not available'
+                : '…';
           } else {
             final rs = replyEvent.senderFromMemoryOrFallback;
             final rname = rs.calcDisplayname();
             final rown = replyEvent.senderId == client.userID;
-            final rcolor = rown
+            who = rname;
+            fill = rown
+                ? Color.alphaBlend(wall.primaryContainer, under)
+                : VibeCardColours.theirs(context, rname);
+            nameColor = rown
                 ? (theme.brightness == Brightness.light ? _ownNameColorLight : _ownNameColor)
                 : event.room.isDirectChat
                 ? (theme.brightness == Brightness.light ? _otherNameColorLight : _otherNameColor)
                 : (theme.brightness == Brightness.light
                       ? rname.colorScheme.primary
                       : rname.colorScheme.primaryContainer);
+            final shown = replyEvent.getDisplayEvent(timeline);
+            final picture = shown.type == EventTypes.Sticker ||
+                {MessageTypes.Image, MessageTypes.Video}.contains(shown.messageType);
+            lead = picture
+                ? MxcImage(
+                    event: shown,
+                    width: 18,
+                    height: 18,
+                    fit: BoxFit.cover,
+                    borderRadius: BorderRadius.circular(5),
+                    placeholder: (_) => const SizedBox.square(dimension: 18),
+                  )
+                : Avatar(
+                    mxContent: rs.avatarUrl,
+                    name: rname,
+                    size: 16,
+                    client: client,
+                  );
             // a reply to part of a message shows the quoted words
-            final quoted = VibeQuotePicker.quoteOf(event);
-            final preview = quoted ?? replyEvent
-                .getDisplayEvent(timeline)
-                .vibeBodyFallback(
+            preview = VibeQuotePicker.quoteOf(event) ??
+                shown.vibeBodyFallback(
                   MatrixLocals(L10n.of(context)),
                   hideReply: true,
                   hideEdit: true,
                   plaintextBody: true,
                   removeMarkdown: true,
                 );
-            content = Row(
-              mainAxisAlignment: ownMessage
-                  ? MainAxisAlignment.end
-                  : MainAxisAlignment.start,
-              children: [
-                Avatar(
-                  mxContent: rs.avatarUrl,
-                  name: rname,
-                  size: 16,
-                  client: client,
-                ),
-                const SizedBox(width: 6),
+          }
+          final words = Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              lead,
+              const SizedBox(width: 6),
+              if (who != null) ...[
                 Flexible(
                   flex: 0,
                   child: Text(
-                    '@$rname',
+                    who,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: VibeTextSize.message * 0.88,
+                      fontSize: small,
                       fontWeight: FontWeight.w700,
-                      color: rcolor,
-                      shadows: _nameShadows(theme),
+                      color: nameColor,
                     ),
                   ),
                 ),
                 const SizedBox(width: 6),
-                Flexible(
-                  fit: ownMessage ? FlexFit.loose : FlexFit.tight,
-                  child: Text(
-                    preview,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: VibeTextSize.message * 0.88,
-                      color: cs.onSurfaceVariant,
-                    ),
+              ],
+              Flexible(
+                child: Text(
+                  preview,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: small,
+                    fontStyle: replyEvent == null ? FontStyle.italic : null,
+                    color: cs.onSurfaceVariant,
                   ),
                 ),
-              ],
-            );
-          }
-          return InkWell(
+              ),
+            ],
+          );
+          // a card lies on its lower part; over a photo it shows whole
+          final shows = bubble ? 26.0 : 30.0;
+          final tall = bubble ? 44.0 : 28.0;
+          final echo = GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onTap: replyEvent == null
                 ? null
                 : () => scrollToEventId(replyEvent.eventId),
-            child: SizedBox(
-              height: 22,
-              child: Row(
-                textDirection: side,
-                children: [
-                  SizedBox(
-                    width: avatarSize,
-                    height: 22,
-                    // the same curve, mirrored when the avatar is on the right
-                    child: Transform.flip(
-                      flipX: side == ui.TextDirection.rtl,
-                      child: CustomPaint(painter: _ReplyCurve(lineColor)),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(child: content),
-                ],
+            child: Container(
+              height: tall,
+              constraints: const BoxConstraints(minWidth: 150, maxWidth: 270),
+              padding: const EdgeInsets.fromLTRB(7, 5, 12, 0),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: nameColor.withValues(alpha: 0.14)),
+                color: bubble ? null : fill,
+                // the card's soft shade, just above its edge
+                gradient: bubble
+                    ? LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          fill,
+                          fill,
+                          Color.alphaBlend(
+                            Colors.black.withValues(alpha: dark ? 0.28 : 0.07),
+                            fill,
+                          ),
+                        ],
+                        stops: [0, (shows - 9) / tall, shows / tall],
+                      )
+                    : null,
               ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [SizedBox(height: 18, child: words)],
+              ),
+            ),
+          );
+          const inset = avatarSize / 2 + 14;
+          return SizedBox(
+            height: shows,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Positioned(
+                  top: 0,
+                  left: picLeft ? inset : null,
+                  right: picLeft ? null : inset,
+                  // the card is at least wide enough to cover it
+                  child: _ReportWidth(card: card, extra: 28, child: echo),
+                ),
+              ],
             ),
           );
         },
@@ -1067,14 +1103,6 @@ class VibeMessage extends StatelessWidget {
               // the last message of a run carries the picture; a bubble
               // curves in round it
               Widget place(Widget w) => CustomPaint(
-                foregroundPainter: rail
-                    ? _ReplyRail(
-                        cs.onSurfaceVariant.withValues(alpha: 0.45),
-                        left: picLeft,
-                        toPicture: last,
-                        pic: avatarSize,
-                      )
-                    : null,
                 child: Padding(
                 padding: EdgeInsets.only(
                   top: first || (bubble && !cardFirst) ? 0 : 2,
@@ -1549,67 +1577,6 @@ class VibeMessage extends StatelessWidget {
   }
 }
 
-
-/// Discord-style reply connector: up from the avatar's top-centre, then a
-/// rounded corner to the right, ending beside the replied-to author.
-class _ReplyCurve extends CustomPainter {
-  final Color color;
-  const _ReplyCurve(this.color);
-
-  /// How far past its box the line goes: up to the small avatar.
-  static const reach = 7.0;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final cx = size.width / 2;
-    final mid = size.height / 2;
-    const r = 8.0;
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round;
-    final path = Path()
-      ..moveTo(cx, size.height + 4)
-      ..lineTo(cx, mid + r)
-      ..quadraticBezierTo(cx, mid, cx + r, mid)
-      // runs on into the small picture of the person being replied to
-      ..lineTo(size.width + _ReplyCurve.reach, mid);
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _ReplyCurve old) => old.color != color;
-}
-
-/// A reply's line carried on down the card's edge, row by row, to the top of
-/// the sender's picture beside the newest message.
-class _ReplyRail extends CustomPainter {
-  final Color color;
-  final bool left, toPicture;
-  final double pic;
-  const _ReplyRail(this.color, {required this.left, required this.toPicture, required this.pic});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final x = left ? pic / 2 : size.width - pic / 2;
-    // the newest row: down to its picture (centred beside the bubble)
-    final end = toPicture ? size.height / 2 - pic / 2 - 2 : size.height;
-    if (end <= 0) return;
-    canvas.drawLine(
-      Offset(x, 0),
-      Offset(x, end),
-      Paint()
-        ..color = color
-        ..strokeWidth = 2
-        ..strokeCap = StrokeCap.round,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_ReplyRail old) =>
-      old.color != color || old.left != left || old.toPicture != toPicture;
-}
 
 /// A bubble's solid shape: one card per run, so its corners are round only
 /// at the card's top and bottom. It reaches [reach] past its box towards the
