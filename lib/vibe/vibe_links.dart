@@ -12,6 +12,7 @@ import 'package:vibe/utils/url_launcher.dart';
 import 'package:vibe/utils/vibe_share.dart';
 import 'package:vibe/vibe/vibe_haptics.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
+import 'package:vibe/vibe/vibe_numbers.dart';
 
 /// Links in messages: tap one to open it, hold it for Open, Copy link and
 /// Share.
@@ -38,7 +39,8 @@ abstract class VibeLinks {
               recognizer: VibeLinkTap(e.url)..onTap = () => onOpen(e),
             )
           else
-            TextSpan(text: e.text),
+            // codes and phone numbers: tap to copy (or call)
+            VibeNumbers.span(e.text),
       ],
     );
   }

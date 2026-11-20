@@ -342,15 +342,14 @@ class _Menu extends StatelessWidget {
               ),
             // answer just some words of a text message (new: highlighted
             // the first few times so people find it)
-            if (canSend &&
-                {
-                  MessageTypes.Text,
-                  MessageTypes.Notice,
-                  MessageTypes.Emote,
-                }.contains(event.messageType))
+            if ({
+              MessageTypes.Text,
+              MessageTypes.Notice,
+              MessageTypes.Emote,
+            }.contains(event.messageType))
               VibeNewHint(
                 id: 'quote_part',
-                child: item(Icons.format_quote_rounded, 'Quote part', () {
+                child: item(Icons.select_all_rounded, 'Select text', () {
                   _close();
                   controller.quotePartAction(event);
                 }),

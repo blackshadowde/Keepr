@@ -334,10 +334,11 @@ class _OrbitState extends State<_Orbit> with SingleTickerProviderStateMixin {
           () => c.replyAction(replyTo: e),
         ),
       if (canEdit) _Action(Icons.edit_outlined, 'Edit', _edit),
-      if (!own && canSend && text)
+      // pick some words to copy or quote; its numbers to copy
+      if (text && !e.redacted)
         _Action(
-          Icons.format_quote_rounded,
-          'Quote',
+          Icons.select_all_rounded,
+          'Select',
           () => c.quotePartAction(e),
         ),
       _Action(

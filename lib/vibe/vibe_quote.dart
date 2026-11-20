@@ -3,14 +3,20 @@
 import 'package:flutter/material.dart';
 import 'package:matrix/matrix.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
+import 'package:vibe/vibe/vibe_numbers.dart';
 
-/// Quote part of a message (Telegram style): drag over the words to answer,
-/// tap Quote. The reply is sent with those words as a quote, which every
-/// Matrix app shows.
+/// Select part of a message: drag over the words, then Copy them, or Quote
+/// them in a reply (sent with those words as a quote, which every Matrix app
+/// shows). Its numbers are listed to copy with one tap.
 abstract class VibeQuotePicker {
   static const int maxLength = 300;
 
-  static Future<String?> pick(BuildContext context, Event event) {
+  /// The words to quote, or null (copied, or closed).
+  static Future<String?> pick(
+    BuildContext context,
+    Event event, {
+    bool canQuote = true,
+  }) {
     final text = event
         .calcUnlocalizedBody(hideReply: true, hideEdit: true, plaintextBody: true)
         .trim();
@@ -24,7 +30,7 @@ abstract class VibeQuotePicker {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
-      builder: (_) => _QuotePicker(text: text),
+      builder: (_) => _QuotePicker(text: text, canQuote: canQuote),
     );
   }
 
@@ -53,7 +59,8 @@ abstract class VibeQuotePicker {
 
 class _QuotePicker extends StatefulWidget {
   final String text;
-  const _QuotePicker({required this.text});
+  final bool canQuote;
+  const _QuotePicker({required this.text, this.canQuote = true});
 
   @override
   State<_QuotePicker> createState() => _QuotePickerState();
@@ -62,10 +69,11 @@ class _QuotePicker extends StatefulWidget {
 class _QuotePickerState extends State<_QuotePicker> {
   // Words instead of text handles: tap the first and the last word (or
   // slide a finger across them). Starts with everything picked.
-  late final List<String> _words = widget.text
-      .split(RegExp(r'\s+'))
-      .where((w) => w.isNotEmpty)
-      .toList();
+  late final List<RegExpMatch> _at = RegExp(
+    r'\S+',
+  ).allMatches(widget.text).toList();
+  late final List<String> _words = [for (final m in _at) m.group(0)!];
+  late final List<VibeNumber> _numbers = VibeNumbers.all(widget.text);
   int _start = 0;
   late int _end = _words.length - 1;
   bool _picking = false;
@@ -78,6 +86,14 @@ class _QuotePickerState extends State<_QuotePicker> {
   void _done() {
     if (_sel.isEmpty) return;
     Navigator.of(context).pop(_sel);
+  }
+
+  /// The picked part as written, line breaks and all.
+  Future<void> _copy() async {
+    if (_words.isEmpty) return;
+    final text = widget.text.substring(_at[_start].start, _at[_end].end);
+    await VibeNumbers.copy(context, text);
+    if (mounted) Navigator.of(context).pop();
   }
 
   void _tap(int i) {
@@ -122,7 +138,7 @@ class _QuotePickerState extends State<_QuotePicker> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Quote part',
+              'Select text',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 4),
@@ -187,15 +203,55 @@ class _QuotePickerState extends State<_QuotePicker> {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: FilledButton.icon(
-                onPressed: _sel.isEmpty ? null : _done,
-                icon: const Icon(Icons.format_quote_rounded),
-                label: const Text('Quote selected'),
+            // its numbers, one tap to copy
+            if (_numbers.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final n in _numbers.take(8))
+                    ActionChip(
+                      avatar: Icon(
+                        n.phone ? Icons.dialpad_rounded : Icons.copy_rounded,
+                        size: 16,
+                      ),
+                      label: Text(n.shown),
+                      onPressed: () async {
+                        await VibeNumbers.copy(context, n.copy);
+                        if (context.mounted) Navigator.of(context).pop();
+                      },
+                    ),
+                ],
               ),
+            ],
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 50,
+                    child: FilledButton.tonalIcon(
+                      onPressed: _sel.isEmpty ? null : _copy,
+                      icon: const Icon(Icons.copy_rounded),
+                      label: const Text('Copy'),
+                    ),
+                  ),
+                ),
+                if (widget.canQuote) ...[
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: SizedBox(
+                      height: 50,
+                      child: FilledButton.icon(
+                        onPressed: _sel.isEmpty ? null : _done,
+                        icon: const Icon(Icons.format_quote_rounded),
+                        label: const Text('Quote'),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ],
         ),

@@ -2040,9 +2040,14 @@ class ChatController extends State<ChatPageWithRoom>
     } catch (_) {}
   }
 
-  /// Quote part of [event]: pick the words, then answer them.
+  /// Select text of [event]: pick the words, then copy them or answer them
+  /// as a quote.
   Future<void> quotePartAction(Event event) async {
-    final quote = await VibeQuotePicker.pick(context, event);
+    final quote = await VibeQuotePicker.pick(
+      context,
+      event,
+      canQuote: room.canSendDefaultMessages,
+    );
     if (!mounted || quote == null || quote.isEmpty) return;
     setState(() {
       replyEvent = event;
