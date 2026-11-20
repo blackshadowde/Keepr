@@ -673,11 +673,13 @@ class _VibeSetStatusPageState extends State<VibeSetStatusPage> {
                             child: Stack(
                               clipBehavior: Clip.none,
                               children: [
+                                // big picture: an animated one plays
                                 Avatar(
                                   mxContent: p?.avatarUrl,
                                   name: name,
                                   size: 112,
                                   client: widget.client,
+                                  animated: true,
                                 ),
                                 Positioned(
                                   right: -2,
