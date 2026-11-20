@@ -23,6 +23,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:vibe/utils/matrix_sdk_extensions/event_extension.dart';
 import 'package:vibe/widgets/vibe_app.dart';
 import 'package:vibe/widgets/matrix.dart';
+import 'package:vibe/vibe/vibe_swipe.dart';
 
 class AudioPlayerWidget extends StatefulWidget {
   final Color color;
@@ -432,7 +433,7 @@ class AudioPlayerState extends State<AudioPlayerWidget> {
                                 ),
                               SizedBox(
                                 height: 32,
-                                child: Slider(
+                                child: VibeNoBackSwipe(child: Slider(
                                   thumbColor:
                                       widget.event.senderId ==
                                           widget.event.room.client.userID
@@ -453,7 +454,7 @@ class AudioPlayerState extends State<AudioPlayerWidget> {
                                             milliseconds: position.round(),
                                           ),
                                         ),
-                                ),
+                                )),
                               ),
                             ],
                           ),

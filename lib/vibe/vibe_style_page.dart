@@ -19,6 +19,7 @@ import 'package:vibe/vibe/vibe_wallpaper.dart';
 import 'package:vibe/config/themes.dart';
 import 'package:vibe/widgets/settings_switch_list_tile.dart';
 import 'package:vibe/vibe/vibe_text_size_preview.dart';
+import 'package:vibe/vibe/vibe_swipe.dart';
 
 class VibeStylePage extends StatefulWidget {
   const VibeStylePage({super.key});
@@ -336,7 +337,7 @@ class _VibeStylePageState extends State<VibeStylePage> {
                 children: [
                   const Text('A', style: TextStyle(fontSize: 13)),
                   Expanded(
-                    child: Slider.adaptive(
+                    child: VibeNoBackSwipe(child: Slider.adaptive(
                       min: VibeTextSize.min.toDouble(),
                       max: VibeTextSize.max.toDouble(),
                       divisions: VibeTextSize.max - VibeTextSize.min,
@@ -344,7 +345,7 @@ class _VibeStylePageState extends State<VibeStylePage> {
                       label: '${VibeTextSize.value}',
                       semanticFormatterCallback: (d) => '${d.round()}',
                       onChanged: (d) => changeTextSize(d.round()),
-                    ),
+                    )),
                   ),
                   const Text('A', style: TextStyle(fontSize: 24)),
                 ],

@@ -31,6 +31,7 @@ import 'package:mime/mime.dart';
 
 import 'package:vibe/utils/resize_video.dart';
 import 'package:vibe/vibe/vibe_view_once.dart';
+import 'package:vibe/vibe/vibe_swipe.dart';
 
 class SendFileDialog extends StatefulWidget {
   final Room room;
@@ -906,13 +907,13 @@ class _ImageEditPageState extends State<_ImageEditPage> {
                                       setState(() => _eraser = true),
                                 ),
                                 Expanded(
-                                  child: Slider(
+                                  child: VibeNoBackSwipe(child: Slider(
                                     min: 1,
                                     max: 30,
                                     value: _strokeWidth,
                                     onChanged: (v) =>
                                         setState(() => _strokeWidth = v),
-                                  ),
+                                  )),
                                 ),
                                 IconButton(
                                   tooltip: l10n.undo,
