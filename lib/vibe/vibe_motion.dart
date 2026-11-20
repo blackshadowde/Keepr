@@ -299,8 +299,9 @@ class VibeSpringCurve extends Curve {
 /// Pages: response 0.42 s, no overshoot.
 final VibeSpringCurve vibeSpring = VibeSpringCurve(stiffness: 320);
 
-/// Opening / closing a chat (sliding pages): a bit quicker than [vibeSpring].
-final VibeSpringCurve vibePageSpring = VibeSpringCurve(stiffness: 460);
+/// Opening / closing a chat (sliding pages): a little quicker than
+/// [vibeSpring], calm rather than snappy.
+final VibeSpringCurve vibePageSpring = VibeSpringCurve(stiffness: 380);
 
 /// Panes rising from the bottom: response 0.40 s, damping 0.9.
 final VibeSpringCurve vibeSheetSpring = VibeSpringCurve(

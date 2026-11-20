@@ -145,9 +145,11 @@ class RecordingViewModelState extends State<RecordingViewModel> {
       var value = 100 + amplitude.current * 2;
       value = value < 1 ? 1 : value;
       amplitudeTimeline.add(value);
-      setState(() {
-        duration += const Duration(milliseconds: 100);
-      });
+      // the bars move on their own every frame; the pane only needs to
+      // rebuild when the time shown (whole seconds) changes
+      final second = duration.inSeconds;
+      duration += const Duration(milliseconds: 100);
+      if (duration.inSeconds != second) setState(() {});
     });
   }
 

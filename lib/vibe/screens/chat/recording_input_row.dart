@@ -7,7 +7,10 @@ import 'package:vibe/l10n/l10n.dart';
 import 'package:vibe/vibe/buddy/vibe_buddy.dart';
 import 'package:vibe/vibe/screens/chat/recording_view_model.dart';
 import 'package:vibe/vibe/vibe_motion.dart';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 /// Recording a voice note: a pane over the text box in your colour theme.
 /// A little stage shows the time, a mic and your voice as bars (Bujji
@@ -87,11 +90,11 @@ class RecordingInputRow extends StatelessWidget {
       ],
     );
     const tabular = [FontFeature.tabularFigures()];
-    // the pane rises in with a little spring
+    // the pane rises in and settles softly
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 420),
-      curve: Curves.easeOutBack,
+      duration: const Duration(milliseconds: 380),
+      curve: Curves.easeOutQuart,
       builder: (context, v, child) => Opacity(
         opacity: v.clamp(0.0, 1.0),
         child: Transform.translate(offset: Offset(0, 28 * (1 - v)), child: child),
@@ -272,22 +275,10 @@ class RecordingInputRow extends StatelessWidget {
                                     ),
                                   );
                                 }
-                                final amps = state.amplitudeTimeline.reversed.take(n).toList().reversed.toList();
-                                return Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    for (final a in amps)
-                                      AnimatedContainer(
-                                        duration: const Duration(milliseconds: 140),
-                                        margin: const EdgeInsets.only(left: gap),
-                                        width: w,
-                                        height: 6 + 40 * (a / 100).clamp(0.0, 1.0),
-                                        decoration: BoxDecoration(
-                                          color: live ? cs.primary : cs.outline,
-                                          borderRadius: BorderRadius.circular(w / 2),
-                                        ),
-                                      ),
-                                  ],
+                                return _LiveWave(
+                                  amps: state.amplitudeTimeline,
+                                  live: live,
+                                  color: live ? cs.primary : cs.outline,
                                 );
                               },
                             ),
@@ -402,7 +393,8 @@ class _BreathingState extends State<_Breathing> with SingleTickerProviderStateMi
   }
 
   @override
-  Widget build(BuildContext context) => AnimatedBuilder(
+  Widget build(BuildContext context) => RepaintBoundary(
+    child: AnimatedBuilder(
     animation: _c,
     builder: (context, _) {
       final k = widget.on ? Curves.easeInOut.transform(_c.value) : 0.0;
@@ -416,5 +408,107 @@ class _BreathingState extends State<_Breathing> with SingleTickerProviderStateMi
         ),
       );
     },
+    ),
   );
+}
+
+/// Your voice as bars gliding in from the right on every frame, instead of
+/// jumping a step each time the microphone is read (10 times a second).
+class _LiveWave extends StatefulWidget {
+  final List<double> amps;
+  final bool live;
+  final Color color;
+  const _LiveWave({required this.amps, required this.live, required this.color});
+
+  @override
+  State<_LiveWave> createState() => _LiveWaveState();
+}
+
+class _LiveWaveState extends State<_LiveWave> with SingleTickerProviderStateMixin {
+  // how far the bars have moved, counted in bars; follows the readings
+  final _pos = ValueNotifier<double>(0);
+  late final Ticker _ticker = createTicker(_tick);
+  Duration _last = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _pos.value = widget.amps.length.toDouble();
+    _ticker.start();
+  }
+
+  @override
+  void didUpdateWidget(_LiveWave old) {
+    super.didUpdateWidget(old);
+    if (widget.live && !_ticker.isActive) {
+      _last = Duration.zero;
+      _ticker.start();
+    }
+  }
+
+  void _tick(Duration now) {
+    final dt = (now - _last).inMicroseconds / 1e6;
+    _last = now;
+    final n = widget.amps.length.toDouble();
+    var p = math.min(_pos.value, n);
+    // one bar per tenth of a second, a little quicker when behind
+    if (n > p) p = math.min(n, p + dt * (n - p > 1.5 ? 16 : 10));
+    if (n - p > 2) p = n - 2;
+    _pos.value = p;
+    // paused and caught up: rest until it records again
+    if (!widget.live && p >= n) _ticker.stop();
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    _pos.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => RepaintBoundary(
+    child: CustomPaint(
+      size: Size.infinite,
+      painter: _WavePainter(widget.amps, _pos, widget.color),
+    ),
+  );
+}
+
+class _WavePainter extends CustomPainter {
+  final List<double> amps;
+  final ValueNotifier<double> pos;
+  final Color color;
+  _WavePainter(this.amps, this.pos, this.color) : super(repaint: pos);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const w = 4.0, slot = 7.0, fade = 28.0;
+    canvas.clipRect(Offset.zero & size);
+    final p = pos.value;
+    final paint = Paint();
+    final mid = size.height / 2;
+    for (var j = amps.length - 1; j >= 0; j--) {
+      final age = p - j; // 1 and more: in place; below 1: still sliding in
+      if (age <= 0) continue;
+      final right = size.width - (age - 1) * slot;
+      if (right < 0) break;
+      final grow = Curves.easeOut.transform(age.clamp(0.0, 1.0));
+      final h = (6 + 40 * (amps[j] / 100).clamp(0.0, 1.0)) * (0.35 + 0.65 * grow);
+      // the oldest bars fade out at the left edge
+      final a = (right / fade).clamp(0.0, 1.0);
+      paint.color = color.withValues(alpha: color.a * a);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(right - w, mid - h / 2, w, h),
+          const Radius.circular(w / 2),
+        ),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_WavePainter old) =>
+      old.color != color || !identical(old.amps, amps);
 }

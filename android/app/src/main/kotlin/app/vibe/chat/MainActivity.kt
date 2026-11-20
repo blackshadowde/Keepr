@@ -64,6 +64,8 @@ class MainActivity : FlutterFragmentActivity() {
                 .maxByOrNull { it.refreshRate } ?: return
             val params = window.attributes
             params.preferredDisplayModeId = best.modeId
+            // some phones go by the rate rather than the mode
+            params.preferredRefreshRate = best.refreshRate
             window.attributes = params
         } catch (_: Throwable) {
         }
