@@ -4,6 +4,47 @@ Keepr started from FluffyChat's code. This checklist makes it a Matrix client of
 its own. FluffyChat's copyright notices and the AGPL licence stay, as the
 licence requires; everything else becomes Keepr's.
 
+## The `independent` branch: cutting the cord
+
+Work to make Keepr its own happens on the branch `independent`, small and
+safe first, then bigger, then the risky parts. It goes back into `vibe-next`
+when the owner says. Keepr has no live link to FluffyChat's services (no
+FluffyChat server, push gateway or update check is used); what's left is code,
+files and translations that came from it. Checked 2026-11-20: 206 of 341 Dart
+files still carry FluffyChat's copyright line (the licence requires keeping it
+on files that came from there): 106 in `lib/vibe/`, all 37 in `lib/widgets/`,
+all 56 in `lib/utils/`, all 6 in `lib/config/`.
+
+Small and safe
+- [x] Dead FluffyChat code and files: old chat list item, side rail, user bar,
+      shared page, two unused call sounds (phone.ogg, call.ogg)
+- [x] Unused small logo that said Vibe
+- [ ] macOS project still named FluffyChat in several linked places (no macOS
+      build to test it; or drop the desktop folders if desktop isn't wanted)
+
+Bigger
+- [ ] Keepr's own sounds for calls (join, leave, attention, waiting) and the
+      web notification, to listen to and pick first
+- [ ] One icon style everywhere (about 370 outlined and 320 plain icons are
+      FluffyChat's style; Keepr's own screens use rounded): owner picks
+- [ ] Rewrite FluffyChat's helpers in Keepr's own code, one at a time, with no
+      change on screen: `lib/utils/` (56), `lib/widgets/` (37), `lib/config/` (6)
+- [ ] Screens still in FluffyChat's layout, mockups first: chat search, call
+      page, stickers and emotes settings, encryption and access settings,
+      backup setup, lock screen, message info, the question dialogs, the photo
+      editor, login and sign-up
+- [ ] Translations: today new ones come from FluffyChat's translators. Keepr
+      needs its own way (its own translation project, or Keepr's own text in
+      English until then)
+
+Risky (test on a phone before merging)
+- [ ] Encryption setup and device verification
+- [ ] Notifications (push helper)
+- [ ] Chat screen parts: input bar, message list, message types
+- [ ] iPhone: rename the "FluffyChat Share" target, and FluffyChat's Firebase
+      file (`GoogleService-Info.plist`): Keepr's own, or none (needs an
+      iPhone build to test)
+
 ## Level 0: Catch up first (checked 2026-11-20)
 
 FluffyChat's newest is 2.11.6 (2026-11-15). Keepr has its fixes through 2.11.5
