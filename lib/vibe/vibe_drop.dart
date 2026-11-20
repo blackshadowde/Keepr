@@ -11,6 +11,15 @@ abstract class VibeDrop {
   static Object? _owner;
   static void Function(bool hovering)? _hover;
   static void Function(List<XFile> files)? _drop;
+  static DateTime? _seen;
+
+  /// A drag was over the open chat a moment ago. Some phones also hand the
+  /// dropped files over as a share, which would open the chat picker for
+  /// files the chat already has.
+  static bool get justDropped =>
+      _owner != null &&
+      _seen != null &&
+      DateTime.now().difference(_seen!) < const Duration(seconds: 4);
 
   /// The chat on screen takes the drops (the newest one wins).
   static void attach(
@@ -32,6 +41,7 @@ abstract class VibeDrop {
   }
 
   static Future<void> _handle(MethodCall call) async {
+    _seen = DateTime.now();
     switch (call.method) {
       case 'enter':
         _hover?.call(true);

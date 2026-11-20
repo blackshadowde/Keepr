@@ -3,6 +3,7 @@
 //
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import 'package:vibe/vibe/vibe_drop.dart';
 import 'package:vibe/vibe/vibe_strict.dart';
 import 'package:vibe/vibe/vibe_dialog.dart';
 import 'dart:async';
@@ -333,7 +334,7 @@ class ChatListController extends State<ChatList>
           file.path.startsWith(AppConfig.deepLinkPrefix) ||
           Uri.tryParse(file.path)?.scheme == 'matrix',
     );
-    if (files.isEmpty) return;
+    if (files.isEmpty || VibeDrop.justDropped) return;
 
     showScaffoldDialog(
       context: context,
