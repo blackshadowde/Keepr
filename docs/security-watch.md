@@ -6,7 +6,7 @@ libcrux, FluffyChat and the pub and Rust packages in the lock files. Critical
 or high items are fixed on a `hotfix/…` branch and released (Android only);
 everything else is listed under "For the owner".
 
-Last checked: 2026-11-19 09:15 UTC (window 2026-11-16 to 2026-11-19)
+Last checked: 2026-11-22 09:15 UTC (window 2026-11-19 to 2026-11-22)
 
 ## For the owner
 
@@ -18,10 +18,11 @@ Last checked: 2026-11-19 09:15 UTC (window 2026-11-16 to 2026-11-19)
   makes `Room.states` read-only, a breaking change), so it isn't a simple
   bump from 16.x. Worth moving to 17 when you're back.
   https://pub.dev/packages/matrix/changelog
-- This run's access was narrower than before: it could not reach GitHub's
-  global advisory list, FluffyChat's commits, pub.dev, crates.io or osv.dev,
+- The runs since 2026-11-19 can't reach GitHub's global advisory list or
+  FluffyChat's commits (this scheduled task is only given Keepr's own repo),
   only web search and web pages. FluffyChat commits since 2026-11-16 are not
-  checked yet; the next run with full access should cover them.
+  checked yet. To fix it, ask Claude in a new chat to add the repos the task
+  needs (blackshadowde/Keepr and krille-chan/fluffychat) and remake this task.
 - `pubspec.lock` on `Vibe` and `vibe-next` is out of date: it still says
   matrix 10.0.1, flutter_vodozemac 0.7.1 and vodozemac 0.7.0, while
   `pubspec.yaml` asks for matrix ^16.0.4 and flutter_vodozemac ^0.9.0. The
@@ -37,11 +38,31 @@ Last checked: 2026-11-19 09:15 UTC (window 2026-11-16 to 2026-11-19)
 - Synapse 1.165.0 (2026-11-10): media downloads answer HEAD requests without
   reading the file. Nothing for Keepr to change; noted in case media checks
   behave differently.
-- MSC4388 (sign in with a QR code over a secure channel) is close to being
-  accepted; vodozemac 0.11.1 already changed its check codes for it. Only
+- MSC4388 (sign in with a QR code over a secure channel) was accepted
+  (This Week in Matrix 2026-11-20); vodozemac 0.11.1 already changed its check codes for it. Only
   matters if QR sign-in is added.
 
 ## Log
+
+### 2026-11-22
+
+- RustSec advisories 2026-11-19 to 2026-11-20 (wasmtime and wasmtime-wasi,
+  heapless, lettre, sad-rsa, tokio-rate-limit, pqcrypto-mlkem,
+  pqcrypto-mldsa): none for crates Keepr uses. The ML-KEM one is for
+  pqcrypto-mlkem; the post-quantum layer uses libcrux-ml-kem. No change.
+  https://rustsec.org/advisories/
+- vodozemac / flutter_vodozemac: nothing new since RUSTSEC-2026-0510. No
+  change.
+- libcrux: no new advisories. No change.
+- Matrix Dart SDK: no release found after 17.0.0 (16.0.4 is still the newest
+  16.x). No change.
+  https://github.com/famedly/matrix-dart-sdk/releases
+- matrix.org: no security disclosures; This Week in Matrix 2026-11-20 has no
+  server changes that break clients (MSC4388 accepted, see "For the owner").
+  No change.
+  https://matrix.org/blog/2026/11/20/this-week-in-matrix-2026-11-20
+- GitHub advisories (pub, rust) and FluffyChat commits: could not be read
+  (the task isn't given those repos). Not checked.
 
 ### 2026-11-19
 
