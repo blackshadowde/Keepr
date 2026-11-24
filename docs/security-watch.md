@@ -6,7 +6,7 @@ libcrux, FluffyChat and the pub and Rust packages in the lock files. Critical
 or high items are fixed on a `hotfix/…` branch and released (Android only);
 everything else is listed under "For the owner".
 
-Last checked: 2026-11-22 09:15 UTC (window 2026-11-19 to 2026-11-22)
+Last checked: 2026-11-24 09:20 UTC (window 2026-11-22 to 2026-11-24)
 
 ## For the owner
 
@@ -16,7 +16,8 @@ Last checked: 2026-11-22 09:15 UTC (window 2026-11-19 to 2026-11-22)
   needs the server or someone with account data access to plant such a key,
   so it's left for you. It only ships in 17.0.0, a new major version (also
   makes `Room.states` read-only, a breaking change), so it isn't a simple
-  bump from 16.x. Worth moving to 17 when you're back.
+  bump from 16.x. Worth moving to 17 when you're back (17.1.0, 2026-11-23,
+  is the newest; the `independent` branch already has a move to 17).
   https://pub.dev/packages/matrix/changelog
 - The runs since 2026-11-19 can't reach GitHub's global advisory list or
   FluffyChat's commits (this scheduled task is only given Keepr's own repo),
@@ -43,6 +44,30 @@ Last checked: 2026-11-22 09:15 UTC (window 2026-11-19 to 2026-11-22)
   matters if QR sign-in is added.
 
 ## Log
+
+### 2026-11-24
+
+- Matrix Dart SDK 17.1.0 (2026-11-23): adds
+  `Client.onDecryptedTimelineEvent` for a webhook use. A feature, not a
+  security fix. No 16.x after 16.0.4. No change.
+  https://github.com/famedly/matrix-dart-sdk/pull/2579
+- FluffyChat 2.11.6 (on F-Droid 2026-11-23): "Bugfixes and stability
+  improvements", nothing named as security. Keepr's FluffyChat audit was
+  already against 2.11.6. No change.
+  https://f-droid.org/en/packages/chat.fluffy.fluffychat/
+- vodozemac / flutter_vodozemac: nothing new since RUSTSEC-2026-0510. No
+  change.
+- libcrux: nothing new; the libcrux-intrinsics aarch64 advisory
+  (GHSA-2cgv-28vr-rv6j) and libcrux-psq one are older and already outside
+  what Keepr uses. No change.
+- RustSec: the advisory list page could not be read this run; web search
+  shows only RUSTSEC-2026-0543 (chrono unmaintained, informational), which
+  isn't a vulnerability. No change.
+- matrix.org: no security posts since February; This Week in Matrix
+  2026-11-20 already covered. No change.
+  https://matrix.org/category/security/
+- GitHub advisories (pub, rust) and FluffyChat commits: still not reachable
+  (the task isn't given those repos). Not checked.
 
 ### 2026-11-22
 
