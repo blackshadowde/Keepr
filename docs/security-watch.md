@@ -6,7 +6,7 @@ libcrux, FluffyChat and the pub and Rust packages in the lock files. Critical
 or high items are fixed on a `hotfix/…` branch and released (Android only);
 everything else is listed under "For the owner".
 
-Last checked: 2026-11-24 09:20 UTC (window 2026-11-22 to 2026-11-24)
+Last checked: 2026-11-25 09:15 UTC (window 2026-11-22 to 2026-11-25)
 
 ## For the owner
 
@@ -44,6 +44,29 @@ Last checked: 2026-11-24 09:20 UTC (window 2026-11-22 to 2026-11-24)
   matters if QR sign-in is added.
 
 ## Log
+
+### 2026-11-25
+
+- RustSec advisories 2026-11-22 to 2026-11-24 (the list could be read this
+  time): ruma-identifiers-validation (two panics), pqcrypto-dilithium,
+  secure-gate, secmem-proc, url (stack overflow in `Url::origin()`),
+  cookie, parquet, etherparse, xmloxide (high), hugepage-rs. None are
+  crates the post-quantum layer names (libcrux-ml-kem, aes-gcm, hkdf, sha2,
+  getrandom, tract-onnx, tokenizers without default features), and Keepr's
+  Matrix code is Dart, not ruma. `url` could only come in through a
+  dependency of those; Cargo.lock isn't in the repo to confirm, and the
+  layer doesn't parse links from other people. No change.
+  https://rustsec.org/advisories/
+- Matrix Dart SDK: nothing after 17.1.0 (2026-11-23); no 16.x after 16.0.4.
+  No change.
+  https://github.com/famedly/matrix-dart-sdk/releases
+- vodozemac / flutter_vodozemac and libcrux: nothing new. No change.
+- matrix.org: no security post since February; no blog post after This
+  Week in Matrix 2026-11-20. No change.
+  https://matrix.org/category/security/
+- FluffyChat: no new release found by web search. Commits not checked.
+- GitHub advisories (pub, rust) and FluffyChat commits: still not reachable
+  (the task isn't given those repos). Not checked.
 
 ### 2026-11-24
 
