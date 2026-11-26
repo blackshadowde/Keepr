@@ -6,9 +6,17 @@ libcrux, FluffyChat and the pub and Rust packages in the lock files. Critical
 or high items are fixed on a `hotfix/…` branch and released (Android only);
 everything else is listed under "For the owner".
 
-Last checked: 2026-11-25 09:15 UTC (window 2026-11-22 to 2026-11-25)
+Last checked: 2026-11-26 09:20 UTC (window 2026-11-25 to 2026-11-26)
 
 ## For the owner
+
+- Matrix Dart SDK 18.0.0 (2026-11-25): another new major version. It moves
+  to vodozemac 0.10.0 from the dart-vodozemac release (breaking), checks the
+  downloaded vodozemac against the release's SHA256SUMS, and repeats a
+  backup key request that found nothing once the backup changes (so keys
+  that arrive in the backup later still get used). No advisory or security
+  rating. If you move off 16.x, consider going straight to 18 rather than
+  17. https://github.com/famedly/matrix-dart-sdk/releases/tag/v18.0.0
 
 - Matrix Dart SDK 17.0.0 (2026-11-18) has "fix: missing mac or iv handles
   key as valid": a secret storage (recovery) key description without its
@@ -44,6 +52,24 @@ Last checked: 2026-11-25 09:15 UTC (window 2026-11-22 to 2026-11-25)
   matters if QR sign-in is added.
 
 ## Log
+
+### 2026-11-26
+
+- Matrix Dart SDK 18.0.0 (2026-11-25): vodozemac 0.10.0 bump (breaking),
+  SHA256 check of the vodozemac download, backup key request repeated after
+  the backup changes. Not a security advisory and not a same-major bump; no
+  16.x after 16.0.4. No change (see "For the owner").
+  https://github.com/famedly/matrix-dart-sdk/releases/tag/v18.0.0
+- RustSec since the last run: RUSTSEC-2026-0600 kube-client (medium, extra
+  CA store trusted). Not a crate Keepr uses. hugepage-rs, xmloxide and
+  etherparse (0596 to 0599) were already in the 2026-11-25 entry. No change.
+  https://rustsec.org/advisories/
+- vodozemac / flutter_vodozemac and libcrux: no new advisories. No change.
+- matrix.org: no security post since February. No change.
+  https://matrix.org/category/security/
+- FluffyChat: no new release found by web search. Commits not checked.
+- GitHub advisories (pub, rust) and FluffyChat commits: still not reachable
+  (the task is only given blackshadowde/Keepr). Not checked.
 
 ### 2026-11-25
 
