@@ -6,9 +6,15 @@ libcrux, FluffyChat and the pub and Rust packages in the lock files. Critical
 or high items are fixed on a `hotfix/…` branch and released (Android only);
 everything else is listed under "For the owner".
 
-Last checked: 2026-11-26 09:20 UTC (window 2026-11-25 to 2026-11-26)
+Last checked: 2026-11-27 (window 2026-11-26 to 2026-11-27)
 
 ## For the owner
+
+- Matrix Dart SDK 17.1.0 (2026-11-23) also has "fix: don't log call
+  encryption keys": group call encryption keys were written to the app's
+  logs. Not rated and no advisory; the logs stay on the phone unless
+  someone shares them, so it's left for you. It comes with the move to 17
+  or 18 below. https://pub.dev/packages/matrix/changelog
 
 - Matrix Dart SDK 18.0.0 (2026-11-25): another new major version. It moves
   to vodozemac 0.10.0 from the dart-vodozemac release (breaking), checks the
@@ -52,6 +58,22 @@ Last checked: 2026-11-26 09:20 UTC (window 2026-11-25 to 2026-11-26)
   matters if QR sign-in is added.
 
 ## Log
+
+### 2026-11-27
+
+- Matrix Dart SDK: nothing after 18.0.0 (2026-11-25); no 16.x after
+  16.0.4. Reading the 17.1.0 changelog again turned up the call key
+  logging fix (see "For the owner"). No change.
+  https://pub.dev/packages/matrix/changelog
+- vodozemac / flutter_vodozemac and libcrux: no new advisories found. No
+  change.
+- matrix.org: no security post since February. No change.
+  https://matrix.org/category/security/
+- RustSec: the advisory list could not be read this run, and web search
+  showed nothing newer than the 2026-11-26 entry. Not checked.
+- FluffyChat: no new release found by web search. Commits not checked.
+- GitHub advisories (pub, rust) and FluffyChat commits: still not reachable
+  (the task is only given blackshadowde/Keepr). Not checked.
 
 ### 2026-11-26
 
