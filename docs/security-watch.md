@@ -6,7 +6,7 @@ libcrux, FluffyChat and the pub and Rust packages in the lock files. Critical
 or high items are fixed on a `hotfix/…` branch and released (Android only);
 everything else is listed under "For the owner".
 
-Last checked: 2026-11-27 (window 2026-11-26 to 2026-11-27)
+Last checked: 2026-11-28 09:12 UTC (window 2026-11-27 to 2026-11-28)
 
 ## For the owner
 
@@ -14,7 +14,11 @@ Last checked: 2026-11-27 (window 2026-11-26 to 2026-11-27)
   encryption keys": group call encryption keys were written to the app's
   logs. Not rated and no advisory; the logs stay on the phone unless
   someone shares them, so it's left for you. It comes with the move to 17
-  or 18 below. https://pub.dev/packages/matrix/changelog
+  or 18 below. 17.1.0 also has "fix: keep the content of an event that
+  cannot be decrypted" (a message that fails to decrypt no longer loses its
+  encrypted content, so it can still be decrypted when the key arrives).
+  Not rated either; it comes with the same move.
+  https://pub.dev/packages/matrix/changelog
 
 - Matrix Dart SDK 18.0.0 (2026-11-25): another new major version. It moves
   to vodozemac 0.10.0 from the dart-vodozemac release (breaking), checks the
@@ -58,6 +62,25 @@ Last checked: 2026-11-27 (window 2026-11-26 to 2026-11-27)
   matters if QR sign-in is added.
 
 ## Log
+
+### 2026-11-28
+
+- Matrix Dart SDK: nothing after 18.0.0 (2026-11-25); no 16.x after
+  16.0.4. The 17.1.0 entry "keep the content of an event that cannot be
+  decrypted" added to "For the owner". No change.
+  https://pub.dev/packages/matrix/changelog
+- RustSec since the last run: RUSTSEC-2026-0602 and 0603 dryoc (Ed25519
+  key pair check; X25519 low-order keys, medium), RUSTSEC-2026-0601 wsts
+  (FROST, medium). Not crates Keepr uses. No change.
+  https://rustsec.org/advisories/
+- vodozemac / flutter_vodozemac and libcrux: no new advisories found. No
+  change.
+- matrix.org: no security post since February. This Week in Matrix
+  2026-11-27 could not be read this run. No change.
+  https://matrix.org/category/security/
+- FluffyChat: no new release found by web search. Commits not checked.
+- GitHub advisories (pub, rust) and FluffyChat commits: still not reachable
+  (the task is only given blackshadowde/Keepr). Not checked.
 
 ### 2026-11-27
 
